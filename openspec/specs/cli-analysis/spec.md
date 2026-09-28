@@ -131,11 +131,15 @@ The CLI SHALL select the .NET SDK used to load a target by resolving SDKs from t
 - **THEN** the process's standard output parses as exactly one JSON document, the error envelope with code `analysis-failure`, and contains no installed-SDK list
 
 ### Requirement: Document tool installation
-The repository SHALL document how to pack the CLI locally, install it as a global or local tool from a local package source, run it, update it, and uninstall it, and SHALL state the runtime, SDK, restore, and trust prerequisites for analyzed targets.
+The repository SHALL document how to install the CLI from nuget.org as a global or local tool, how to pack it from source and install it from a local package source, and how to run, update, and uninstall it, and SHALL state the runtime, SDK, restore, and trust prerequisites for analyzed targets.
 
 #### Scenario: Tester installs a preview
 - **WHEN** a tester follows the documented local pack and install steps on a machine with a supported .NET SDK
 - **THEN** the `efdoctor` command is available and can analyze a restored project
+
+#### Scenario: User installs a release
+- **WHEN** a user runs the documented `dotnet tool install --global EFDoctor` on a machine with a supported .NET runtime
+- **THEN** the latest release from nuget.org is installed, and `efdoctor --version` reports it
 
 ### Requirement: Run every shipped analyzer during workspace analysis
 The CLI SHALL run every EFDoctor analyzer that the analyzer assembly ships against the C# compilations of the supplied target. Findings from every rule SHALL go through the same reporting, ordering, suppression, privacy, test-project, and exit-code contracts, and SHALL keep the severity and confidence their rule assigns except where those shared contracts change them. Each rule's detection behavior is specified in that rule's own capability spec, not in this capability.

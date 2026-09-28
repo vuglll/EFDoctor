@@ -4,6 +4,10 @@ All notable changes to EFDoctor are documented here. Versions follow [Semantic V
 
 ## Unreleased
 
+## 0.2.0
+
+The first release built from the public repository, and the first stable 0.x release: install it with `dotnet tool install --global EFDoctor`, without `--prerelease`. Rules, options, and output may still change before 1.0; see the [roadmap](docs/roadmap.md).
+
 ### Changed
 
 - The tool package includes repository and project URLs, with Source Link, when it is built with the `EFDoctorRepositoryUrl` property set. By default it still includes none.

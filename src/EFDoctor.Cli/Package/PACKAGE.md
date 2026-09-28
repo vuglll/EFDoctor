@@ -4,12 +4,12 @@ Local-first performance and safety diagnostics for EF Core codebases.
 
 EFDoctor loads your solution with Roslyn and reports a small number of evidence-based findings, such as `SaveChanges` inside a loop, a query materialized before filtering, or an EF Core task that is never awaited. Each finding has a precise source location, a confidence level, the evidence that matched, the likely impact, and a practical fix. Nothing leaves your machine: there is no telemetry, network call, or source upload.
 
-> **Preview.** This is an early preview for validation. Rules and output may change before 1.0.
+> **0.x.** EFDoctor is usable today, but rules, options, and output may still change before 1.0.
 
 ## Install
 
 ```bash
-dotnet tool install --global EFDoctor --prerelease
+dotnet tool install --global EFDoctor
 ```
 
 EFDoctor needs the .NET 10 runtime or later, and a .NET SDK that can build the project you analyze.
