@@ -1,0 +1,105 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1030" height="370" viewBox="0 0 1030 370" role="img" aria-labelledby="title">
+<title id="title">efdoctor analyze on Microsoft's eShop: two synchronous EF Core calls inside async methods, 15 findings in total</title>
+<style>
+text{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;font-size:13px;fill:#c9d1d9;white-space:pre}
+.a{opacity:0;animation-duration:11.08s;animation-iteration-count:infinite;animation-timing-function:step-end}
+.prompt{fill:#7ee787}.command{fill:#e6edf3}.path{fill:#79c0ff}.rule{fill:#ffa657;font-weight:bold}
+.detail{fill:#c9d1d9}.elided{fill:#8b949e;font-style:italic}.summary{fill:#e6edf3;font-weight:bold}.output{fill:#8b949e}
+@media (prefers-reduced-motion:reduce){.a{animation:none;opacity:1}}
+@keyframes k0p{0%,4.513%{opacity:0}4.523%,99%{opacity:1}100%{opacity:0}}
+@keyframes k0c2{0%,4.919%{opacity:0}4.929%,99%{opacity:1}100%{opacity:0}}
+@keyframes k0c3{0%,5.325%{opacity:0}5.335%,99%{opacity:1}100%{opacity:0}}
+@keyframes k0c4{0%,5.731%{opacity:0}5.741%,99%{opacity:1}100%{opacity:0}}
+@keyframes k0c5{0%,6.137%{opacity:0}6.147%,99%{opacity:1}100%{opacity:0}}
+@keyframes k0c6{0%,6.543%{opacity:0}6.553%,99%{opacity:1}100%{opacity:0}}
+@keyframes k0c7{0%,6.949%{opacity:0}6.959%,99%{opacity:1}100%{opacity:0}}
+@keyframes k0c8{0%,7.356%{opacity:0}7.366%,99%{opacity:1}100%{opacity:0}}
+@keyframes k0c9{0%,7.762%{opacity:0}7.772%,99%{opacity:1}100%{opacity:0}}
+@keyframes k0c10{0%,8.168%{opacity:0}8.178%,99%{opacity:1}100%{opacity:0}}
+@keyframes k0c11{0%,8.574%{opacity:0}8.584%,99%{opacity:1}100%{opacity:0}}
+@keyframes k0c12{0%,8.980%{opacity:0}8.990%,99%{opacity:1}100%{opacity:0}}
+@keyframes k0c13{0%,9.386%{opacity:0}9.396%,99%{opacity:1}100%{opacity:0}}
+@keyframes k0c14{0%,9.792%{opacity:0}9.802%,99%{opacity:1}100%{opacity:0}}
+@keyframes k0c15{0%,10.199%{opacity:0}10.209%,99%{opacity:1}100%{opacity:0}}
+@keyframes k0c16{0%,10.605%{opacity:0}10.615%,99%{opacity:1}100%{opacity:0}}
+@keyframes k0c17{0%,11.011%{opacity:0}11.021%,99%{opacity:1}100%{opacity:0}}
+@keyframes k0c18{0%,11.417%{opacity:0}11.427%,99%{opacity:1}100%{opacity:0}}
+@keyframes k0c19{0%,11.823%{opacity:0}11.833%,99%{opacity:1}100%{opacity:0}}
+@keyframes k0c20{0%,12.229%{opacity:0}12.239%,99%{opacity:1}100%{opacity:0}}
+@keyframes k0c21{0%,12.635%{opacity:0}12.645%,99%{opacity:1}100%{opacity:0}}
+@keyframes k0c22{0%,13.042%{opacity:0}13.052%,99%{opacity:1}100%{opacity:0}}
+@keyframes k0c23{0%,13.448%{opacity:0}13.458%,99%{opacity:1}100%{opacity:0}}
+@keyframes k0c24{0%,13.854%{opacity:0}13.864%,99%{opacity:1}100%{opacity:0}}
+@keyframes k0c25{0%,14.260%{opacity:0}14.270%,99%{opacity:1}100%{opacity:0}}
+@keyframes k0c26{0%,14.666%{opacity:0}14.676%,99%{opacity:1}100%{opacity:0}}
+@keyframes k0c27{0%,15.072%{opacity:0}15.082%,99%{opacity:1}100%{opacity:0}}
+@keyframes k0c28{0%,15.478%{opacity:0}15.488%,99%{opacity:1}100%{opacity:0}}
+@keyframes k0c29{0%,15.884%{opacity:0}15.894%,99%{opacity:1}100%{opacity:0}}
+@keyframes k0c30{0%,16.291%{opacity:0}16.301%,99%{opacity:1}100%{opacity:0}}
+@keyframes k0c31{0%,16.697%{opacity:0}16.707%,99%{opacity:1}100%{opacity:0}}
+@keyframes k0c32{0%,17.103%{opacity:0}17.113%,99%{opacity:1}100%{opacity:0}}
+@keyframes k0c33{0%,17.509%{opacity:0}17.519%,99%{opacity:1}100%{opacity:0}}
+@keyframes k0c34{0%,17.915%{opacity:0}17.925%,99%{opacity:1}100%{opacity:0}}
+@keyframes k0c35{0%,18.321%{opacity:0}18.331%,99%{opacity:1}100%{opacity:0}}
+@keyframes k0c36{0%,18.727%{opacity:0}18.737%,99%{opacity:1}100%{opacity:0}}
+@keyframes k0c37{0%,19.134%{opacity:0}19.144%,99%{opacity:1}100%{opacity:0}}
+@keyframes k0c38{0%,19.540%{opacity:0}19.550%,99%{opacity:1}100%{opacity:0}}
+@keyframes k1{0%,26.038%{opacity:0}26.048%,99%{opacity:1}100%{opacity:0}}
+@keyframes k2p{0%,26.038%{opacity:0}26.048%,99%{opacity:1}100%{opacity:0}}
+@keyframes k2c2{0%,26.444%{opacity:0}26.454%,99%{opacity:1}100%{opacity:0}}
+@keyframes k2c3{0%,26.850%{opacity:0}26.860%,99%{opacity:1}100%{opacity:0}}
+@keyframes k2c4{0%,27.256%{opacity:0}27.266%,99%{opacity:1}100%{opacity:0}}
+@keyframes k2c5{0%,27.662%{opacity:0}27.672%,99%{opacity:1}100%{opacity:0}}
+@keyframes k2c6{0%,28.069%{opacity:0}28.079%,99%{opacity:1}100%{opacity:0}}
+@keyframes k2c7{0%,28.475%{opacity:0}28.485%,99%{opacity:1}100%{opacity:0}}
+@keyframes k2c8{0%,28.881%{opacity:0}28.891%,99%{opacity:1}100%{opacity:0}}
+@keyframes k2c9{0%,29.287%{opacity:0}29.297%,99%{opacity:1}100%{opacity:0}}
+@keyframes k2c10{0%,29.693%{opacity:0}29.703%,99%{opacity:1}100%{opacity:0}}
+@keyframes k2c11{0%,30.099%{opacity:0}30.109%,99%{opacity:1}100%{opacity:0}}
+@keyframes k2c12{0%,30.505%{opacity:0}30.515%,99%{opacity:1}100%{opacity:0}}
+@keyframes k2c13{0%,30.912%{opacity:0}30.922%,99%{opacity:1}100%{opacity:0}}
+@keyframes k2c14{0%,31.318%{opacity:0}31.328%,99%{opacity:1}100%{opacity:0}}
+@keyframes k2c15{0%,31.724%{opacity:0}31.734%,99%{opacity:1}100%{opacity:0}}
+@keyframes k2c16{0%,32.130%{opacity:0}32.140%,99%{opacity:1}100%{opacity:0}}
+@keyframes k2c17{0%,32.536%{opacity:0}32.546%,99%{opacity:1}100%{opacity:0}}
+@keyframes k2c18{0%,32.942%{opacity:0}32.952%,99%{opacity:1}100%{opacity:0}}
+@keyframes k2c19{0%,33.348%{opacity:0}33.358%,99%{opacity:1}100%{opacity:0}}
+@keyframes k2c20{0%,33.755%{opacity:0}33.765%,99%{opacity:1}100%{opacity:0}}
+@keyframes k2c21{0%,34.161%{opacity:0}34.171%,99%{opacity:1}100%{opacity:0}}
+@keyframes k2c22{0%,34.567%{opacity:0}34.577%,99%{opacity:1}100%{opacity:0}}
+@keyframes k2c23{0%,34.973%{opacity:0}34.983%,99%{opacity:1}100%{opacity:0}}
+@keyframes k2c24{0%,35.379%{opacity:0}35.389%,99%{opacity:1}100%{opacity:0}}
+@keyframes k2c25{0%,35.785%{opacity:0}35.795%,99%{opacity:1}100%{opacity:0}}
+@keyframes k2c26{0%,36.191%{opacity:0}36.201%,99%{opacity:1}100%{opacity:0}}
+@keyframes k2c27{0%,36.597%{opacity:0}36.607%,99%{opacity:1}100%{opacity:0}}
+@keyframes k2c28{0%,37.004%{opacity:0}37.014%,99%{opacity:1}100%{opacity:0}}
+@keyframes k3{0%,43.502%{opacity:0}43.512%,99%{opacity:1}100%{opacity:0}}
+@keyframes k4{0%,44.585%{opacity:0}44.595%,99%{opacity:1}100%{opacity:0}}
+@keyframes k5{0%,45.668%{opacity:0}45.678%,99%{opacity:1}100%{opacity:0}}
+@keyframes k6{0%,46.751%{opacity:0}46.761%,99%{opacity:1}100%{opacity:0}}
+@keyframes k8{0%,48.375%{opacity:0}48.385%,99%{opacity:1}100%{opacity:0}}
+@keyframes k9{0%,49.458%{opacity:0}49.468%,99%{opacity:1}100%{opacity:0}}
+@keyframes k10{0%,50.542%{opacity:0}50.552%,99%{opacity:1}100%{opacity:0}}
+@keyframes k11{0%,51.625%{opacity:0}51.635%,99%{opacity:1}100%{opacity:0}}
+@keyframes k13{0%,53.249%{opacity:0}53.259%,99%{opacity:1}100%{opacity:0}}
+@keyframes k15{0%,54.874%{opacity:0}54.884%,99%{opacity:1}100%{opacity:0}}
+</style>
+<rect width="1030" height="370" rx="8" fill="#0d1117"/>
+<rect width="1030" height="30" rx="8" fill="#161b22"/>
+<rect y="22" width="1030" height="8" fill="#161b22"/>
+<circle cx="18" cy="15" r="6" fill="#ff5f57"/><circle cx="38" cy="15" r="6" fill="#febc2e"/><circle cx="58" cy="15" r="6" fill="#28c840"/>
+<text x="515.0" y="19" text-anchor="middle" style="fill:#8b949e;font-size:12px">efdoctor — eShop</text>
+<text x="18" y="62" class="command"><tspan class="prompt a" style="animation-name:k0p">$ </tspan><tspan class="a" style="animation-name:k0c2">d</tspan><tspan class="a" style="animation-name:k0c3">o</tspan><tspan class="a" style="animation-name:k0c4">t</tspan><tspan class="a" style="animation-name:k0c5">n</tspan><tspan class="a" style="animation-name:k0c6">e</tspan><tspan class="a" style="animation-name:k0c7">t</tspan><tspan class="a" style="animation-name:k0c8"> </tspan><tspan class="a" style="animation-name:k0c9">t</tspan><tspan class="a" style="animation-name:k0c10">o</tspan><tspan class="a" style="animation-name:k0c11">o</tspan><tspan class="a" style="animation-name:k0c12">l</tspan><tspan class="a" style="animation-name:k0c13"> </tspan><tspan class="a" style="animation-name:k0c14">i</tspan><tspan class="a" style="animation-name:k0c15">n</tspan><tspan class="a" style="animation-name:k0c16">s</tspan><tspan class="a" style="animation-name:k0c17">t</tspan><tspan class="a" style="animation-name:k0c18">a</tspan><tspan class="a" style="animation-name:k0c19">l</tspan><tspan class="a" style="animation-name:k0c20">l</tspan><tspan class="a" style="animation-name:k0c21"> </tspan><tspan class="a" style="animation-name:k0c22">-</tspan><tspan class="a" style="animation-name:k0c23">-</tspan><tspan class="a" style="animation-name:k0c24">g</tspan><tspan class="a" style="animation-name:k0c25">l</tspan><tspan class="a" style="animation-name:k0c26">o</tspan><tspan class="a" style="animation-name:k0c27">b</tspan><tspan class="a" style="animation-name:k0c28">a</tspan><tspan class="a" style="animation-name:k0c29">l</tspan><tspan class="a" style="animation-name:k0c30"> </tspan><tspan class="a" style="animation-name:k0c31">E</tspan><tspan class="a" style="animation-name:k0c32">F</tspan><tspan class="a" style="animation-name:k0c33">D</tspan><tspan class="a" style="animation-name:k0c34">o</tspan><tspan class="a" style="animation-name:k0c35">c</tspan><tspan class="a" style="animation-name:k0c36">t</tspan><tspan class="a" style="animation-name:k0c37">o</tspan><tspan class="a" style="animation-name:k0c38">r</tspan></text>
+<text x="18" y="81" class="output a" style="animation-name:k1" xml:space="preserve">Tool 'efdoctor' (version '0.2.0') was successfully installed.</text>
+<text x="18" y="100" class="command"><tspan class="prompt a" style="animation-name:k2p">$ </tspan><tspan class="a" style="animation-name:k2c2">e</tspan><tspan class="a" style="animation-name:k2c3">f</tspan><tspan class="a" style="animation-name:k2c4">d</tspan><tspan class="a" style="animation-name:k2c5">o</tspan><tspan class="a" style="animation-name:k2c6">c</tspan><tspan class="a" style="animation-name:k2c7">t</tspan><tspan class="a" style="animation-name:k2c8">o</tspan><tspan class="a" style="animation-name:k2c9">r</tspan><tspan class="a" style="animation-name:k2c10"> </tspan><tspan class="a" style="animation-name:k2c11">a</tspan><tspan class="a" style="animation-name:k2c12">n</tspan><tspan class="a" style="animation-name:k2c13">a</tspan><tspan class="a" style="animation-name:k2c14">l</tspan><tspan class="a" style="animation-name:k2c15">y</tspan><tspan class="a" style="animation-name:k2c16">z</tspan><tspan class="a" style="animation-name:k2c17">e</tspan><tspan class="a" style="animation-name:k2c18"> </tspan><tspan class="a" style="animation-name:k2c19">e</tspan><tspan class="a" style="animation-name:k2c20">S</tspan><tspan class="a" style="animation-name:k2c21">h</tspan><tspan class="a" style="animation-name:k2c22">o</tspan><tspan class="a" style="animation-name:k2c23">p</tspan><tspan class="a" style="animation-name:k2c24">.</tspan><tspan class="a" style="animation-name:k2c25">s</tspan><tspan class="a" style="animation-name:k2c26">l</tspan><tspan class="a" style="animation-name:k2c27">n</tspan><tspan class="a" style="animation-name:k2c28">x</tspan></text>
+<text x="18" y="119" class="path a" style="animation-name:k3" xml:space="preserve">src/Catalog.API/Apis/CatalogApi.cs(439,20)-(439,82)</text>
+<text x="18" y="138" class="rule a" style="animation-name:k4" xml:space="preserve">  EFD010: Synchronous database call in an async method</text>
+<text x="18" y="157" class="detail a" style="animation-name:k5" xml:space="preserve">  Severity: Error | Confidence: Medium</text>
+<text x="18" y="176" class="detail a" style="animation-name:k6" xml:space="preserve">  Message: This synchronous EF Core database call runs inside an async method; await SingleOrDefaultAsync instead</text>
+<text x="18" y="214" class="path a" style="animation-name:k8" xml:space="preserve">src/Catalog.API/IntegrationEvents/EventHandling/OrderStatusChangedToAwaitingValidationIntegrationEventHandler.cs(17,31)-(17,89)</text>
+<text x="18" y="233" class="rule a" style="animation-name:k9" xml:space="preserve">  EFD010: Synchronous database call in an async method</text>
+<text x="18" y="252" class="detail a" style="animation-name:k10" xml:space="preserve">  Severity: Error | Confidence: Medium</text>
+<text x="18" y="271" class="detail a" style="animation-name:k11" xml:space="preserve">  Message: This synchronous EF Core database call runs inside an async method; await FindAsync instead</text>
+<text x="18" y="309" class="elided a" style="animation-name:k13" xml:space="preserve">  ⋮ 13 more findings</text>
+<text x="18" y="347" class="summary a" style="animation-name:k15" xml:space="preserve">Found 15 findings.</text>
+</svg>

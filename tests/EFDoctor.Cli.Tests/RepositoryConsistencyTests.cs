@@ -38,7 +38,7 @@ public sealed class RepositoryConsistencyTests
         var changelog = Read("CHANGELOG.md");
         var releases = Read("src/EFDoctor.Analyzers/AnalyzerReleases.Shipped.md") + "\n" + Read("src/EFDoctor.Analyzers/AnalyzerReleases.Unshipped.md");
         var statusCoverage = Coverage(SingleLine(readme, "> **Project status:**"));
-        var verificationCoverage = Coverage(SingleLine(readme, "- `tests/EFDoctor.Analyzers.Tests` covers"));
+        var verificationCoverage = Coverage(SingleLine(Read("docs/development.md"), "- `tests/EFDoctor.Analyzers.Tests` covers"));
         var specFolders = SpecCapabilities();
 
         var problems = new List<string>();
@@ -48,7 +48,7 @@ public sealed class RepositoryConsistencyTests
             Require(File.Exists(Path.Combine(Root, "docs", "rules", $"{id}.md")), id, $"docs/rules/{id}.md");
             Require(readme.Contains($"| **{id}** |", StringComparison.Ordinal), id, "a README rule-table row");
             Require(statusCoverage.Contains(id), id, "the README project status line");
-            Require(verificationCoverage.Contains(id), id, "the README verification map's analyzer-test list");
+            Require(verificationCoverage.Contains(id), id, "the analyzer-test list of the verification map in docs/development.md");
             Require(package.Contains($"| {id} |", StringComparison.Ordinal), id, "a PACKAGE.md rule-table row");
             Require(Regex.IsMatch(releases, $@"^{id} \|", RegexOptions.Multiline), id, "an AnalyzerReleases entry");
             Require(changelog.Contains(id, StringComparison.Ordinal), id, "a CHANGELOG entry");
@@ -71,7 +71,9 @@ public sealed class RepositoryConsistencyTests
         var shipped = ShippedRuleIds().ToHashSet(StringComparer.Ordinal);
         var problems = new List<string>();
 
-        foreach (var page in Directory.GetFiles(Path.Combine(Root, "docs", "rules"), "*.md"))
+        // Rule pages are named after their rule ID; other pages in the folder, such as the
+        // README with the rule boundaries, aren't rule pages.
+        foreach (var page in Directory.GetFiles(Path.Combine(Root, "docs", "rules"), "EFD*.md"))
         {
             var id = Path.GetFileNameWithoutExtension(page);
             if (!shipped.Contains(id))
@@ -261,7 +263,7 @@ public sealed class RepositoryConsistencyTests
 
     private static string SingleLine(string text, string prefix) =>
         text.Split('\n').SingleOrDefault(line => line.StartsWith(prefix, StringComparison.Ordinal))
-        ?? throw new InvalidOperationException($"README line starting with \"{prefix}\" was not found; update RepositoryConsistencyTests.");
+        ?? throw new InvalidOperationException($"No line starting with \"{prefix}\" was found; update RepositoryConsistencyTests.");
 
     private static string Read(string relativePath) => File.ReadAllText(Path.Combine(Root, relativePath));
 
