@@ -40,7 +40,7 @@ Both branches require the CI check to pass before a pull request can merge.
 1. On `dev`, set `<Version>` in `src/EFDoctor.Cli/EFDoctor.Cli.csproj` and update `<PackageReleaseNotes>`.
 2. In `CHANGELOG.md`, turn the **Unreleased** section into `## X.Y.Z`, and start a new, empty **Unreleased** section above it.
 3. In `src/EFDoctor.Analyzers/`, move any rules from `AnalyzerReleases.Unshipped.md` to `AnalyzerReleases.Shipped.md` under `## Release X.Y.Z`.
-4. Merge `dev` into `main` through a pull request.
+4. Merge `dev` into `main` through a pull request, using **Create a merge commit**. Squashing would give `main` a commit that `dev` doesn't have, and later release pull requests would show old changes again. Pull requests into `dev` are squash-merged.
 5. Tag the merge commit on `main` and push the tag:
 
    ```bash
