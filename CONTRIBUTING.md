@@ -28,6 +28,13 @@ Every behavior change goes through OpenSpec:
 
 Before picking a rule, check `openspec/changes/` and the open pull requests, so you don't duplicate work in progress.
 
+### Branches
+
+- **`dev`** is the default branch. Open pull requests against `dev`.
+- **`main`** holds releases only. A release is a pull request from `dev` to `main`, tagged `vX.Y.Z` after it merges.
+
+Both branches require the CI check to pass before a pull request can merge.
+
 Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/): `feat(analyzers): …`, `fix(efd005): …`, `docs(openspec): …`.
 
 ## Adding or changing a rule
