@@ -111,7 +111,7 @@ public sealed class PackagedToolTests
         Assert.Equal("icon.png", Value("icon"));
         Assert.Equal("PACKAGE.md", Value("readme"));
 
-        // URLs appear only when Directory.Build.props sets EFDoctorRepositoryUrl, as the public export does.
+        // URLs appear only when Directory.Build.props sets EFDoctorRepositoryUrl.
         var configuredUrl = XDocument.Load(Path.Combine(RepositoryRoot(), "Directory.Build.props"))
             .Descendants()
             .SingleOrDefault(static element => element.Name.LocalName == "EFDoctorRepositoryUrl")

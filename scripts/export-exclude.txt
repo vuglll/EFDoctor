@@ -1,8 +1,0 @@
-# Paths removed from the public export, relative to the repository root. Kept files must not
-# mention them, except paths marked "generated:", which the tooling recreates locally and may name.
-# Maintainer and agent instructions.
-CLAUDE.md
-# Private product and business notes; the public backlog is docs/roadmap.md.
-docs/product-brief.md
-# Raw validation reports and triage files; the harness regenerates them.
-generated: validation/results

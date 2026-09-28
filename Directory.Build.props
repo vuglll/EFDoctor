@@ -7,8 +7,8 @@
     <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <Authors>Nemanja Markovic</Authors>
-    <!-- The public repository URL. When set, the tool package links to it and carries Source Link;
-         the export script fills it in from its repo option. Empty keeps URLs out of the package. -->
+    <!-- The repository URL. When set, the tool package links to it and carries Source Link;
+         empty keeps URLs out of the package. -->
     <EFDoctorRepositoryUrl>https://github.com/vuglll/EFDoctor</EFDoctorRepositoryUrl>
     <Copyright>Copyright 2026 Nemanja Markovic</Copyright>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
