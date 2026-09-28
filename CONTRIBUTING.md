@@ -28,6 +28,27 @@ Every behavior change goes through OpenSpec:
 
 Before picking a rule, check `openspec/changes/` and the open pull requests, so you don't duplicate work in progress.
 
+### Branches
+
+- **`dev`** is the default branch. Open pull requests against `dev`.
+- **`main`** holds releases only. A release is a pull request from `dev` to `main`, tagged `vX.Y.Z` after it merges.
+
+Both branches require the CI check to pass before a pull request can merge.
+
+### Cutting a release
+
+1. On `dev`, set `<Version>` in `src/EFDoctor.Cli/EFDoctor.Cli.csproj` and update `<PackageReleaseNotes>`.
+2. In `CHANGELOG.md`, turn the **Unreleased** section into `## X.Y.Z`, and start a new, empty **Unreleased** section above it.
+3. In `src/EFDoctor.Analyzers/`, move any rules from `AnalyzerReleases.Unshipped.md` to `AnalyzerReleases.Shipped.md` under `## Release X.Y.Z`.
+4. Merge `dev` into `main` through a pull request, using **Create a merge commit**. Squashing would give `main` a commit that `dev` doesn't have, and later release pull requests would show old changes again. Pull requests into `dev` are squash-merged.
+5. Tag the merge commit on `main` and push the tag:
+
+   ```bash
+   git tag vX.Y.Z && git push origin vX.Y.Z
+   ```
+
+The `Release` workflow then checks that the tag is on `main` and matches `<Version>`, runs the tests, publishes the package to nuget.org through Trusted Publishing, and creates the GitHub release from the CHANGELOG section.
+
 Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/): `feat(analyzers): …`, `fix(efd005): …`, `docs(openspec): …`.
 
 ## Adding or changing a rule

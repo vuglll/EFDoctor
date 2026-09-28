@@ -207,39 +207,42 @@ Invalid-input and analysis failures requested in JSON mode use the same schema v
 
 ## Install as a .NET tool
 
-EFDoctor is packaged as the `EFDoctor` .NET tool with the command `efdoctor`. It is not published to nuget.org yet, so build the package locally and install from the resulting folder:
+EFDoctor is published on nuget.org as the `EFDoctor` .NET tool, with the command `efdoctor`. Install it globally, so `efdoctor` works from any directory:
 
 ```bash
-dotnet pack src/EFDoctor.Cli/EFDoctor.Cli.csproj -c Release -o artifacts
-# creates artifacts/EFDoctor.<version>.nupkg and a matching .snupkg symbols package
-```
-
-Install it globally, so `efdoctor` works from any directory:
-
-```bash
-dotnet tool install --global EFDoctor --prerelease --add-source ./artifacts
+dotnet tool install --global EFDoctor
 efdoctor --version
 efdoctor analyze path/to/App.sln
 ```
 
 Global tools are installed in `~/.dotnet/tools` (`%USERPROFILE%\.dotnet\tools` on Windows). If `efdoctor` is not found, add that directory to your `PATH`.
 
-Or install it as a local tool pinned in a repository's tool manifest (`dotnet-tools.json`):
+Or install it as a local tool, pinned in a repository's tool manifest (`dotnet-tools.json`):
 
 ```bash
 dotnet new tool-manifest
-dotnet tool install EFDoctor --prerelease --add-source /path/to/EFDoctor/artifacts
+dotnet tool install EFDoctor
 dotnet efdoctor analyze App.sln
 ```
 
 Update or remove it:
 
 ```bash
-dotnet tool update --global EFDoctor --prerelease --add-source ./artifacts
+dotnet tool update --global EFDoctor
 dotnet tool uninstall --global EFDoctor
 ```
 
-NuGet caches each package version, so a rebuilt package with an unchanged `<Version>` is not picked up by `install` or `update`. Bump the version in `src/EFDoctor.Cli/EFDoctor.Cli.csproj`, or delete `~/.nuget/packages/efdoctor/<version>` before reinstalling. To share a preview with testers, send them the `.nupkg` and have them use the same `--add-source` command against the folder that contains it.
+### Build and install from source
+
+To try unreleased changes, pack the tool from a checkout and install it from the output folder:
+
+```bash
+dotnet pack src/EFDoctor.Cli/EFDoctor.Cli.csproj -c Release -o artifacts
+# creates artifacts/EFDoctor.<version>.nupkg and a matching .snupkg symbols package
+dotnet tool update --global EFDoctor --add-source ./artifacts
+```
+
+NuGet caches each package version, so a rebuilt package with an unchanged `<Version>` is not picked up by `install` or `update`. Bump the version in `src/EFDoctor.Cli/EFDoctor.Cli.csproj`, or delete `~/.nuget/packages/efdoctor/<version>`, before reinstalling.
 
 Prerequisites for the machine that runs the tool:
 
