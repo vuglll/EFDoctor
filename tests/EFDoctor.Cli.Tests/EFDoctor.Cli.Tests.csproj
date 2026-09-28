@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/EFDoctor.Cli/EFDoctor.Cli.csproj" />
+    <ProjectReference Include="../../src/EFDoctor.Core/EFDoctor.Core.csproj" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="Microsoft.Build.Framework" ExcludeAssets="runtime" PrivateAssets="all" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" PrivateAssets="all" />
+  </ItemGroup>
+
+  <!-- A fixture that sets IsTestProject stays out of the solution, so `dotnet test` doesn't run it,
+       and solution restore never reaches it. The end-to-end tests analyze it, which needs it restored. -->
+  <Target Name="RestoreOutOfSolutionFixtures" BeforeTargets="Build">
+    <MSBuild Projects="../Fixtures/EFD005.TestSample/EFD005.TestSample.csproj"
+             Targets="Restore"
+             Properties="MSBuildRestoreSessionId=$([System.Guid]::NewGuid())" />
+  </Target>
+</Project>

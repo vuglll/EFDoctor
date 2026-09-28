@@ -1,0 +1,19 @@
+<!--
+  Imported by EFDoctor through CustomAfterMicrosoftCommonCrossTargetingTargets, so it runs only in a
+  multi-targeted project's outer evaluation. Roslyn's workspace build host splits TargetFrameworks on
+  ';' without trimming, so a list written across several lines yields an unrecognized TargetFramework.
+  A target framework moniker never contains whitespace, so removing it cannot change a valid list.
+-->
+<Project>
+  <!-- Property functions return escaped values ('%3B' for ';'), so unescape the result to keep it a list. -->
+  <PropertyGroup>
+    <TargetFrameworks>$([MSBuild]::Unescape($([System.Text.RegularExpressions.Regex]::Replace('$(TargetFrameworks)', '\s+', ''))))</TargetFrameworks>
+    <TargetFrameworks>$([MSBuild]::Unescape($([System.Text.RegularExpressions.Regex]::Replace('$(TargetFrameworks)', ';{2,}', ';').Trim(';'))))</TargetFrameworks>
+  </PropertyGroup>
+
+  <!-- Overriding the property must not drop the SDK's default machine-wide import. -->
+  <PropertyGroup>
+    <_EFDoctorDefaultCustomAfterCrossTargeting>$(MSBuildExtensionsPath)\v$(MSBuildToolsVersion)\Custom.After.Microsoft.Common.CrossTargeting.targets</_EFDoctorDefaultCustomAfterCrossTargeting>
+  </PropertyGroup>
+  <Import Project="$(_EFDoctorDefaultCustomAfterCrossTargeting)" Condition="Exists('$(_EFDoctorDefaultCustomAfterCrossTargeting)')" />
+</Project>

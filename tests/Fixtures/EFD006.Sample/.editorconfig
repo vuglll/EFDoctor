@@ -1,0 +1,3 @@
+[EditorConfigSuppressed.cs]
+# Reviewed: this query uses globally configured split-query behavior.
+dotnet_diagnostic.EFD006.severity = none

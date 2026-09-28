@@ -1,0 +1,3 @@
+[EditorConfigSuppressed.cs]
+# Reviewed: single-threaded console tool that disposes the context on exit.
+dotnet_diagnostic.EFD021.severity = none

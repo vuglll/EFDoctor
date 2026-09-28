@@ -1,0 +1,3 @@
+[EditorConfigSuppressed.cs]
+# Reviewed: this bounded set feeds intentional client-only processing.
+dotnet_diagnostic.EFD004.severity = none

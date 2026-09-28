@@ -1,0 +1,3 @@
+[EditorConfigSuppressed.cs]
+# Reviewed: the customer table is small and rarely searched.
+dotnet_diagnostic.EFD023.severity = none

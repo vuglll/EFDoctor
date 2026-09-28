@@ -1,0 +1,58 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <AssemblyName>efdoctor</AssemblyName>
+    <RootNamespace>EFDoctor.Cli</RootNamespace>
+    <!-- EFDoctor's own output is English-only; skip Roslyn's localized resource folders. -->
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <RollForward>Major</RollForward>
+  </PropertyGroup>
+
+  <PropertyGroup Label="Tool package">
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>efdoctor</ToolCommandName>
+    <PackageId>EFDoctor</PackageId>
+    <Version>0.1.0-preview.2</Version>
+    <Description>Local-first performance and safety diagnostics for EF Core codebases. Reports evidence-based findings such as SaveChanges in loops, premature materialization, and unawaited EF Core calls. Runs entirely on your machine with no network access.</Description>
+    <PackageTags>efcore;entity-framework-core;entityframework;roslyn;static-analysis;performance;dotnet-tool</PackageTags>
+    <PackageReadmeFile>PACKAGE.md</PackageReadmeFile>
+    <PackageIcon>icon.png</PackageIcon>
+    <PackageReleaseNotes>preview.2: test projects are now skipped by default (use --include-test-projects to analyze them); analysis no longer aborts on non-fatal MSBuild workspace load diagnostics (for example build warnings) and reports findings for projects that still produce a compilation; EFD003 supports SQL Server and PostgreSQL (Npgsql). Rules EFD001-EFD006, EFD011-EFD013, and EFD017-EFD019, console and JSON (schema version 1) output, and --version/--help. See CHANGELOG.md in the package.</PackageReleaseNotes>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <!-- Repository URLs and Source Link only when EFDoctorRepositoryUrl is set (Directory.Build.props). -->
+    <PublishRepositoryUrl>false</PublishRepositoryUrl>
+    <EnableSourceLink>false</EnableSourceLink>
+  </PropertyGroup>
+
+  <PropertyGroup Label="Repository" Condition="'$(EFDoctorRepositoryUrl)' != ''">
+    <RepositoryUrl>$(EFDoctorRepositoryUrl)</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageProjectUrl>$(EFDoctorRepositoryUrl)</PackageProjectUrl>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EnableSourceLink>true</EnableSourceLink>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../EFDoctor.Analyzers/EFDoctor.Analyzers.csproj" />
+    <ProjectReference Include="../EFDoctor.Core/EFDoctor.Core.csproj" />
+    <PackageReference Include="Microsoft.Build.Locator" />
+    <PackageReference Include="Microsoft.Build.Framework" ExcludeAssets="runtime" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" />
+    <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" />
+  </ItemGroup>
+
+  <ItemGroup Label="Package assets">
+    <None Include="Package/PACKAGE.md" Pack="true" PackagePath="/" />
+    <None Include="Package/icon.png" Pack="true" PackagePath="/" />
+    <None Include="../../NOTICE" Pack="true" PackagePath="/" />
+    <None Include="../../THIRD-PARTY-NOTICES.md" Pack="true" PackagePath="/" />
+    <None Include="../../CHANGELOG.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
+
+  <ItemGroup Label="Workspace loading">
+    <!-- Copied next to efdoctor.dll, which also places it in the tool package's tools/<tfm>/any/build/. -->
+    <None Include="build/EFDoctor.Workspace.targets" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,3 @@
+[EditorConfigSuppressed.cs]
+# Reviewed: intentional unordered sample; ordering is applied downstream.
+dotnet_diagnostic.EFD014.severity = none

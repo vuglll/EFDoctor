@@ -1,0 +1,3 @@
+[EditorConfigSuppressed.cs]
+# Reviewed: the second enumeration intentionally re-queries after a save.
+dotnet_diagnostic.EFD020.severity = none

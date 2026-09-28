@@ -1,0 +1,3 @@
+[EditorConfigSuppressed.cs]
+# Reviewed: this query is materialized and filtered on the client on purpose.
+dotnet_diagnostic.EFD022.severity = none

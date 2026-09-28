@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- The framework list is written across lines, as OpenIddict's Directory.Build.props does. The
+       reference to a multi-targeted project with a multi-line list exercises nearest-framework
+       resolution, which needs the normalized list to stay a list. -->
+  <PropertyGroup>
+    <TargetFrameworks>
+      net10.0
+    </TargetFrameworks>
+    <OutputType>Library</OutputType>
+    <WarningsNotAsErrors>$(WarningsNotAsErrors);EFD001</WarningsNotAsErrors>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+    <ProjectReference Include="../Workspace.MultiLineTargetFrameworks/Workspace.MultiLineTargetFrameworks.csproj" />
+  </ItemGroup>
+</Project>

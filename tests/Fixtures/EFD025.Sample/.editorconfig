@@ -1,0 +1,3 @@
+[EditorConfigSuppressed.cs]
+# Reviewed: the repeated include mirrors a generated query template kept in sync by hand.
+dotnet_diagnostic.EFD025.severity = none

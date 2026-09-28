@@ -1,0 +1,16 @@
+<Project>
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Deterministic>true</Deterministic>
+    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <Authors>Nemanja Markovic</Authors>
+    <!-- The public repository URL. When set, the tool package links to it and carries Source Link;
+         the export script fills it in from its repo option. Empty keeps URLs out of the package. -->
+    <EFDoctorRepositoryUrl>https://github.com/vuglll/EFDoctor</EFDoctorRepositoryUrl>
+    <Copyright>Copyright 2026 Nemanja Markovic</Copyright>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+  </PropertyGroup>
+</Project>

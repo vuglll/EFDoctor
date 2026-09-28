@@ -1,0 +1,9 @@
+root = true
+
+[EditorConfigSuppressed.cs]
+# Intentional per-item consistency boundary; reviewed for EFD001.
+dotnet_diagnostic.EFD001.severity = none
+
+[CountEditorConfigSuppressed.cs]
+# Count retained for provider-specific diagnostics; reviewed for EFD002.
+dotnet_diagnostic.EFD002.severity = none

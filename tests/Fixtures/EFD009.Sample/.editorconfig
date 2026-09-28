@@ -1,0 +1,3 @@
+[EditorConfigSuppressed.cs]
+# Reviewed: an expression index on LOWER(Email) backs this lookup.
+dotnet_diagnostic.EFD009.severity = none

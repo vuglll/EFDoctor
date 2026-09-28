@@ -1,0 +1,3 @@
+[EditorConfigSuppressed.cs]
+# Reviewed: legacy synchronous integration boundary.
+dotnet_diagnostic.EFD011.severity = none

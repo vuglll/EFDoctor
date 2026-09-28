@@ -1,0 +1,3 @@
+[EditorConfigSuppressed.cs]
+# Reviewed: fragment is selected from a fixed allow-list.
+dotnet_diagnostic.EFD012.severity = none

@@ -1,0 +1,3 @@
+[EditorConfigSuppressed.cs]
+# Reviewed: the include documents the aggregate boundary for readers of this read model.
+dotnet_diagnostic.EFD017.severity = none

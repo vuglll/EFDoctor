@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <OutputType>Library</OutputType>
+    <WarningsNotAsErrors>$(WarningsNotAsErrors);EFD011;EFD018</WarningsNotAsErrors>
+    <!-- EFD018 reports the unawaited EF Core task that CS4014 also flags in async methods. -->
+    <NoWarn>$(NoWarn);CS4014</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" />
+  </ItemGroup>
+</Project>

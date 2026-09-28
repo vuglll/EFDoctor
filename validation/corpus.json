@@ -1,0 +1,55 @@
+{
+  "description": "Public open-source EF Core projects used to measure EFDoctor precision. Each entry is pinned to a commit so findings and triage verdicts stay stable across runs.",
+  "projects": [
+    {
+      "name": "eshop",
+      "repository": "https://github.com/dotnet/eShop",
+      "commit": "b4a40872005d4bb29e5b1fa1ff7e244143d39215",
+      "target": "eShop.slnx",
+      "kind": "reference app"
+    },
+    {
+      "name": "jt-cleanarch",
+      "repository": "https://github.com/jasontaylordev/CleanArchitecture",
+      "commit": "1d71eefc5ccf9a5e9b2db86e4cf08070148c7bb4",
+      "target": "CleanArchitecture.slnx",
+      "kind": "template"
+    },
+    {
+      "name": "ardalis-cleanarch",
+      "repository": "https://github.com/ardalis/CleanArchitecture",
+      "commit": "e7c79be54ba0b001a5b332c1efe935f520b9db4b",
+      "target": "Clean.Architecture.slnx",
+      "kind": "template"
+    },
+    {
+      "name": "jellyfin",
+      "repository": "https://github.com/jellyfin/jellyfin",
+      "commit": "208c278b75abd897aefa1e1175126eac5e4dbfaa",
+      "target": "Jellyfin.sln",
+      "kind": "application"
+    },
+    {
+      "name": "bitwarden",
+      "repository": "https://github.com/bitwarden/server",
+      "commit": "aa786fc9cd3803f48e79f15067e910e99d768b69",
+      "target": "bitwarden-server.slnx",
+      "kind": "application"
+    },
+    {
+      "name": "smartstore",
+      "repository": "https://github.com/smartstore/Smartstore",
+      "commit": "8076f084619e705285c7f7552a9ddf3e7ef51b74",
+      "target": "Smartstore.sln",
+      "kind": "application"
+    },
+    {
+      "name": "openiddict",
+      "repository": "https://github.com/openiddict/openiddict-core",
+      "commit": "fb2134b3c0e4d85efc021388112d36c8415b9e34",
+      "target": "src/OpenIddict.EntityFrameworkCore/OpenIddict.EntityFrameworkCore.csproj",
+      "kind": "library",
+      "note": "Targets the EF Core store library only: the solution also contains MAUI, WinForms, and WPF sandbox apps whose workloads are not available on every platform."
+    }
+  ]
+}

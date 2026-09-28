@@ -1,0 +1,3 @@
+[EditorConfigSuppressed.cs]
+# Reviewed: startup seeding runs off the request path.
+dotnet_diagnostic.EFD010.severity = none

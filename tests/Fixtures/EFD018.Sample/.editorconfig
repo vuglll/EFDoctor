@@ -1,0 +1,3 @@
+[EditorConfigSuppressed.cs]
+# Reviewed: best-effort audit write on a dedicated, separately scoped context.
+dotnet_diagnostic.EFD018.severity = none

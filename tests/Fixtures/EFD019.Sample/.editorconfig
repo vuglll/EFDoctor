@@ -1,0 +1,3 @@
+[EditorConfigSuppressed.cs]
+# Reviewed: the settings table holds a handful of rows and the list is cheap to buffer.
+dotnet_diagnostic.EFD019.severity = none

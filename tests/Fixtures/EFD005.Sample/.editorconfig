@@ -1,0 +1,3 @@
+[EditorConfigSuppressed.cs]
+# Reviewed: this known-small reference table is intentionally cached in full.
+dotnet_diagnostic.EFD005.severity = none

@@ -1,0 +1,3 @@
+[EditorConfigSuppressed.cs]
+# Reviewed: tracked callbacks are required for this operation.
+dotnet_diagnostic.EFD013.severity = none
