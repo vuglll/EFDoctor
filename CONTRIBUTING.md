@@ -61,18 +61,16 @@ Commit messages follow [Conventional Commits](https://www.conventionalcommits.or
 - a spec folder, `openspec/specs/efdNNN-…`
 - a rule page, `docs/rules/EFDNNN.md`
 - a row in the README rule table
-- coverage in the README **Project status** line and in the analyzer-test list of the **Verification map** (a range such as "EFD011 through EFD014" counts)
+- coverage in the README **Project status** line, and in the analyzer-test list of the **Verification map** in `docs/development.md` (a range such as "EFD011 through EFD014" counts)
 - a row in the `src/EFDoctor.Cli/Package/PACKAGE.md` rule table
 - an `AnalyzerReleases` entry
 - a `CHANGELOG.md` entry, under **Unreleased** for a new rule
 
-**Still manual.** Update these README sections too; the checks don't parse them:
+**Still manual.** Update these too; the checks don't parse them:
 
-- the **Implementation history** list
-- the `SuppressMessage` category note, when you add a category
-- a `For EFDNNN, use diagnostic ID …` suppression paragraph
-- an `## EFDNNN … boundary` section
-- the end-to-end list in the **Verification map**
+- `docs/development.md`: the **Implementation history** list, and the end-to-end list in the **Verification map**
+- `docs/suppression.md`: the `SuppressMessage` category note when you add a category, and a `For EFDNNN, use diagnostic ID …` paragraph
+- `docs/rules/README.md`: an `## EFDNNN … boundary` section
 
 **Don't add a `cli-analysis` requirement for a new rule.** The requirement "Run every shipped analyzer during workspace analysis" covers every rule, and the registration check enforces it. A rule's behavior belongs in its own capability spec.
 
