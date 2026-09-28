@@ -33,7 +33,7 @@ Before picking a rule, check `openspec/changes/` and the open pull requests, so 
 - **`dev`** is the default branch. Open pull requests against `dev`.
 - **`main`** holds releases only. A release is a pull request from `dev` to `main`, tagged `vX.Y.Z` after it merges.
 
-Both branches require the CI check to pass before a pull request can merge.
+Both branches require the CI check to pass, and an approving review from a code owner (listed in [`.github/CODEOWNERS`](.github/CODEOWNERS)), before a pull request can merge. GitHub doesn't count an author's approval of their own pull request.
 
 ### Cutting a release
 

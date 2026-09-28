@@ -28,6 +28,9 @@ packages/
 .DS_Store
 Thumbs.db
 
+# Validation harness output (raw reports and triage files quote corpus code)
+validation/results/
+
 # Local environment files
 .env
 .env.*

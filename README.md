@@ -96,7 +96,6 @@ openspec/
   specs/                  Current behavior contracts
   changes/archive/        Completed changes
 validation/               Real-project corpus and the precision harness
-scripts/                  Maintainer scripts, including the public export
 ```
 
 Detection logic, shared reporting contracts, and CLI orchestration stay separated: analyzers only emit Roslyn diagnostics with the shared finding properties, and the CLI maps them into findings.

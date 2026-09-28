@@ -1,0 +1,3 @@
+# Approvers for every pull request. Branch protection on dev and main requires one approving
+# review from a code owner. Add approvers here; they also need write access to the repository.
+* @vuglll

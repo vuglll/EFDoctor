@@ -12,7 +12,7 @@ EFDoctor's rules are validated by running them against real, open-source EF Core
 | `SUMMARY.md` | Generated precision tables for the latest run |
 | `FINDINGS.md` | A hand-written log of what validation found, and what was fixed |
 
-Running the harness also writes these outputs, which the public repository doesn't track:
+Running the harness also writes these outputs, which `.gitignore` keeps out of the repository:
 
 | Path | Contents |
 |---|---|
