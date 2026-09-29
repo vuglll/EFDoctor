@@ -188,3 +188,10 @@ When no installed SDK satisfies a target's `global.json`, JSON mode printed the 
 3. Fix EFD010 (6), EFD006 (7), the chain-proof recall gap, and the unrestored-target warning.
 4. Add each false-positive shape above as a regression fixture while fixing it.
 5. Install SDK 10.0.401 to add jasontaylordev/CleanArchitecture, and re-run the whole corpus after the fixes.
+
+## New rules: EFD027 and EFD029 (2026-09-29)
+
+The corpus was re-run for the two rules added in the public repository. jasontaylordev/CleanArchitecture is still incomplete (its SDK pin); the other six projects completed.
+
+- **EFD029** (`OrderBy` that discards an earlier ordering): 1 finding, **TP**. Smartstore `ProductBatchContext.BuildSpecAttributesQuery` sorts with `.OrderBy(x => x.ProductId).OrderBy(x => x.DisplayOrder)`, where `ThenBy` was meant. The impact is benign there, because the results are regrouped by `ProductId`, but the first ordering is dead code.
+- **EFD027** (concurrent operations on one `DbContext`): 0 findings. The corpus has 90 non-test `Task.WhenAll`/`Task.WhenAny` call sites. The ones that could involve data access (Jellyfin `SearchManager`, Smartstore `LocalizedEntityService`) combine provider or cache tasks, not EF operations on a shared context. So the corpus doesn't exercise the rule's shapes, and its precision on real code is still unmeasured. A codebase that mixes a scoped `DbContext` with `Task.WhenAll` would be a useful addition to the corpus.
