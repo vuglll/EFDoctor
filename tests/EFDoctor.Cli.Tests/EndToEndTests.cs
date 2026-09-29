@@ -234,7 +234,7 @@ public sealed class EndToEndTests
 
         Assert.Equal(1, console.ExitCode);
         Assert.Empty(console.StandardError);
-        Assert.Contains("Found 10 findings.", console.StandardOutput);
+        Assert.Contains("Found 11 findings.", console.StandardOutput);
         Assert.Contains("EFD001", console.StandardOutput, StringComparison.Ordinal);
         Assert.Contains("EFD005", console.StandardOutput, StringComparison.Ordinal);
         Assert.Contains("EFD012", console.StandardOutput, StringComparison.Ordinal);
@@ -245,16 +245,17 @@ public sealed class EndToEndTests
         Assert.Contains("EFD025", console.StandardOutput, StringComparison.Ordinal);
         Assert.Contains("EFD009", console.StandardOutput, StringComparison.Ordinal);
         Assert.Contains("EFD023", console.StandardOutput, StringComparison.Ordinal);
-        Assert.Equal(10, CountOccurrences(console.StandardOutput, "Severity: Info"));
-        Assert.Equal(10, CountOccurrences(console.StandardOutput, "Confidence: Advisory"));
+        Assert.Contains("EFD029", console.StandardOutput, StringComparison.Ordinal);
+        Assert.Equal(11, CountOccurrences(console.StandardOutput, "Severity: Info"));
+        Assert.Equal(11, CountOccurrences(console.StandardOutput, "Confidence: Advisory"));
 
         Assert.Equal(1, json.ExitCode);
         Assert.Empty(json.StandardError);
         using var document = JsonDocument.Parse(json.StandardOutput);
         Assert.Equal(1, document.RootElement.GetProperty("schemaVersion").GetInt32());
         var findings = document.RootElement.GetProperty("findings").EnumerateArray().ToArray();
-        Assert.Equal(10, findings.Length);
-        Assert.Equal(new[] { "EFD005", "EFD001", "EFD012", "EFD013", "EFD017", "EFD018", "EFD019", "EFD025", "EFD009", "EFD023" }, findings.Select(static finding => finding.GetProperty("ruleId").GetString()));
+        Assert.Equal(11, findings.Length);
+        Assert.Equal(new[] { "EFD005", "EFD001", "EFD012", "EFD013", "EFD017", "EFD018", "EFD019", "EFD025", "EFD009", "EFD023", "EFD029" }, findings.Select(static finding => finding.GetProperty("ruleId").GetString()));
         Assert.All(findings, static finding =>
         {
             Assert.Equal("info", finding.GetProperty("severity").GetString());
@@ -636,6 +637,57 @@ public sealed class EndToEndTests
         Assert.Contains("'Order.Customer' is a duplicate", findings[0].GetProperty("evidence").GetString(), StringComparison.Ordinal);
         Assert.Contains("'Order.Lines' is covered by a longer path: 'Order.Lines.Product'", findings[1].GetProperty("evidence").GetString(), StringComparison.Ordinal);
         Assert.Contains("\"Customer.Address\" is a duplicate", findings[2].GetProperty("evidence").GetString(), StringComparison.Ordinal);
+        var orderedKeys = findings.Select(static finding => $"{finding.GetProperty("sourceFile").GetString()}:{finding.GetProperty("range").GetProperty("startLine").GetInt32():D6}:{finding.GetProperty("range").GetProperty("startColumn").GetInt32():D6}:{finding.GetProperty("ruleId").GetString()}").ToArray();
+        Assert.Equal(orderedKeys.OrderBy(static key => key, StringComparer.Ordinal), orderedKeys);
+    }
+
+    [Fact]
+    [Trait("Spec", "efd029-orderby-replaces-ordering/Complete structured finding")]
+    [Trait("Spec", "efd029-orderby-replaces-ordering/Console and JSON reporting")]
+    [Trait("Spec", "efd029-orderby-replaces-ordering/CLI end-to-end fixture")]
+    [Trait("Spec", "efd029-orderby-replaces-ordering/Pragma suppression")]
+    [Trait("Spec", "efd029-orderby-replaces-ordering/Editor configuration suppression")]
+    [Trait("Spec", "efd029-orderby-replaces-ordering/SuppressMessage attribute")]
+    public async Task Efd029FixtureProducesOnlyUnsuppressedReplacedOrderingFindings()
+    {
+        var project = Path.Combine(RepositoryRoot(), "tests", "Fixtures", "EFD029.Sample", "EFD029.Sample.csproj");
+
+        var console = await RunCliAsync("analyze", project, "--no-color", "--quiet");
+        var json = await RunCliAsync("analyze", project, "--format", "json", "--quiet");
+
+        Assert.Equal(1, console.ExitCode);
+        Assert.Empty(console.StandardError);
+        Assert.Contains("Found 2 findings.", console.StandardOutput);
+        Assert.Equal(2, CountOccurrences(console.StandardOutput, "  EFD029:"));
+        Assert.Contains("OrderBy discards an earlier ordering", console.StandardOutput);
+        Assert.Equal(2, CountOccurrences(console.StandardOutput, "Severity: Warning | Confidence: High"));
+        Assert.Contains("replace this OrderBy with ThenBy", console.StandardOutput, StringComparison.Ordinal);
+        Assert.DoesNotContain("EditorConfigSuppressed.cs", console.StandardOutput);
+        Assert.DoesNotContain('\u001b', console.StandardOutput);
+
+        Assert.Equal(1, json.ExitCode);
+        Assert.Empty(json.StandardError);
+        using var document = JsonDocument.Parse(json.StandardOutput);
+        Assert.Equal(1, document.RootElement.GetProperty("schemaVersion").GetInt32());
+        Assert.Equal(2, document.RootElement.GetProperty("summary").GetProperty("findingCount").GetInt32());
+        var findings = document.RootElement.GetProperty("findings").EnumerateArray().ToArray();
+        Assert.Equal(2, findings.Length);
+        Assert.All(findings, static finding =>
+        {
+            Assert.Equal("EFD029", finding.GetProperty("ruleId").GetString());
+            Assert.Equal("OrderBy discards an earlier ordering", finding.GetProperty("ruleTitle").GetString());
+            Assert.Equal("warning", finding.GetProperty("severity").GetString());
+            Assert.Equal("high", finding.GetProperty("confidence").GetString());
+            Assert.EndsWith("tests/Fixtures/EFD029.Sample/OrderingCases.cs", finding.GetProperty("sourceFile").GetString(), StringComparison.Ordinal);
+            Assert.Contains("DbSet origin 'context.Orders'", finding.GetProperty("evidence").GetString(), StringComparison.Ordinal);
+            Assert.Contains("EF Core translates only the last OrderBy", finding.GetProperty("likelyImpact").GetString(), StringComparison.Ordinal);
+            Assert.Contains("replace this OrderBy with ThenBy", finding.GetProperty("suggestedRemediation").GetString(), StringComparison.Ordinal);
+            Assert.Equal("EFD029", finding.GetProperty("documentationReference").GetString());
+        });
+        Assert.Equal((21, 57, 21, 91), Range(findings[0]));
+        Assert.Equal((25, 127, 25, 171), Range(findings[1]));
+        Assert.Contains("already ordered by 'OrderBy', which this OrderBy replaces", findings[0].GetProperty("evidence").GetString(), StringComparison.Ordinal);
+        Assert.Contains("already ordered by 'OrderBy -> ThenBy', which this OrderByDescending replaces", findings[1].GetProperty("evidence").GetString(), StringComparison.Ordinal);
         var orderedKeys = findings.Select(static finding => $"{finding.GetProperty("sourceFile").GetString()}:{finding.GetProperty("range").GetProperty("startLine").GetInt32():D6}:{finding.GetProperty("range").GetProperty("startColumn").GetInt32():D6}:{finding.GetProperty("ruleId").GetString()}").ToArray();
         Assert.Equal(orderedKeys.OrderBy(static key => key, StringComparer.Ordinal), orderedKeys);
     }

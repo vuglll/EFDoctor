@@ -4,6 +4,10 @@ All notable changes to EFDoctor are documented here. Versions follow [Semantic V
 
 ## Unreleased
 
+### Added
+
+- EFD029: a second `OrderBy` or `OrderByDescending` that discards an earlier ordering in the same query, where `ThenBy` was meant. EF Core translates only the last `OrderBy`, so the query sorts by the replacing key alone. Reported at `Warning` severity with high confidence under the `Correctness` category. A second ordering after `Skip`, `Take`, `Distinct`, or a projection, and a default ordering overridden through a local, are not reported.
+
 ## 0.2.0
 
 The first release built from the public repository, and the first stable 0.x release: install it with `dotnet tool install --global EFDoctor`, without `--prerelease`. Rules, options, and output may still change before 1.0; see the [roadmap](docs/roadmap.md).

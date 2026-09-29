@@ -39,7 +39,7 @@ void SaveIndependently(DbContext context, IEnumerable<Item> items)
 
 EFDoctor has no proprietary suppression file.
 
-`SuppressMessage` matches on the rule's category as well as its ID. Most rules use `Performance`; EFD012 uses `Security`, EFD014, EFD017, EFD018, and EFD022 use `Correctness`, EFD021 uses `Reliability`, and EFD025 uses `Maintainability`. Each rule page shows the exact attribute.
+`SuppressMessage` matches on the rule's category as well as its ID. Most rules use `Performance`; EFD012 uses `Security`, EFD014, EFD017, EFD018, EFD022, and EFD029 use `Correctness`, EFD021 uses `Reliability`, and EFD025 uses `Maintainability`. Each rule page shows the exact attribute.
 
 For EFD002, use the same mechanisms with diagnostic ID `EFD002`. Examples and guidance for positive, empty-set, synchronous, and asynchronous existence checks are in [`docs/rules/EFD002.md`](rules/EFD002.md).
 
@@ -78,3 +78,5 @@ For EFD022, use diagnostic ID `EFD022` only when the query is deliberately mater
 For EFD023, use diagnostic ID `EFD023` and record why a scan is acceptable—for example, because the table is small or a trigram or full-text index already backs the search. To turn the advisory rule off entirely, set `dotnet_diagnostic.EFD023.severity = none` in `.editorconfig`. See [`docs/rules/EFD023.md`](rules/EFD023.md) for suppression examples.
 
 For EFD025, use diagnostic ID `EFD025` and record why the redundant include is kept—for example, to mirror a generated query template. To turn the cleanup rule off entirely, set `dotnet_diagnostic.EFD025.severity = none` in `.editorconfig`. See [`docs/rules/EFD025.md`](rules/EFD025.md) for suppression examples.
+
+For EFD029, use diagnostic ID `EFD029` and record why the earlier ordering is overridden on purpose. Deleting the earlier ordering is usually clearer than suppressing. See [`docs/rules/EFD029.md`](rules/EFD029.md) for suppression examples.

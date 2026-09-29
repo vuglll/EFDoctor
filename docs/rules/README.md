@@ -5,7 +5,7 @@ Each rule's full contract is on its own page in this folder. This page summarize
 
 ## Query locals
 
-Every rule that proves an EF Core query chain traces it from the operator it reports on back to a `DbSet<T>` or `DbContext.Set<TEntity>()`, through resolved `Queryable` and EF Core composition. That covers EFD004, EFD005, EFD006, EFD009, EFD010, EFD013, EFD014, EFD017, EFD019, EFD020, EFD022, EFD023, and EFD025. The chain may pass through a local variable when the local's value at that point is **statically determined**:
+Every rule that proves an EF Core query chain traces it from the operator it reports on back to a `DbSet<T>` or `DbContext.Set<TEntity>()`, through resolved `Queryable` and EF Core composition. That covers EFD004, EFD005, EFD006, EFD009, EFD010, EFD013, EFD014, EFD017, EFD019, EFD020, EFD022, EFD023, EFD025, and EFD029. The chain may pass through a local variable when the local's value at that point is **statically determined**:
 
 - the local is declared with an initializer, and every other write to it is a plain `query = …;` statement directly in the same block;
 - it is never written through `ref`/`out`, a `ref` alias, deconstruction, or compound assignment;
@@ -146,3 +146,9 @@ Prefix searches, `Like` patterns of unknown shape, `StringComparison` overloads 
 EFD025 semantically identifies resolved EF Core `Include`/`ThenInclude` chains in one inline query traced to `DbSet<T>` or `DbContext.Set<TEntity>()`. It reports a chain whose full navigation path duplicates an earlier chain, or is a strict prefix of a longer chain anywhere in the same query. Paths are compared by resolved property symbol. Constant string paths are compared only with other string paths. Findings use `Info` severity and high confidence, and the earliest occurrence of every longest path is never reported, so deleting every reported chain keeps the loaded navigations unchanged.
 
 A repeated leading `Include` that branches into a different `ThenInclude` is required syntax and is not reported. Filtered includes, casts, non-constant strings, string-versus-expression pairs, includes split across helpers or conditionally reassigned locals, element-type-changing operators, and model `AutoInclude()` configuration are outside the rule. See [`docs/rules/EFD025.md`](EFD025.md) for the complete contract.
+
+## EFD029 replaced-ordering boundary
+
+EFD029 semantically identifies a `Queryable.OrderBy` or `OrderByDescending` whose inline source reaches an earlier `OrderBy` or `OrderByDescending`, through any `ThenBy`/`ThenByDescending` plus only `Where`, EF Core include, tracking, query-filter, tag, and split-query operators, on a query traced to `DbSet<T>` or `DbContext.Set<TEntity>()`. It reports each replacing call once, with high confidence, `Warning` severity, and the `Correctness` category.
+
+`Skip`, `Take`, `Distinct`, projections, and every other operator between the two orderings end the search, because they can give the first ordering a purpose. The stretch between the two orderings must be inline: an earlier ordering held in a local is a default being overridden, and it is not followed, although the query before the first ordering may pass through a local. In-memory ordering, unproven sources, and look-alike methods are outside the rule. See [`docs/rules/EFD029.md`](EFD029.md) for the complete contract.
