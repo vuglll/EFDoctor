@@ -60,4 +60,7 @@ public static class TestProjectCases
 
     public static IQueryable<TestEntity> SubstringSearch(TestContext context, string term) =>
         context.Entities.Where(entity => entity.Name.Contains(term));
+
+    public static IQueryable<TestEntity> ReplacedOrdering(TestContext context) =>
+        context.Entities.OrderBy(entity => entity.Name).OrderBy(entity => entity.Id);
 }

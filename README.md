@@ -12,7 +12,7 @@ EFDoctor is a .NET tool that reads your solution with Roslyn and reports EF Core
 
 <sub>Real output of `efdoctor` 0.2.0 on [Microsoft's eShop](https://github.com/dotnet/eShop) at commit `b4a4087`, trimmed to two of its 15 findings. Paths are shown relative to the checkout.</sub>
 
-> **Project status:** 0.x. EFD001 through EFD006, EFD009 through EFD014, EFD017 through EFD023, and EFD025 ship in the `efdoctor` tool. Rules, options, and output may still change before 1.0; see the [roadmap](docs/roadmap.md).
+> **Project status:** 0.x. EFD001 through EFD006, EFD009 through EFD014, EFD017 through EFD023, EFD025, and EFD029 ship in the `efdoctor` tool. Rules, options, and output may still change before 1.0; see the [roadmap](docs/roadmap.md).
 
 ## Quick start
 
@@ -71,6 +71,7 @@ Precision matters more than rule count, so every finding on the corpus gets a ve
 | **EFD022** | `StringComparison` overload in a query predicate, which EF Core can't translate and throws at runtime | High |
 | **EFD023** | `Contains`, `EndsWith`, or a leading-wildcard `Like` on a column, which can't seek an index | Advisory |
 | **EFD025** | `Include` path that duplicates, or is covered by, another `Include` in the same query | High |
+| **EFD029** | Second `OrderBy` that discards an earlier ordering where `ThenBy` was meant | High |
 
 Each rule has a reference page in [`docs/rules/`](docs/rules/) with what triggers it, what deliberately doesn't, the remediation, and how to suppress it. [Rule boundaries](docs/rules/README.md) summarizes how far each rule follows your code.
 

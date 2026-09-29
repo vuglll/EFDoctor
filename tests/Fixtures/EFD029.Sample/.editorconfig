@@ -1,0 +1,3 @@
+[EditorConfigSuppressed.cs]
+# Reviewed: the default ordering is overridden on purpose.
+dotnet_diagnostic.EFD029.severity = none
