@@ -47,7 +47,17 @@ Both branches require the CI check to pass, and an approving review from a code 
    git tag vX.Y.Z && git push origin vX.Y.Z
    ```
 
-The `Release` workflow then checks that the tag is on `main` and matches `<Version>`, runs the tests, publishes the package to nuget.org through Trusted Publishing, and creates the GitHub release from the CHANGELOG section.
+   The `Release` workflow then checks that the tag is on `main` and matches `<Version>`, runs the tests, publishes the package to nuget.org through Trusted Publishing, and creates the GitHub release from the CHANGELOG section.
+6. Merge `main` back into `dev`, so the release merge commit is in `dev`'s history too. The merge changes no files; it only keeps the branches from drifting apart:
+
+   ```bash
+   git fetch origin
+   git switch -c chore/merge-main-into-dev-X.Y.Z origin/dev
+   git merge --no-ff origin/main -m "chore: merge main into dev after X.Y.Z"
+   git push -u origin chore/merge-main-into-dev-X.Y.Z
+   ```
+
+   Open a pull request into `dev` and merge it with **Create a merge commit**. This is the one pull request into `dev` that isn't squash-merged: squashing would leave out the release merge commit this step exists to bring in.
 
 Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/): `feat(analyzers): …`, `fix(efd005): …`, `docs(openspec): …`.
 
