@@ -57,6 +57,8 @@ Loading a project runs its MSBuild logic, so analyze only repositories you trust
 | EFD022 | `StringComparison` overload in a query predicate that EF Core cannot translate |
 | EFD023 | `Contains`, `EndsWith`, or leading-wildcard `Like` on a column (advisory) |
 | EFD025 | Duplicate or already-covered `Include` path in the same query (Info) |
+| EFD027 | Concurrent EF Core operations on the same `DbContext`, such as `Task.WhenAll` over two queries |
+| EFD029 | Second `OrderBy` that discards an earlier ordering instead of `ThenBy` |
 
 Suppress an intentional finding with standard Roslyn mechanisms (`#pragma warning disable EFD001`, `.editorconfig`, or `[SuppressMessage]`) and record why.
 

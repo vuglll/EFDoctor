@@ -4,6 +4,15 @@ All notable changes to EFDoctor are documented here. Versions follow [Semantic V
 
 ## Unreleased
 
+## 0.3.0
+
+Two new rules, both from the roadmap's "Next" tier, for 22 in all.
+
+### Added
+
+- EFD027: two EF Core operations running at once on the same `DbContext` instance, which makes EF Core throw "A second operation was started on this context instance" depending on timing. Reported at `Warning` severity with high confidence under the `Reliability` category, for operations passed together to `Task.WhenAll`/`Task.WhenAny`, an operation started while an earlier task local is still pending, and operations projected by `Select` over a captured context into a task combinator. The same instance is proven by symbol, so separate contexts from `IDbContextFactory` are never reported.
+- EFD029: a second `OrderBy` or `OrderByDescending` that discards an earlier ordering in the same query, where `ThenBy` was meant. EF Core translates only the last `OrderBy`, so the query sorts by the replacing key alone. Reported at `Warning` severity with high confidence under the `Correctness` category. A second ordering after `Skip`, `Take`, `Distinct`, or a projection, and a default ordering overridden through a local, are not reported.
+
 ## 0.2.0
 
 The first release built from the public repository, and the first stable 0.x release: install it with `dotnet tool install --global EFDoctor`, without `--prerelease`. Rules, options, and output may still change before 1.0; see the [roadmap](docs/roadmap.md).

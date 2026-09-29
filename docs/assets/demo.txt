@@ -1,0 +1,16 @@
+$ dotnet tool install --global EFDoctor
+Tool 'efdoctor' (version '0.2.0') was successfully installed.
+$ efdoctor analyze eShop.slnx
+src/Catalog.API/Apis/CatalogApi.cs(439,20)-(439,82)
+  EFD010: Synchronous database call in an async method
+  Severity: Error | Confidence: Medium
+  Message: This synchronous EF Core database call runs inside an async method; await SingleOrDefaultAsync instead
+
+src/Catalog.API/IntegrationEvents/EventHandling/OrderStatusChangedToAwaitingValidationIntegrationEventHandler.cs(17,31)-(17,89)
+  EFD010: Synchronous database call in an async method
+  Severity: Error | Confidence: Medium
+  Message: This synchronous EF Core database call runs inside an async method; await FindAsync instead
+
+  ⋮ 13 more findings
+
+Found 15 findings.

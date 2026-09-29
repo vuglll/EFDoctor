@@ -25,7 +25,7 @@ For every diagnostic ID that the analyzer assembly exports, the repository SHALL
 - a rule page at `docs/rules/<ID>.md`
 - a row in the README rule table
 - coverage in the README project status line
-- coverage in the README verification map's analyzer-test list
+- coverage in the analyzer-test list of the verification map in `docs/development.md`
 - a row in the package readme rule table
 - a release-tracking entry
 - an entry in the CHANGELOG

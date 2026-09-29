@@ -34,3 +34,12 @@ EFD021 | Reliability | Warning | Detect an EF Core DbContext held in a static fi
 EFD022 | Correctness | Warning | Detect a StringComparison string overload inside an EF Core query predicate, which EF Core cannot translate to SQL.
 EFD023 | Performance | Info | Detect Contains, EndsWith, or a leading-wildcard EF.Functions.Like on a mapped column in an EF Core predicate.
 EFD025 | Maintainability | Info | Detect EF Core Include paths that duplicate, or are covered by, another Include path in the same query.
+
+## Release 0.3.0
+
+### New Rules
+
+Rule ID | Category | Severity | Notes
+--------|----------|----------|-------
+EFD027 | Reliability | Warning | Detect an EF Core asynchronous operation that starts while another operation on the same DbContext instance is still pending.
+EFD029 | Correctness | Warning | Detect an EF Core OrderBy or OrderByDescending that discards an earlier ordering in the same inline query chain instead of using ThenBy.
