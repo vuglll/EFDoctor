@@ -1,0 +1,3 @@
+[EditorConfigSuppressed.cs]
+# Reviewed: the context in this file is a thread-safe test double.
+dotnet_diagnostic.EFD027.severity = none

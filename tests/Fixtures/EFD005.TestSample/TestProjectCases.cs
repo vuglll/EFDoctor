@@ -63,4 +63,7 @@ public static class TestProjectCases
 
     public static IQueryable<TestEntity> ReplacedOrdering(TestContext context) =>
         context.Entities.OrderBy(entity => entity.Name).OrderBy(entity => entity.Id);
+
+    public static Task ConcurrentQueries(TestContext context) =>
+        Task.WhenAll(context.Entities.AnyAsync(), context.Entities.CountAsync());
 }

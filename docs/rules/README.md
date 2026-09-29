@@ -147,6 +147,12 @@ EFD025 semantically identifies resolved EF Core `Include`/`ThenInclude` chains i
 
 A repeated leading `Include` that branches into a different `ThenInclude` is required syntax and is not reported. Filtered includes, casts, non-constant strings, string-versus-expression pairs, includes split across helpers or conditionally reassigned locals, element-type-changing operators, and model `AutoInclude()` configuration are outside the rule. See [`docs/rules/EFD025.md`](EFD025.md) for the complete contract.
 
+## EFD027 concurrent-context boundary
+
+EFD027 semantically identifies EF Core asynchronous query terminals and bulk operations, `SaveChangesAsync`, and `FindAsync`, and resolves the `DbContext` each runs on. The context comes from the receiver, or from the query's proven `DbSet`/`Set<T>()` origin. It is compared only when it is a never-written local or parameter, a field or auto-property of `this` or a static one, or `this`. It reports an operation that starts while another operation on the same context is pending, with high confidence, `Warning` severity, and the `Reliability` category. That covers a later argument of `Task.WhenAll`/`Task.WhenAny`, an operation started before an earlier task local is referenced again, and an operation inside an `Enumerable.Select` selector, over a captured context, that reaches a task combinator.
+
+Sequential awaits, separate context instances, contexts that can't be compared by symbol, task locals referenced before the next operation, operations only inside lambdas, and selectors that create their own context are outside the rule. So are synchronous calls while a task is pending, `Parallel.*`, `Task.Run`, and tasks collected in loops. See [`docs/rules/EFD027.md`](EFD027.md) for the complete contract.
+
 ## EFD029 replaced-ordering boundary
 
 EFD029 semantically identifies a `Queryable.OrderBy` or `OrderByDescending` whose inline source reaches an earlier `OrderBy` or `OrderByDescending`, through any `ThenBy`/`ThenByDescending` plus only `Where`, EF Core include, tracking, query-filter, tag, and split-query operators, on a query traced to `DbSet<T>` or `DbContext.Set<TEntity>()`. It reports each replacing call once, with high confidence, `Warning` severity, and the `Correctness` category.
