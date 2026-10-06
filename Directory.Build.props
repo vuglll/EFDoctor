@@ -17,7 +17,7 @@
   <!-- One version and one set of release notes for both packages: the EFDoctor tool and
        EFDoctor.Analyzers. -->
   <PropertyGroup Label="Release">
-    <Version>0.3.0</Version>
-    <PackageReleaseNotes>0.3.0: two new rules, for 22 in all. EFD027 reports EF Core operations running at once on the same DbContext instance, such as Task.WhenAll over two queries, which throws at run time. EFD029 reports a second OrderBy that discards an earlier ordering where ThenBy was meant. See CHANGELOG.md in the package.</PackageReleaseNotes>
+    <Version>0.4.0</Version>
+    <PackageReleaseNotes>0.4.0: the rules now also ship as the EFDoctor.Analyzers package, which runs them in every build and in the IDE. Two new rules, for 24 in all: EFD037 reports entities loaded when only a few columns are read, and EFD038 reports ExecuteUpdate or ExecuteDelete that leaves tracked entities stale. EFD002 and EFD019 now follow a result stored in a local, and EFD002 is renamed. See CHANGELOG.md in the package.</PackageReleaseNotes>
   </PropertyGroup>
 </Project>
