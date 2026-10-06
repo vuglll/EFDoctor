@@ -556,8 +556,8 @@ public sealed class EndToEndTests
 
         Assert.Equal(1, console.ExitCode);
         Assert.Empty(console.StandardError);
-        Assert.Contains("Found 5 findings.", console.StandardOutput);
-        Assert.Equal(3, CountOccurrences(console.StandardOutput, "  EFD019:"));
+        Assert.Contains("Found 8 findings.", console.StandardOutput);
+        Assert.Equal(6, CountOccurrences(console.StandardOutput, "  EFD019:"));
         Assert.Equal(2, CountOccurrences(console.StandardOutput, "  EFD005:"));
         Assert.Contains("Query is materialized and then immediately reduced", console.StandardOutput);
         Assert.Contains("Confidence: High", console.StandardOutput, StringComparison.Ordinal);
@@ -569,9 +569,9 @@ public sealed class EndToEndTests
         Assert.Empty(json.StandardError);
         using var document = JsonDocument.Parse(json.StandardOutput);
         Assert.Equal(1, document.RootElement.GetProperty("schemaVersion").GetInt32());
-        Assert.Equal(5, document.RootElement.GetProperty("summary").GetProperty("findingCount").GetInt32());
+        Assert.Equal(8, document.RootElement.GetProperty("summary").GetProperty("findingCount").GetInt32());
         var allFindings = document.RootElement.GetProperty("findings").EnumerateArray().ToArray();
-        Assert.Equal(new[] { "EFD019", "EFD019", "EFD019", "EFD005", "EFD005" }, allFindings.Select(static finding => finding.GetProperty("ruleId").GetString()));
+        Assert.Equal(new[] { "EFD019", "EFD019", "EFD019", "EFD005", "EFD005", "EFD019", "EFD019", "EFD019" }, allFindings.Select(static finding => finding.GetProperty("ruleId").GetString()));
         var findings = allFindings.Where(static finding => finding.GetProperty("ruleId").GetString() == "EFD019").ToArray();
         Assert.All(findings, static finding =>
         {
@@ -591,6 +591,16 @@ public sealed class EndToEndTests
         Assert.Contains("'List<T>.Count' property", findings[1].GetProperty("evidence").GetString(), StringComparison.Ordinal);
         Assert.Contains("'CountAsync'", findings[1].GetProperty("suggestedRemediation").GetString(), StringComparison.Ordinal);
         Assert.Contains("'Enumerable.Sum'", findings[2].GetProperty("evidence").GetString(), StringComparison.Ordinal);
+        Assert.Equal((57, 9, 57, 65), Range(findings[3]));
+        Assert.StartsWith("Apply 'Any' to the query", findings[3].GetProperty("suggestedRemediation").GetString(), StringComparison.Ordinal);
+        Assert.Contains("The count is compared as 'count > 0', which only tests existence.", findings[3].GetProperty("evidence").GetString(), StringComparison.Ordinal);
+        Assert.Equal((62, 22, 62, 79), Range(findings[4]));
+        Assert.Equal("This EF Core query is fully materialized and then used only for its count through local 'unpaid'", findings[4].GetProperty("message").GetString());
+        Assert.StartsWith("Apply 'Any' to the query", findings[4].GetProperty("suggestedRemediation").GetString(), StringComparison.Ordinal);
+        Assert.Contains("Negate it where the code tests for an empty result.", findings[4].GetProperty("suggestedRemediation").GetString(), StringComparison.Ordinal);
+        Assert.Contains("uses only for its count: 'unpaid.Count == 0'.", findings[4].GetProperty("evidence").GetString(), StringComparison.Ordinal);
+        Assert.Equal((69, 30, 69, 60), Range(findings[5]));
+        Assert.Contains("'CountAsync'", findings[5].GetProperty("suggestedRemediation").GetString(), StringComparison.Ordinal);
         Assert.Equal((33, 24, 33, 49), Range(allFindings[3]));
         Assert.Equal((41, 9, 41, 34), Range(allFindings[4]));
         var orderedKeys = allFindings.Select(static finding => $"{finding.GetProperty("sourceFile").GetString()}:{finding.GetProperty("range").GetProperty("startLine").GetInt32():D6}:{finding.GetProperty("range").GetProperty("startColumn").GetInt32():D6}:{finding.GetProperty("ruleId").GetString()}").ToArray();

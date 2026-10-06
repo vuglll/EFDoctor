@@ -118,7 +118,7 @@ public sealed class EntityOverFetchAnalyzer : DiagnosticAnalyzer
 
     // The materialized value must initialize a local declared by a declaration statement, so
     // that every later use of the result goes through that one name.
-    private static bool TryGetInitializedLocal(IOperation value, out ILocalSymbol local)
+    internal static bool TryGetInitializedLocal(IOperation value, out ILocalSymbol local)
     {
         if (value.Parent is IVariableInitializerOperation { Parent: IVariableDeclaratorOperation declarator }
             && declarator.Parent is IVariableDeclarationOperation { Parent: IVariableDeclarationGroupOperation })

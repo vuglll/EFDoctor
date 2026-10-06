@@ -31,7 +31,7 @@ public static class StaleEntityCases
     public static void ReportedLeftStale(SampleContext context)
     {
         var products = context.Products.Where(candidate => candidate.Discontinued).Take(100).ToList();
-        Console.WriteLine(products.Count);
+        Console.WriteLine(string.Join(", ", products.Select(product => product.Name)));
         context.Products.Where(candidate => candidate.Discontinued).ExecuteDelete();
     }
 

@@ -238,3 +238,12 @@ The corpus was re-run for EFD038, a bulk operation after a tracked load of the s
 Jellyfin, Smartstore, and OpenIddict have no finding: their bulk operations run without a tracked load of the same type in the same method.
 
 One high-confidence finding is too few to measure the tier's precision. The known weak spot is a bulk filter that can't match the loaded rows for a reason other than different constants, such as loading active rows and deleting expired ones.
+
+## EFD019 extension: stored count-only lists (2026-10-06)
+
+The corpus was re-run after EFD019 learned to report a materialized result stored in a local that the method uses only for its count, and to recommend `Any` when a count only tests existence.
+
+- **2 new findings, no false positive.** 1 `TP`, 1 `acceptable`.
+- **Bitwarden, TP.** `ProjectRepository.ProjectsAreInOrganization` loads every matching `Project` entity and then compares `results.Count` with the number of requested IDs. `CountAsync` returns that number without loading a row.
+- **Smartstore, acceptable.** A migration loads the settings with one name and only tests the list for emptiness, where `AnyAsync` would do. It runs once over a handful of rows. EFD005 used to report this materializer as unbounded; it now yields to EFD019, whose message says what is wrong.
+- No existing EFD019 finding changed, and no inline finding in the corpus compares a count for existence, so the `Any` recommendation didn't change any remediation there.

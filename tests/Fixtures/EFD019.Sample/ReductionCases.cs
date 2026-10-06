@@ -51,4 +51,29 @@ public static class ReductionCases
         Justification = "The table holds a handful of configuration rows.")]
     public static int AttributeSuppressed(SampleContext context) =>
         context.Invoices.ToArray().Length;
+
+    // Reported: the count is only compared for existence, so the fix is Any, not Count.
+    public static bool ReportedInlineExistence(SampleContext context) =>
+        context.Invoices.Where(invoice => invoice.Paid).ToList().Count > 0;
+
+    // Reported: every row is loaded into a local that is used only to learn whether one exists.
+    public static bool ReportedStoredExistence(SampleContext context)
+    {
+        var unpaid = context.Invoices.Where(invoice => !invoice.Paid).ToList();
+        return unpaid.Count == 0;
+    }
+
+    // Reported: every row is loaded into a local that is used only for its count.
+    public static async Task<int> ReportedStoredCount(SampleContext context)
+    {
+        var invoices = await context.Invoices.ToListAsync();
+        return invoices.Count;
+    }
+
+    // Not reported by EFD019: the rows are used as well as the count.
+    public static decimal StoredAndUsed(SampleContext context)
+    {
+        var invoices = context.Invoices.Take(100).ToList();
+        return invoices.Count == 0 ? 0m : invoices.Sum(invoice => invoice.Amount);
+    }
 }

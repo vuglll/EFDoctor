@@ -90,5 +90,6 @@ Each rule was delivered as its own OpenSpec change, archived under `openspec/cha
 17. `add-analyzer-nuget-package` packaged the rules as `EFDoctor.Analyzers`, compiled against Roslyn 4.8. It gave findings a build severity that follows their confidence, moved test-project skipping into the analyzers, and added a help link to every rule.
 18. `add-efd037-entity-over-fetch` added EFD037, the first rule that follows a materialized *result* instead of a query: it reports entities loaded into a local when every use in the method reads only a few scalar properties.
 19. `add-efd038-stale-tracked-entities` added EFD038, which reports a bulk operation that leaves tracked entities of the same type stale, with a second confidence tier when the method goes on to use them. It extracted EFD027's proof that two operations share one `DbContext` instance into `EfContextIdentity`.
+20. `improve-efd019-stored-count` let EFD019 report a materialized result stored in a local that is used only for its count, and made it recommend `Any` when a count only tests existence. It shares EFD002's existence-comparison classifier.
 
 The current behavior contract for every rule and for the CLI lives in `openspec/specs/`. The remaining candidate rules and their priorities are in the [roadmap](roadmap.md).

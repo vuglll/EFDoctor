@@ -113,9 +113,9 @@ Tasks that are awaited, returned, stored, passed on, composed, or synchronously 
 
 ## EFD019 materialize-then-reduce boundary
 
-EFD019 semantically identifies `ToList`, `ToArray`, or awaited `ToListAsync`/`ToArrayAsync` materializers over a proven inline EF query whose buffered result is immediately reduced with `First`, `FirstOrDefault`, `Single`, `SingleOrDefault`, ordered `Last`/`LastOrDefault`, `Any`, `All`, `Count`, `LongCount`, `Sum`, `Min`, `Max`, `Average`, or the `List<T>.Count`/array `Length` property. Predicate and selector lambdas must use the same SQL-capable shapes EFD004 accepts. The finding is anchored on the materializer, and EFD005 yields to it there.
+EFD019 semantically identifies `ToList`, `ToArray`, or awaited `ToListAsync`/`ToArrayAsync` materializers over a proven inline EF query whose buffered result is immediately reduced with `First`, `FirstOrDefault`, `Single`, `SingleOrDefault`, ordered `Last`/`LastOrDefault`, `Any`, `All`, `Count`, `LongCount`, `Sum`, `Min`, `Max`, `Average`, or the `List<T>.Count`/array `Length` property. Predicate and selector lambdas must use the same SQL-capable shapes EFD004 accepts. It also reports a materialized result that initializes a local when every read of the local is `Count`, `Length`, `Any()`, `Count()`, or `LongCount()`, outside lambdas and local functions. When a count is only compared for existence, the recommendation is `Any` instead of `Count`. The finding is anchored on the materializer, and EFD005 yields to it there.
 
-Query-side reductions, explicit client boundaries, stored lists, arbitrary or in-memory sources, unsupported lambdas and overloads, and unordered `Last` are not reported. Apply the reducer to the query, or use its EF Core async counterpart such as `CountAsync`. See [`docs/rules/EFD019.md`](EFD019.md) for the complete contract.
+Query-side reductions, explicit client boundaries, stored lists whose rows may be used, arbitrary or in-memory sources, unsupported lambdas and overloads, and unordered `Last` are not reported. Apply the reducer to the query, or use its EF Core async counterpart such as `CountAsync`. See [`docs/rules/EFD019.md`](EFD019.md) for the complete contract.
 
 ## EFD020 multiple-enumeration boundary
 
