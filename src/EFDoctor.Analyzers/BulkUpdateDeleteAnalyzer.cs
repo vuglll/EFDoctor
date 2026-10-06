@@ -27,9 +27,10 @@ public sealed class BulkUpdateDeleteAnalyzer : DiagnosticAnalyzer
         RuleTitle,
         Message,
         "Performance",
-        DiagnosticSeverity.Warning,
+        DiagnosticSeverity.Info,
         isEnabledByDefault: true,
-        description: "Reports conservative EF Core load-loop-save patterns that may support set-based bulk update or delete operations.");
+        description: "Reports conservative EF Core load-loop-save patterns that may support set-based bulk update or delete operations.",
+        helpLinkUri: EfHelpLinks.For(DiagnosticId));
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(Rule);
 
@@ -42,6 +43,11 @@ public sealed class BulkUpdateDeleteAnalyzer : DiagnosticAnalyzer
 
     private static void StartCompilation(CompilationStartAnalysisContext context)
     {
+        if (!EfAnalysisScope.Includes(context.Options, context.Compilation))
+        {
+            return;
+        }
+
         var dbContext = context.Compilation.GetTypeByMetadataName(DbContextMetadataName);
         var dbSet = context.Compilation.GetTypeByMetadataName(DbSetMetadataName);
         var efExtensions = context.Compilation.GetTypeByMetadataName(EfExtensionsMetadataName);
@@ -152,7 +158,7 @@ public sealed class BulkUpdateDeleteAnalyzer : DiagnosticAnalyzer
             .Add(DiagnosticPropertyNames.SuggestedRemediation, string.Format(Remediation, bulkMethod))
             .Add(DiagnosticPropertyNames.DocumentationReference, DocumentationKey);
 
-        context.ReportDiagnostic(Diagnostic.Create(
+        context.ReportDiagnostic(EfDiagnostic.Create(
             Rule,
             materializer.Syntax.GetLocation(),
             properties,

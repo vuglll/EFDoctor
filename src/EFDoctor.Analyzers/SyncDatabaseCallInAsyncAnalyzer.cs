@@ -33,9 +33,10 @@ public sealed class SyncDatabaseCallInAsyncAnalyzer : DiagnosticAnalyzer
         RuleTitle,
         "This synchronous EF Core database call runs inside an async method; await {0} instead",
         "Performance",
-        DiagnosticSeverity.Warning,
+        DiagnosticSeverity.Info,
         isEnabledByDefault: true,
-        description: "Reports a synchronous EF Core database call inside an async context that has a direct EF async counterpart, unless the other arm of an enclosing conditional already awaits that counterpart.");
+        description: "Reports a synchronous EF Core database call inside an async context that has a direct EF async counterpart, unless the other arm of an enclosing conditional already awaits that counterpart.",
+        helpLinkUri: EfHelpLinks.For(DiagnosticId));
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(Rule);
 
@@ -48,6 +49,11 @@ public sealed class SyncDatabaseCallInAsyncAnalyzer : DiagnosticAnalyzer
 
     private static void StartCompilation(CompilationStartAnalysisContext context)
     {
+        if (!EfAnalysisScope.Includes(context.Options, context.Compilation))
+        {
+            return;
+        }
+
         var queryable = context.Compilation.GetTypeByMetadataName(QueryableMetadataName);
         var enumerable = context.Compilation.GetTypeByMetadataName(EnumerableMetadataName);
         var dbSet = context.Compilation.GetTypeByMetadataName(DbSetMetadataName);
@@ -114,7 +120,7 @@ public sealed class SyncDatabaseCallInAsyncAnalyzer : DiagnosticAnalyzer
             .Add(DiagnosticPropertyNames.SuggestedRemediation, remediation)
             .Add(DiagnosticPropertyNames.DocumentationReference, DocumentationKey);
 
-        context.ReportDiagnostic(Diagnostic.Create(Rule, invocation.Syntax.GetLocation(), properties, suggestion));
+        context.ReportDiagnostic(EfDiagnostic.Create(Rule, invocation.Syntax.GetLocation(), properties, suggestion));
     }
 
     // `async ? await q.FirstOrDefaultAsync(p) : q.FirstOrDefault(p)`: the author already awaits the

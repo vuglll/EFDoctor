@@ -29,9 +29,10 @@ public sealed class MultipleCollectionIncludeAnalyzer : DiagnosticAnalyzer
         RuleTitle,
         Message,
         "Performance",
-        DiagnosticSeverity.Warning,
+        DiagnosticSeverity.Info,
         isEnabledByDefault: true,
-        description: "Reports proven EF Core query chains with multiple distinct root-level collection Include paths and no explicit AsSplitQuery or AsSingleQuery.");
+        description: "Reports proven EF Core query chains with multiple distinct root-level collection Include paths and no explicit AsSplitQuery or AsSingleQuery.",
+        helpLinkUri: EfHelpLinks.For(DiagnosticId));
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(Rule);
 
@@ -44,6 +45,11 @@ public sealed class MultipleCollectionIncludeAnalyzer : DiagnosticAnalyzer
 
     private static void StartCompilation(CompilationStartAnalysisContext context)
     {
+        if (!EfAnalysisScope.Includes(context.Options, context.Compilation))
+        {
+            return;
+        }
+
         var queryable = context.Compilation.GetTypeByMetadataName(QueryableMetadataName);
         var enumerable = context.Compilation.GetTypeByMetadataName(EnumerableMetadataName);
         var genericEnumerable = context.Compilation.GetTypeByMetadataName(GenericEnumerableMetadataName);
@@ -137,7 +143,7 @@ public sealed class MultipleCollectionIncludeAnalyzer : DiagnosticAnalyzer
             .Add(DiagnosticPropertyNames.SuggestedRemediation, Remediation)
             .Add(DiagnosticPropertyNames.DocumentationReference, DocumentationKey);
 
-        context.ReportDiagnostic(Diagnostic.Create(Rule, distinctIncludes[1].Invocation.Syntax.GetLocation(), properties));
+        context.ReportDiagnostic(EfDiagnostic.Create(Rule, distinctIncludes[1].Invocation.Syntax.GetLocation(), properties));
     }
 
     private static bool TryAnalyzeChain(

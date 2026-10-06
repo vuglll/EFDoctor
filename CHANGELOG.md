@@ -4,6 +4,18 @@ All notable changes to EFDoctor are documented here. Versions follow [Semantic V
 
 ## Unreleased
 
+### Added
+
+- The `EFDoctor.Analyzers` NuGet package, which runs every rule inside the compiler: in each build, and in the IDE. Reference it from one project, or once for all projects through central package management. It needs the .NET 8 SDK or later, has no dependencies, and has the same version as the tool.
+  - In a build, only high-confidence findings are warnings. Medium-confidence and advisory findings are suggestions, so adopting the package can't fail a warnings-as-errors build on a judgment call. `.editorconfig` changes any rule's severity.
+  - Test projects are skipped, as in the CLI. Set the MSBuild property `EFDoctorAnalyzeTestProjects` to `true` to analyze one.
+- Every rule's diagnostic has a help link to its page in `docs/rules/`.
+
+### Changed
+
+- The default diagnostic severity of EFD006, EFD009, EFD010, EFD013, and EFD020 is now `Info` instead of `Warning`, because their findings have medium confidence. CLI reports are unchanged: these findings are still reported at `Warning` severity.
+- The analyzers compile against Roslyn 4.8 instead of 5.9.0.
+
 ## 0.3.0
 
 Two new rules, both from the roadmap's "Next" tier, for 22 in all.

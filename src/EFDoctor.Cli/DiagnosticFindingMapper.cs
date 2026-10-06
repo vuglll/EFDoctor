@@ -25,7 +25,7 @@ public static class DiagnosticFindingMapper
         return new Finding(
             diagnostic.Id,
             diagnostic.Descriptor.Title.ToString(),
-            confidence == FindingConfidence.Advisory ? FindingSeverity.Info : MapSeverity(diagnostic.Severity),
+            MapSeverity(diagnostic.Severity, confidence),
             confidence,
             diagnostic.GetMessage(),
             FindingOrder.NormalizePath(sourceFile),
@@ -40,8 +40,20 @@ public static class DiagnosticFindingMapper
             GetRequiredProperty(diagnostic, DiagnosticPropertyNames.DocumentationReference));
     }
 
-    private static FindingSeverity MapSeverity(DiagnosticSeverity severity)
+    // A medium-confidence diagnostic is capped at Info in a build so that it can't fail one;
+    // in a report it is still a warning.
+    private static FindingSeverity MapSeverity(DiagnosticSeverity severity, FindingConfidence confidence)
     {
+        if (confidence == FindingConfidence.Advisory)
+        {
+            return FindingSeverity.Info;
+        }
+
+        if (confidence == FindingConfidence.Medium && severity == DiagnosticSeverity.Info)
+        {
+            return FindingSeverity.Warning;
+        }
+
         return severity switch
         {
             DiagnosticSeverity.Error => FindingSeverity.Error,

@@ -26,7 +26,8 @@ public sealed class UnsafeRawSqlAnalyzer : DiagnosticAnalyzer
         "Security",
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
-        description: "Reports interpolation or non-constant concatenation used as SQL text for supported EF Core raw-SQL APIs.");
+        description: "Reports interpolation or non-constant concatenation used as SQL text for supported EF Core raw-SQL APIs.",
+        helpLinkUri: EfHelpLinks.For(DiagnosticId));
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(Rule);
 
@@ -39,6 +40,11 @@ public sealed class UnsafeRawSqlAnalyzer : DiagnosticAnalyzer
 
     private static void StartCompilation(CompilationStartAnalysisContext context)
     {
+        if (!EfAnalysisScope.Includes(context.Options, context.Compilation))
+        {
+            return;
+        }
+
         var queryableExtensions = context.Compilation.GetTypeByMetadataName(RelationalQueryableExtensionsMetadataName);
         var databaseExtensions = context.Compilation.GetTypeByMetadataName(RelationalDatabaseFacadeExtensionsMetadataName);
         if (queryableExtensions is null || databaseExtensions is null)
@@ -86,7 +92,7 @@ public sealed class UnsafeRawSqlAnalyzer : DiagnosticAnalyzer
             .Add(DiagnosticPropertyNames.SuggestedRemediation, Remediation)
             .Add(DiagnosticPropertyNames.DocumentationReference, DocumentationKey);
 
-        context.ReportDiagnostic(Diagnostic.Create(Rule, sqlArgument.Value.Syntax.GetLocation(), properties));
+        context.ReportDiagnostic(EfDiagnostic.Create(Rule, sqlArgument.Value.Syntax.GetLocation(), properties));
     }
 
     private static bool IsSupportedRawMethod(

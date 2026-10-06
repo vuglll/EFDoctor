@@ -13,12 +13,10 @@
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>efdoctor</ToolCommandName>
     <PackageId>EFDoctor</PackageId>
-    <Version>0.3.0</Version>
     <Description>Local-first performance and safety diagnostics for EF Core codebases. Reports evidence-based findings such as SaveChanges in loops, premature materialization, and unawaited EF Core calls. Runs entirely on your machine with no network access.</Description>
     <PackageTags>efcore;entity-framework-core;entityframework;roslyn;static-analysis;performance;dotnet-tool</PackageTags>
     <PackageReadmeFile>PACKAGE.md</PackageReadmeFile>
     <PackageIcon>icon.png</PackageIcon>
-    <PackageReleaseNotes>0.3.0: two new rules, for 22 in all. EFD027 reports EF Core operations running at once on the same DbContext instance, such as Task.WhenAll over two queries, which throws at run time. EFD029 reports a second OrderBy that discards an earlier ordering where ThenBy was meant. See CHANGELOG.md in the package.</PackageReleaseNotes>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <!-- Repository URLs and Source Link only when EFDoctorRepositoryUrl is set (Directory.Build.props). -->

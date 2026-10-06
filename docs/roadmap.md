@@ -22,7 +22,7 @@ Nothing below is a promise. A candidate becomes a rule only when it passes the q
 | Safety | EFD012 raw SQL built from interpolation or concatenation |
 | Indexing and sargability | EFD003 foreign key without an index (SQL Server, PostgreSQL), EFD009 `ToLower`/`ToUpper` on a column, EFD023 leading-wildcard search (advisory) |
 
-Each rule's contract is in `openspec/specs/`, and its reference page is in [`docs/rules/`](rules/).
+Each rule's contract is in `openspec/specs/`, and its reference page is in [`docs/rules/`](rules/). Every rule ships in both the `efdoctor` tool and the `EFDoctor.Analyzers` package.
 
 ## The quality bar
 
@@ -92,11 +92,11 @@ These improve existing rules rather than adding new ones:
   - repeated high-cost queries.
 
   DMV suggestions would be presented as evidence, not automatic recommendations.
-- **Editor integration**, if the CLI proves useful.
+- **Code fixes** for the mechanical remediations, such as `Count() > 0` to `Any()`, now that the rules also ship as the `EFDoctor.Analyzers` package.
 
 ## Out of scope
 
-- Automatic code fixes
+- Automatic fixes applied by the CLI
 - Dapper or raw ADO.NET analysis
 - Query plan visualization
 - Hosted services, source uploads, and telemetry

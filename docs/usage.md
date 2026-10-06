@@ -100,14 +100,83 @@ dotnet pack src/EFDoctor.Cli/EFDoctor.Cli.csproj -c Release -o artifacts
 dotnet tool update --global EFDoctor --add-source ./artifacts
 ```
 
-NuGet caches each package version, so a rebuilt package with an unchanged `<Version>` is not picked up by `install` or `update`. Bump the version in `src/EFDoctor.Cli/EFDoctor.Cli.csproj`, or delete `~/.nuget/packages/efdoctor/<version>`, before reinstalling.
+NuGet caches each package version, so a rebuilt package with an unchanged `<Version>` is not picked up by `install` or `update`. Bump the version in `Directory.Build.props`, or delete `~/.nuget/packages/efdoctor/<version>`, before reinstalling.
 
 ### Package contents
 
 The package declares the Apache-2.0 license. It includes `NOTICE`, [`THIRD-PARTY-NOTICES.md`](../THIRD-PARTY-NOTICES.md) for the bundled Roslyn and runtime libraries, and [`CHANGELOG.md`](../CHANGELOG.md). It carries repository and project URLs, and Source Link, only when the build property `EFDoctorRepositoryUrl` is set.
 
+## Analyzer package
+
+`EFDoctor.Analyzers` runs the same rules inside the compiler: in every build, and in the IDE as you type. It adds nothing to your build output and has no dependencies.
+
+Add it to one project:
+
+```bash
+dotnet add package EFDoctor.Analyzers
+```
+
+Or add it once for every project, with central package management:
+
+```xml
+<!-- Directory.Packages.props -->
+<PackageVersion Include="EFDoctor.Analyzers" Version="x.y.z" />
+
+<!-- Directory.Build.props -->
+<ItemGroup>
+  <PackageReference Include="EFDoctor.Analyzers" PrivateAssets="all" />
+</ItemGroup>
+```
+
+The analyzers need the .NET 8 SDK or later, or Visual Studio 2022 17.8 or later. The analyzed project can target any framework. Each diagnostic links to its rule page.
+
+### Default severities
+
+A diagnostic's default severity follows the confidence of its finding:
+
+| Confidence | Default severity | Rules |
+|---|---|---|
+| High | `warning` | EFD001 through EFD004, EFD011, EFD012, EFD014, EFD017 through EFD019, EFD021, EFD022, EFD027, EFD029, and the high-confidence findings of EFD005 |
+| High, cleanup | `suggestion` | EFD025 |
+| Medium | `suggestion` | EFD006, EFD009, EFD010, EFD013, EFD020, and the medium-confidence findings of EFD005 |
+| Advisory | `suggestion` | EFD023, and the advisory findings of EFD005 |
+
+So only a high-confidence finding can fail a build that treats warnings as errors. Suggestions appear in the IDE, but not in command-line build output. The CLI reports every finding, and its report severities are not affected: there, a medium-confidence finding is a `Warning`.
+
+Change a rule's severity in `.editorconfig`. The configured severity applies to all of that rule's findings:
+
+```ini
+[*.cs]
+dotnet_diagnostic.EFD010.severity = warning   # raise a medium-confidence rule
+dotnet_diagnostic.EFD001.severity = error     # fail the build on a rule
+dotnet_diagnostic.EFD023.severity = none      # turn a rule off
+```
+
+[Suppressing findings](suppression.md) covers pragmas and `SuppressMessage`.
+
+### Test projects
+
+The analyzers skip test projects, as the CLI does by default. A test project is one with the MSBuild property `IsTestProject` set to `true`, or one that references xunit, NUnit, the Visual Studio test platform, or `Microsoft.NET.Test.Sdk`. To analyze a test project anyway, set this in its project file:
+
+```xml
+<PropertyGroup>
+  <EFDoctorAnalyzeTestProjects>true</EFDoctorAnalyzeTestProjects>
+</PropertyGroup>
+```
+
+Its findings then have the same severities as anywhere else.
+
+### Build and reference from source
+
+```bash
+dotnet pack src/EFDoctor.Analyzers/EFDoctor.Analyzers.csproj -c Release -o artifacts
+# creates artifacts/EFDoctor.Analyzers.<version>.nupkg
+```
+
+Add `./artifacts` as a package source to reference it.
+
 ## Trust boundary
 
-EFDoctor includes no telemetry, HTTP client, update check, license validation, source upload, or hosted component. Once the target and its dependencies are available locally, the CLI doesn't invoke restore and doesn't initiate network calls.
+EFDoctor includes no telemetry, HTTP client, update check, license validation, source upload, or hosted component. Once the target and its dependencies are available locally, the CLI doesn't invoke restore and doesn't initiate network calls. The analyzer package runs inside the compiler and makes no network calls either.
 
 Project loading uses Roslyn's MSBuild workspace. MSBuild can execute design-time targets authored by the project being analyzed, so only analyze repositories you trust. Local-first operation keeps EFDoctor from transmitting source or findings, but it isn't a sandbox for untrusted MSBuild logic. Restore or build the target yourself before analysis, so its SDKs and dependencies are already present.

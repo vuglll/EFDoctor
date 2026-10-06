@@ -13,4 +13,11 @@
     <Copyright>Copyright 2026 Nemanja Markovic</Copyright>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
   </PropertyGroup>
+
+  <!-- One version and one set of release notes for both packages: the EFDoctor tool and
+       EFDoctor.Analyzers. -->
+  <PropertyGroup Label="Release">
+    <Version>0.3.0</Version>
+    <PackageReleaseNotes>0.3.0: two new rules, for 22 in all. EFD027 reports EF Core operations running at once on the same DbContext instance, such as Task.WhenAll over two queries, which throws at run time. EFD029 reports a second OrderBy that discards an earlier ordering where ThenBy was meant. See CHANGELOG.md in the package.</PackageReleaseNotes>
+  </PropertyGroup>
 </Project>

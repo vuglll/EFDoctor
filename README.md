@@ -6,13 +6,13 @@
 
 **Find the EF Core performance and correctness problems that survive code review.**
 
-EFDoctor is a .NET tool that reads your solution with Roslyn and reports EF Core anti-patterns: `SaveChanges` inside a loop, synchronous database calls in async code, unbounded `ToList`, cartesian `Include` chains, raw SQL built from strings, and more. Each finding comes with the evidence that matched, the likely impact, and a fix. It runs locally, and nothing leaves your machine.
+EFDoctor reads your code with Roslyn and reports EF Core anti-patterns: `SaveChanges` inside a loop, synchronous database calls in async code, unbounded `ToList`, cartesian `Include` chains, raw SQL built from strings, and more. Each finding comes with the evidence that matched, the likely impact, and a fix. It runs locally, as a .NET tool or as an analyzer package in your build, and nothing leaves your machine.
 
 ![efdoctor analyzing Microsoft's eShop](docs/assets/demo.svg)
 
 <sub>Real output of `efdoctor` 0.2.0 on [Microsoft's eShop](https://github.com/dotnet/eShop) at commit `b4a4087`, trimmed to two of its 15 findings. Paths are shown relative to the checkout.</sub>
 
-> **Project status:** 0.x. EFD001 through EFD006, EFD009 through EFD014, EFD017 through EFD023, EFD025, EFD027, and EFD029 ship in the `efdoctor` tool. Rules, options, and output may still change before 1.0; see the [roadmap](docs/roadmap.md).
+> **Project status:** 0.x. EFD001 through EFD006, EFD009 through EFD014, EFD017 through EFD023, EFD025, EFD027, and EFD029 ship in the `efdoctor` tool and the `EFDoctor.Analyzers` package. Rules, options, and output may still change before 1.0; see the [roadmap](docs/roadmap.md).
 
 ## Quick start
 
@@ -24,6 +24,29 @@ efdoctor analyze path/to/App.sln
 ```
 
 Use `--format json` for automation. The exit code is `0` for no findings, `1` for findings, and `2` when the target can't be analyzed. The [usage guide](docs/usage.md) covers every option, JSON output, and local-tool installs.
+
+## CLI or analyzer package
+
+The same rules ship in two packages. Use either, or both.
+
+| | `EFDoctor` (.NET tool) | `EFDoctor.Analyzers` (analyzer package) |
+|---|---|---|
+| Runs | When you run `efdoctor analyze`, locally or in CI | In every build and in the IDE, as you type |
+| Shows | A report: evidence, likely impact, and remediation for each finding; console or JSON | Compiler diagnostics, each linked to its rule page |
+| Setup | Nothing in the repository | One package reference, for example through central package management |
+| Good for | Auditing a codebase, CI gates, and reviewing every finding with its context | Catching a problem while the code is being written |
+
+```xml
+<!-- Directory.Packages.props -->
+<PackageVersion Include="EFDoctor.Analyzers" Version="x.y.z" />
+
+<!-- Directory.Build.props -->
+<ItemGroup>
+  <PackageReference Include="EFDoctor.Analyzers" PrivateAssets="all" />
+</ItemGroup>
+```
+
+In a build, only high-confidence findings are warnings; medium-confidence and advisory findings are suggestions, and test projects are skipped. The [usage guide](docs/usage.md#analyzer-package) covers severities, `.editorconfig` overrides, and supported SDKs.
 
 ## What it finds in real code
 
@@ -78,7 +101,7 @@ Each rule has a reference page in [`docs/rules/`](docs/rules/) with what trigger
 
 ## Documentation
 
-- [Usage](docs/usage.md): commands, options, exit codes, JSON output, installation, and the trust boundary
+- [Usage](docs/usage.md): commands, options, exit codes, JSON output, installation, the analyzer package, and the trust boundary
 - [Suppressing findings](docs/suppression.md): pragmas, `.editorconfig`, and `SuppressMessage`
 - [Rules](docs/rules/): one page per rule, and the [rule boundaries](docs/rules/README.md)
 - [Roadmap](docs/roadmap.md): candidate rules, priorities, and the quality bar every rule meets

@@ -28,7 +28,8 @@ public sealed class LeadingWildcardSearchAnalyzer : DiagnosticAnalyzer
         "Performance",
         DiagnosticSeverity.Info,
         isEnabledByDefault: true,
-        description: "Reports Contains, EndsWith, or a leading-wildcard EF.Functions.Like on a mapped string column in a predicate of a proven EF Core query.");
+        description: "Reports Contains, EndsWith, or a leading-wildcard EF.Functions.Like on a mapped string column in a predicate of a proven EF Core query.",
+        helpLinkUri: EfHelpLinks.For(DiagnosticId));
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(Rule);
 
@@ -41,6 +42,11 @@ public sealed class LeadingWildcardSearchAnalyzer : DiagnosticAnalyzer
 
     private static void StartCompilation(CompilationStartAnalysisContext context)
     {
+        if (!EfAnalysisScope.Includes(context.Options, context.Compilation))
+        {
+            return;
+        }
+
         var scan = EfPredicateScan.Create(context.Compilation);
         if (scan is null)
         {
@@ -87,7 +93,7 @@ public sealed class LeadingWildcardSearchAnalyzer : DiagnosticAnalyzer
                 .Add(DiagnosticPropertyNames.SuggestedRemediation, GetRemediation(provider))
                 .Add(DiagnosticPropertyNames.DocumentationReference, DocumentationKey);
 
-            context.ReportDiagnostic(Diagnostic.Create(Rule, search.Syntax.GetLocation(), properties));
+            context.ReportDiagnostic(EfDiagnostic.Create(Rule, search.Syntax.GetLocation(), properties));
         }
     }
 

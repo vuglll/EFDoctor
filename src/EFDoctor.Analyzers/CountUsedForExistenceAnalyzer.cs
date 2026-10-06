@@ -26,7 +26,8 @@ public sealed class CountUsedForExistenceAnalyzer : DiagnosticAnalyzer
         "Performance",
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
-        description: "Reports semantically resolved EF Core Count calls used only as direct existence tests.");
+        description: "Reports semantically resolved EF Core Count calls used only as direct existence tests.",
+        helpLinkUri: EfHelpLinks.For(DiagnosticId));
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(Rule);
 
@@ -39,6 +40,11 @@ public sealed class CountUsedForExistenceAnalyzer : DiagnosticAnalyzer
 
     private static void StartCompilation(CompilationStartAnalysisContext context)
     {
+        if (!EfAnalysisScope.Includes(context.Options, context.Compilation))
+        {
+            return;
+        }
+
         var queryable = context.Compilation.GetTypeByMetadataName(QueryableMetadataName);
         var dbSet = context.Compilation.GetTypeByMetadataName(DbSetMetadataName);
         var efExtensions = context.Compilation.GetTypeByMetadataName(EfExtensionsMetadataName);
@@ -91,7 +97,7 @@ public sealed class CountUsedForExistenceAnalyzer : DiagnosticAnalyzer
             .Add(DiagnosticPropertyNames.SuggestedRemediation, remediation)
             .Add(DiagnosticPropertyNames.DocumentationReference, DocumentationKey);
 
-        context.ReportDiagnostic(Diagnostic.Create(Rule, invocation.Syntax.GetLocation(), properties));
+        context.ReportDiagnostic(EfDiagnostic.Create(Rule, invocation.Syntax.GetLocation(), properties));
     }
 
     private static bool IsMethod(IMethodSymbol method, string name, INamedTypeSymbol containingType)
