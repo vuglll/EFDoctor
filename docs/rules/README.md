@@ -35,9 +35,11 @@ The first version is intentionally not interprocedural: it does not follow helpe
 
 ## EFD002 expression boundary
 
-EFD002 semantically identifies `Queryable.Count` expressions proven to originate from an EF Core `DbSet`, plus EF Core `CountAsync`. It reports direct zero/one comparisons used only for existence and recommends the equivalent `Any` or `AnyAsync` form.
+EFD002 semantically identifies `Queryable.Count` expressions proven to originate from an EF Core `DbSet`, plus EF Core `CountAsync`. It reports direct zero/one comparisons used only for existence and recommends the equivalent `Any` or `AnyAsync` form. It follows the count through one local that is declared by the count and read only by such comparisons.
 
-The first version intentionally does not follow counts stored in variables, infer providers for arbitrary `IQueryable<T>` values, or report exact-count comparisons. See [`docs/rules/EFD002.md`](EFD002.md) for supported forms, exclusions, remediation, and suppression examples.
+With medium confidence, it also reports `Queryable.FirstOrDefault` and awaited `FirstOrDefaultAsync` on a query traced to a `DbSet` that returns the entity itself, when the result is only checked for `null`, directly or through such a local.
+
+It does not follow results stored in fields or properties or returned by helpers, report projected queries or `SingleOrDefault`, infer providers for arbitrary `IQueryable<T>` values, or report exact-count comparisons. See [`docs/rules/EFD002.md`](EFD002.md) for supported forms, exclusions, remediation, and suppression examples.
 
 ## EFD003 model-snapshot boundary
 
@@ -113,9 +115,9 @@ Tasks that are awaited, returned, stored, passed on, composed, or synchronously 
 
 ## EFD019 materialize-then-reduce boundary
 
-EFD019 semantically identifies `ToList`, `ToArray`, or awaited `ToListAsync`/`ToArrayAsync` materializers over a proven inline EF query whose buffered result is immediately reduced with `First`, `FirstOrDefault`, `Single`, `SingleOrDefault`, ordered `Last`/`LastOrDefault`, `Any`, `All`, `Count`, `LongCount`, `Sum`, `Min`, `Max`, `Average`, or the `List<T>.Count`/array `Length` property. Predicate and selector lambdas must use the same SQL-capable shapes EFD004 accepts. The finding is anchored on the materializer, and EFD005 yields to it there.
+EFD019 semantically identifies `ToList`, `ToArray`, or awaited `ToListAsync`/`ToArrayAsync` materializers over a proven inline EF query whose buffered result is immediately reduced with `First`, `FirstOrDefault`, `Single`, `SingleOrDefault`, ordered `Last`/`LastOrDefault`, `Any`, `All`, `Count`, `LongCount`, `Sum`, `Min`, `Max`, `Average`, or the `List<T>.Count`/array `Length` property. Predicate and selector lambdas must use the same SQL-capable shapes EFD004 accepts. It also reports a materialized result that initializes a local when every read of the local is `Count`, `Length`, `Any()`, `Count()`, or `LongCount()`, outside lambdas and local functions. When a count is only compared for existence, the recommendation is `Any` instead of `Count`. The finding is anchored on the materializer, and EFD005 yields to it there.
 
-Query-side reductions, explicit client boundaries, stored lists, arbitrary or in-memory sources, unsupported lambdas and overloads, and unordered `Last` are not reported. Apply the reducer to the query, or use its EF Core async counterpart such as `CountAsync`. See [`docs/rules/EFD019.md`](EFD019.md) for the complete contract.
+Query-side reductions, explicit client boundaries, stored lists whose rows may be used, arbitrary or in-memory sources, unsupported lambdas and overloads, and unordered `Last` are not reported. Apply the reducer to the query, or use its EF Core async counterpart such as `CountAsync`. See [`docs/rules/EFD019.md`](EFD019.md) for the complete contract.
 
 ## EFD020 multiple-enumeration boundary
 
@@ -158,3 +160,15 @@ Sequential awaits, separate context instances, contexts that can't be compared b
 EFD029 semantically identifies a `Queryable.OrderBy` or `OrderByDescending` whose inline source reaches an earlier `OrderBy` or `OrderByDescending`, through any `ThenBy`/`ThenByDescending` plus only `Where`, EF Core include, tracking, query-filter, tag, and split-query operators, on a query traced to `DbSet<T>` or `DbContext.Set<TEntity>()`. It reports each replacing call once, with high confidence, `Warning` severity, and the `Correctness` category.
 
 `Skip`, `Take`, `Distinct`, projections, and every other operator between the two orderings end the search, because they can give the first ordering a purpose. The stretch between the two orderings must be inline: an earlier ordering held in a local is a default being overridden, and it is not followed, although the query before the first ordering may pass through a local. In-memory ordering, unproven sources, and look-alike methods are outside the rule. See [`docs/rules/EFD029.md`](EFD029.md) for the complete contract.
+
+## EFD037 entity-over-fetch boundary
+
+EFD037 semantically identifies `ToList`, `ToArray`, and awaited `ToListAsync`/`ToArrayAsync` on a query traced to `DbSet<T>` or `DbContext.Set<TEntity>()` that returns the entity type without `Include`, when the materialized value initializes a local. It reports the materializer when every reference to that local in the method is a `foreach`, a one-parameter `Select`, an `Any`/`All`/`Count`/`Sum`/`Min`/`Max`/`Average` with a lambda, a count, or an index read, and every reference to an entity inside those is a read of a scalar property. The method must read at least one such property, at most half of them, and leave at least four unread. It reports with advisory confidence, `Info` severity, and the `Performance` category.
+
+Any other use ends the analysis without a finding: an entity or the local returned, passed, stored, compared, or modified; a navigation, collection, computed member, or method used; operators that return entities, such as `Where` or `First`; a reassigned local; a projected query; and single-entity loads. Scalar properties are counted from the entity type, not from the EF Core model. See [`docs/rules/EFD037.md`](EFD037.md) for the complete contract.
+
+## EFD038 stale-tracked-entity boundary
+
+EFD038 semantically identifies EF Core `ExecuteUpdate`, `ExecuteUpdateAsync`, `ExecuteDelete`, and `ExecuteDeleteAsync` on a query traced to `DbSet<T>` or `DbContext.Set<TEntity>()`, and looks for a tracked load of the same entity type from the same `DbContext` instance in an earlier statement of an enclosing block. A tracked load is a local declaration initialized by `Find`/`FindAsync`, or by `First`, `Single`, `Last`, their `OrDefault` forms, `ToList`, `ToArray`, or an async form, on a query of the entity type without `AsNoTracking`. The same instance is proven by symbol, as in EFD027. It reports each bulk operation once, under the `Correctness` category: with high confidence and `Warning` severity when the method later references the loaded local, loads the type again from the same context, or saves after modifying a loaded entity, and with medium confidence otherwise.
+
+No-tracking loads, filters that compare the same property with different constants, projections, other entity types, contexts that can't be compared by symbol, loads and bulk operations in sibling branches or inside lambdas, loads that don't initialize a local, and methods that call `ChangeTracker.Clear()`, `Entry(…).Reload()`, or detach an entity after the load are not reported. Beyond that constant check, the rule doesn't compare the bulk operation's filter with the loaded rows, and it doesn't follow a context across methods. See [`docs/rules/EFD038.md`](EFD038.md) for the complete contract.

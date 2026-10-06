@@ -1,0 +1,3 @@
+[EditorConfigSuppressed.cs]
+# Reviewed: the invoice table is narrow in production.
+dotnet_diagnostic.EFD037.severity = none

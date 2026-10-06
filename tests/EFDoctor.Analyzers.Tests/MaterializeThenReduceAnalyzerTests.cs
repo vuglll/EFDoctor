@@ -121,6 +121,146 @@ public sealed class MaterializeThenReduceAnalyzerTests
         Assert.Contains(expectedReducer, diagnostic.GetMessage(), StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData("context.Orders.ToList().Count > 0", "count > 0", "Apply 'Any' to the query")]
+    [InlineData("0 < context.Orders.ToList().Count", "count > 0", "Apply 'Any' to the query")]
+    [InlineData("context.Orders.ToList().Count != 0", "count != 0", "Apply 'Any' to the query")]
+    [InlineData("context.Orders.ToList().Count() >= 1", "count >= 1", "Apply 'Any' to the query")]
+    [InlineData("context.Orders.ToList().Count(order => order.Active) > 0", "count > 0", "Apply 'Any' to the query")]
+    [InlineData("context.Orders.ToArray().Length == 0", "count == 0", "Apply the negation of 'Any' to the query")]
+    [InlineData("context.Orders.ToList().Count <= 0", "count <= 0", "Apply the negation of 'Any' to the query")]
+    [InlineData("context.Orders.ToList().LongCount() < 1", "count < 1", "Apply the negation of 'Any' to the query")]
+    [InlineData("(context.Orders.ToList().Count) > 0 && context.Orders.Any()", "count > 0", "Apply 'Any' to the query")]
+    public async Task CountComparedForExistenceRecommendsAny(string expression, string comparison, string expectedRemediation)
+    {
+        var diagnostic = Assert.Single(await AnalyzeAsync(Source($"static bool Run(TestContext context) => {expression};")));
+
+        var remediation = diagnostic.Properties[DiagnosticPropertyNames.SuggestedRemediation]!;
+        Assert.StartsWith(expectedRemediation, remediation, StringComparison.Ordinal);
+        Assert.DoesNotContain("'Count'", remediation, StringComparison.Ordinal);
+        Assert.Contains("keep any predicate as the Any predicate", remediation, StringComparison.Ordinal);
+        Assert.Contains($"The count is compared as '{comparison}', which only tests existence.", diagnostic.Properties[DiagnosticPropertyNames.Evidence], StringComparison.Ordinal);
+        Assert.Contains("to a boolean;", diagnostic.Properties[DiagnosticPropertyNames.LikelyImpact], StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("(await context.Orders.ToListAsync()).Count > 0", "Replace the awaited materialization with the EF Core asynchronous reducer 'AnyAsync'")]
+    [InlineData("(await context.Orders.ToArrayAsync()).Length == 0", "Replace the awaited materialization with the negation of the EF Core asynchronous reducer 'AnyAsync'")]
+    public async Task AwaitedCountComparedForExistenceRecommendsAnyAsync(string expression, string expectedRemediation)
+    {
+        var diagnostic = Assert.Single(await AnalyzeAsync(Source($"static async Task<bool> Run(TestContext context) => {expression};")));
+
+        Assert.StartsWith(expectedRemediation, diagnostic.Properties[DiagnosticPropertyNames.SuggestedRemediation], StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("context.Orders.ToList().Count == 5")]
+    [InlineData("context.Orders.ToList().Count > 1")]
+    [InlineData("context.Orders.ToList().Count >= 0")]
+    [InlineData("context.Orders.ToList().Count > limit")]
+    [InlineData("context.Orders.ToList().Count + 1 > 0")]
+    public async Task CountUsedAsAValueStillRecommendsCount(string expression)
+    {
+        var diagnostic = Assert.Single(await AnalyzeAsync(Source($"static bool Run(TestContext context, int limit) => {expression};")));
+
+        Assert.StartsWith("Apply 'Count' to the query", diagnostic.Properties[DiagnosticPropertyNames.SuggestedRemediation], StringComparison.Ordinal);
+        Assert.DoesNotContain("only tests existence", diagnostic.Properties[DiagnosticPropertyNames.Evidence], StringComparison.Ordinal);
+    }
+
+    public static IEnumerable<object[]> StoredCountCases()
+    {
+        // The examples from the issue that asked for this.
+        yield return new object[] { "static bool Run(TestContext context) { var orders = context.Orders.ToList(); return orders.Count > 0; }", "Apply 'Any' to the query", "'orders.Count > 0'" };
+        yield return new object[] { "static bool Run(TestContext context) { var orders = context.Orders.ToList(); return orders.Count >= 1; }", "Apply 'Any' to the query", "'orders.Count >= 1'" };
+        yield return new object[] { "static bool Run(TestContext context) { var orders = context.Orders.ToList(); return orders.Count == 0; }", "Apply 'Any' to the query", "'orders.Count == 0'" };
+        yield return new object[] { "static bool Run(TestContext context) { var orders = context.Orders.ToList(); return orders.Count <= 0; }", "Apply 'Any' to the query", "'orders.Count <= 0'" };
+        yield return new object[] { "static bool Run(TestContext context) { var orders = context.Orders.ToList(); return orders.Count < 1; }", "Apply 'Any' to the query", "'orders.Count < 1'" };
+        yield return new object[] { "static int Run(TestContext context) { var orders = context.Orders.ToList(); return orders.Count; }", "Apply 'Count' to the query", "'orders.Count'" };
+
+        yield return new object[] { "static bool Run(TestContext context) { var orders = context.Orders.Where(order => order.Active).ToList(); return orders.Any(); }", "Apply 'Any' to the query", "'orders.Any()'" };
+        yield return new object[] { "static bool Run(TestContext context) { var orders = context.Orders.ToList(); return !orders.Any(); }", "Apply 'Any' to the query", "'orders.Any()'" };
+        yield return new object[] { "static bool Run(TestContext context) { var orders = context.Orders.ToArray(); if (orders.Length == 0) { return false; } return true; }", "Apply 'Any' to the query", "'orders.Length == 0'" };
+        yield return new object[] { "static long Run(TestContext context) { var orders = context.Orders.ToArray(); return orders.LongCount() + orders.Count(); }", "Apply 'Count' to the query", "'orders.LongCount()', 'orders.Count()'" };
+        yield return new object[] { "static int Run(TestContext context) { IEnumerable<Order> orders = context.Orders.ToList(); return (orders).Count(); }", "Apply 'Count' to the query", "'(orders).Count()'" };
+        yield return new object[] { "static async Task<bool> Run(TestContext context) { var orders = await context.Orders.ToListAsync(); return orders.Count > 0; }", "Replace the awaited materialization with the EF Core asynchronous reducer 'AnyAsync'", "'orders.Count > 0'" };
+        yield return new object[] { "static async Task<int> Run(TestContext context) { var orders = await context.Orders.ToArrayAsync(); return orders.Length; }", "Replace the awaited materialization with the EF Core asynchronous reducer 'CountAsync'", "'orders.Length'" };
+        yield return new object[] { "static string Run(TestContext context) { var orders = context.Orders.ToList(); return $\"{orders.Count} orders\"; }", "Apply 'Count' to the query", "'orders.Count'" };
+    }
+
+    [Theory]
+    [MemberData(nameof(StoredCountCases))]
+    public async Task ReportsStoredResultUsedOnlyForItsCount(string member, string expectedRemediation, string expectedReads)
+    {
+        var diagnostic = Assert.Single(await AnalyzeAsync(Source(member)));
+
+        Assert.EndsWith(member.Contains("Async()", StringComparison.Ordinal) ? "Async()" : member.Contains("ToArray()", StringComparison.Ordinal) ? "ToArray()" : "ToList()", Text(diagnostic), StringComparison.Ordinal);
+        Assert.Equal("This EF Core query is fully materialized and then used only for its count through local 'orders'", diagnostic.GetMessage());
+        Assert.Equal("high", diagnostic.Properties[DiagnosticPropertyNames.Confidence]);
+        Assert.StartsWith(expectedRemediation, diagnostic.Properties[DiagnosticPropertyNames.SuggestedRemediation], StringComparison.Ordinal);
+        Assert.Contains($"stored in local 'orders', which this method uses only for its count: {expectedReads}.", diagnostic.Properties[DiagnosticPropertyNames.Evidence], StringComparison.Ordinal);
+        var testsForEmpty = expectedReads.Contains("== 0", StringComparison.Ordinal) || expectedReads.Contains("<= 0", StringComparison.Ordinal) || expectedReads.Contains("< 1", StringComparison.Ordinal);
+        Assert.Equal(testsForEmpty, diagnostic.Properties[DiagnosticPropertyNames.SuggestedRemediation]!.Contains("Negate it where the code tests for an empty result.", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task SeveralCountReadsRecommendOneQuery()
+    {
+        var source = Source("""
+            static int Run(TestContext context)
+            {
+                var orders = context.Orders.ToList();
+                if (orders.Count == 0)
+                {
+                    return -1;
+                }
+
+                return orders.Count;
+            }
+            """);
+
+        var diagnostic = Assert.Single(await AnalyzeAsync(source));
+
+        var remediation = diagnostic.Properties[DiagnosticPropertyNames.SuggestedRemediation]!;
+        Assert.StartsWith("Apply 'Count' to the query", remediation, StringComparison.Ordinal);
+        Assert.Contains("The local is read 2 times, so run the query-side operator once and reuse its value.", remediation, StringComparison.Ordinal);
+        Assert.Contains("'orders.Count == 0', 'orders.Count'", diagnostic.Properties[DiagnosticPropertyNames.Evidence], StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("static object Run(TestContext context) { var orders = context.Orders.ToList(); return orders.First(); }")]
+    [InlineData("static object Run(TestContext context) { var orders = context.Orders.ToList(); Console.WriteLine(orders.Count); return orders; }")]
+    [InlineData("static object Run(TestContext context) { var orders = context.Orders.ToList(); foreach (var order in orders) { Console.WriteLine(order.Id); } return orders.Count; }")]
+    [InlineData("static object Run(TestContext context) { var orders = context.Orders.ToList(); return orders.Count > 0 ? orders[0] : null!; }")]
+    [InlineData("static object Run(TestContext context) { var orders = context.Orders.ToList(); Use(orders); return orders.Count; } static void Use(object value) { }")]
+    [InlineData("static object Run(TestContext context) { var orders = context.Orders.ToList(); var copy = orders; return orders.Count; }")]
+    [InlineData("static object Run(TestContext context) { var orders = context.Orders.ToList(); return orders.Count(order => order.Active); }")]
+    [InlineData("static object Run(TestContext context) { var orders = context.Orders.ToList(); return orders.Any(order => order.Active); }")]
+    [InlineData("static object Run(TestContext context) { var orders = context.Orders.ToList(); return orders.Sum(order => order.Total) + orders.Count; }")]
+    [InlineData("static object Run(TestContext context) { var orders = context.Orders.ToList(); Func<int> count = () => orders.Count; return count(); }")]
+    [InlineData("static object Run(TestContext context) { var orders = context.Orders.ToList(); int Count() => orders.Count; return Count(); }")]
+    [InlineData("static object Run(TestContext context) { var orders = context.Orders.ToList(); orders = new List<Order>(); return orders.Count; }")]
+    [InlineData("static object Run(TestContext context) { var orders = context.Orders.ToList(); orders.Clear(); return orders.Count; }")]
+    [InlineData("static object Run(TestContext context) { var orders = context.Orders.ToList(); return orders.Capacity; }")]
+    [InlineData("static void Run(TestContext context) { var orders = context.Orders.ToList(); }")]
+    [InlineData("static object Run(TestContext context) { List<Order> orders; orders = context.Orders.ToList(); return orders.Count; }")]
+    [InlineData("static object Run(TestContext context) { var orders = context.Orders.AsEnumerable().ToList(); return orders.Count; }")]
+    [InlineData("static object Run(List<Order> source) { var orders = source.ToList(); return orders.Count; }")]
+    [InlineData("static object Run(TestContext context) { var count = context.Orders.Count(); return count > 0; }")]
+    public async Task DoesNotReportStoredResultWhoseRowsMayBeUsed(string member)
+    {
+        Assert.Empty(await AnalyzeAsync(Source(member)));
+    }
+
+    [Fact]
+    public async Task UnboundedMaterializationYieldsToStoredCountFinding()
+    {
+        var source = Source("static bool Run(TestContext context) { var orders = context.Orders.ToList(); return orders.Count > 0; }");
+
+        var diagnostics = await AnalyzeWithAsync(source, new MaterializeThenReduceAnalyzer(), new UnboundedQueryMaterializationAnalyzer());
+
+        Assert.Equal(MaterializeThenReduceAnalyzer.DiagnosticId, Assert.Single(diagnostics).Id);
+    }
+
     [Fact]
     public async Task AwaitedMaterializerRecommendsAsyncReducer()
     {

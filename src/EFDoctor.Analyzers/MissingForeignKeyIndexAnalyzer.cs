@@ -25,7 +25,8 @@ public sealed class MissingForeignKeyIndexAnalyzer : DiagnosticAnalyzer
         "Performance",
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
-        description: "Reports foreign keys in a supported EF Core relational model snapshot that lack a covering index or key.");
+        description: "Reports foreign keys in a supported EF Core relational model snapshot that lack a covering index or key.",
+        helpLinkUri: EfHelpLinks.For(DiagnosticId));
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(Rule);
 
@@ -38,6 +39,11 @@ public sealed class MissingForeignKeyIndexAnalyzer : DiagnosticAnalyzer
 
     private static void StartCompilation(CompilationStartAnalysisContext context)
     {
+        if (!EfAnalysisScope.Includes(context.Options, context.Compilation))
+        {
+            return;
+        }
+
         var modelSnapshot = context.Compilation.GetTypeByMetadataName(ModelSnapshotMetadataName);
         var providerDetection = EfProviderDetection.Detect(context.Compilation);
         if (modelSnapshot is null || providerDetection.EligibleProvider is null)
@@ -83,7 +89,7 @@ public sealed class MissingForeignKeyIndexAnalyzer : DiagnosticAnalyzer
                 .Add(DiagnosticPropertyNames.SuggestedRemediation, remediation)
                 .Add(DiagnosticPropertyNames.DocumentationReference, DocumentationKey);
 
-            context.ReportDiagnostic(Diagnostic.Create(
+            context.ReportDiagnostic(EfDiagnostic.Create(
                 Rule,
                 foreignKey.Invocation.Syntax.GetLocation(),
                 diagnosticProperties,

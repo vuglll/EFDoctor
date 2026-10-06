@@ -30,7 +30,8 @@ public sealed class ConcurrentDbContextOperationAnalyzer : DiagnosticAnalyzer
         "Reliability",
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
-        description: "Reports an EF Core asynchronous operation that starts while another operation on the same, symbol-proven DbContext instance is pending: operations passed together to Task.WhenAll or Task.WhenAny, an operation started before an earlier task local is observed, or an operation projected by Enumerable.Select into a task combinator over a captured context.");
+        description: "Reports an EF Core asynchronous operation that starts while another operation on the same, symbol-proven DbContext instance is pending: operations passed together to Task.WhenAll or Task.WhenAny, an operation started before an earlier task local is observed, or an operation projected by Enumerable.Select into a task combinator over a captured context.",
+        helpLinkUri: EfHelpLinks.For(DiagnosticId));
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(Rule);
 
@@ -43,6 +44,11 @@ public sealed class ConcurrentDbContextOperationAnalyzer : DiagnosticAnalyzer
 
     private static void StartCompilation(CompilationStartAnalysisContext context)
     {
+        if (!EfAnalysisScope.Includes(context.Options, context.Compilation))
+        {
+            return;
+        }
+
         var task = context.Compilation.GetTypeByMetadataName(TaskMetadataName);
         var enumerable = context.Compilation.GetTypeByMetadataName(EnumerableMetadataName);
         var queryable = context.Compilation.GetTypeByMetadataName(QueryableMetadataName);
@@ -69,7 +75,7 @@ public sealed class ConcurrentDbContextOperationAnalyzer : DiagnosticAnalyzer
         private readonly OperationBlockAnalysisContext _context;
         private readonly Symbols _symbols;
         private readonly IOperation _root;
-        private readonly Dictionary<ISymbol, bool> _neverWritten = new(SymbolEqualityComparer.Default);
+        private readonly EfContextIdentity _identity;
         private readonly HashSet<Location> _reported = new();
 
         public BlockAnalysis(OperationBlockAnalysisContext context, Symbols symbols, IOperation root)
@@ -77,6 +83,7 @@ public sealed class ConcurrentDbContextOperationAnalyzer : DiagnosticAnalyzer
             _context = context;
             _symbols = symbols;
             _root = root;
+            _identity = new EfContextIdentity(root, symbols.DbContext);
         }
 
         public void Run()
@@ -154,8 +161,11 @@ public sealed class ConcurrentDbContextOperationAnalyzer : DiagnosticAnalyzer
                         }
 
                         break;
-                    case ICollectionExpressionOperation collection:
-                        foreach (var element in collection.Elements)
+                    // Matched by kind value: ICollectionExpressionOperation is newer than the oldest
+                    // Roslyn the analyzers load into. Its child operations are its elements. A
+                    // params span argument is an implicit one, so the syntax can't identify it.
+                    case { } collection when (int)collection.Kind == EfQueryOperationAnalysis.CollectionExpressionOperationKind:
+                        foreach (var element in collection.ChildOperations)
                         {
                             yield return EfQueryOperationAnalysis.Unwrap(element);
                         }
@@ -294,113 +304,19 @@ public sealed class ConcurrentDbContextOperationAnalyzer : DiagnosticAnalyzer
             }
             else if (method.Name == "FindAsync" && operation.Instance is not null)
             {
-                context = ContextOfDbSet(operation.Instance);
+                context = _identity.ContextOfDbSet(operation.Instance);
             }
             else
             {
                 var source = EfQueryOperationAnalysis.GetInvocationSource(operation);
                 context = source is not null
                     && EfQueryOperationAnalysis.TryAnalyzeSource(source, _symbols.Queryable, _symbols.DbSet, _symbols.DbContext, _symbols.EfExtensions, out var analysis)
-                        ? ContextOfDbSet(analysis.Origin)
+                        ? _identity.ContextOfDbSet(analysis.Origin)
                         : null;
             }
 
-            if (context is null)
-            {
-                return false;
-            }
-
-            switch (EfQueryOperationAnalysis.Unwrap(context))
-            {
-                case ILocalReferenceOperation local when !local.Local.IsRef && IsNeverWritten(local.Local):
-                    key = local.Local;
-                    display = local.Local.Name;
-                    return true;
-                case IParameterReferenceOperation parameter when parameter.Parameter.RefKind == RefKind.None && IsNeverWritten(parameter.Parameter):
-                    key = parameter.Parameter;
-                    display = parameter.Parameter.Name;
-                    return true;
-                case IFieldReferenceOperation field when IsThisOrStatic(field.Instance):
-                    key = field.Field;
-                    display = MemberDisplay(field.Instance, field.Field);
-                    return true;
-                case IPropertyReferenceOperation property when IsThisOrStatic(property.Instance) && IsAutoProperty(property.Property):
-                    key = property.Property;
-                    display = MemberDisplay(property.Instance, property.Property);
-                    return true;
-                case IInstanceReferenceOperation { ReferenceKind: InstanceReferenceKind.ContainingTypeInstance, Type: { } type }:
-                    key = type;
-                    display = "this";
-                    return true;
-                default:
-                    return false;
-            }
+            return _identity.TryGetKey(context, out key, out display);
         }
-
-        private IOperation? ContextOfDbSet(IOperation dbSetExpression)
-        {
-            switch (EfQueryOperationAnalysis.Unwrap(dbSetExpression))
-            {
-                case IPropertyReferenceOperation { Instance: { } instance } when EfQueryOperationAnalysis.IsOrDerivesFrom(instance.Type, _symbols.DbContext):
-                    return instance;
-                case IFieldReferenceOperation { Instance: { } instance } when EfQueryOperationAnalysis.IsOrDerivesFrom(instance.Type, _symbols.DbContext):
-                    return instance;
-                case IInvocationOperation { Instance: { } instance } invocation
-                    when invocation.TargetMethod.Name == "Set" && EfQueryOperationAnalysis.IsOrDerivesFrom(instance.Type, _symbols.DbContext):
-                    return instance;
-                default:
-                    return null;
-            }
-        }
-
-        private bool IsNeverWritten(ISymbol symbol)
-        {
-            if (!_neverWritten.TryGetValue(symbol, out var result))
-            {
-                result = !_root.Descendants().Any(operation => operation switch
-                {
-                    ILocalReferenceOperation local => SymbolEqualityComparer.Default.Equals(local.Local, symbol) && IsWrite(local),
-                    IParameterReferenceOperation parameter => SymbolEqualityComparer.Default.Equals(parameter.Parameter, symbol) && IsWrite(parameter),
-                    _ => false,
-                });
-                _neverWritten.Add(symbol, result);
-            }
-
-            return result;
-        }
-
-        private static bool IsWrite(IOperation reference)
-        {
-            if (reference is ILocalReferenceOperation { IsDeclaration: true })
-            {
-                return true;
-            }
-
-            var current = reference;
-            while (current.Parent is ITupleOperation or IConversionOperation)
-            {
-                current = current.Parent;
-            }
-
-            return current.Parent switch
-            {
-                IAssignmentOperation assignment => ReferenceEquals(assignment.Target, current),
-                IIncrementOrDecrementOperation or IAddressOfOperation => true,
-                IArgumentOperation { Parameter.RefKind: not RefKind.None and not RefKind.In and not RefKind.RefReadOnlyParameter } => true,
-                _ => false,
-            };
-        }
-
-        private static bool IsThisOrStatic(IOperation? instance) =>
-            instance is null or IInstanceReferenceOperation { ReferenceKind: InstanceReferenceKind.ContainingTypeInstance };
-
-        private static bool IsAutoProperty(IPropertySymbol property) =>
-            property.ContainingType.GetMembers()
-                .OfType<IFieldSymbol>()
-                .Any(field => SymbolEqualityComparer.Default.Equals(field.AssociatedSymbol, property));
-
-        private static string MemberDisplay(IOperation? instance, ISymbol member) =>
-            instance is null ? $"{member.ContainingType.Name}.{member.Name}" : $"this.{member.Name}";
 
         private static string Display(IInvocationOperation operation) =>
             operation.TargetMethod.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat);
@@ -420,7 +336,7 @@ public sealed class ConcurrentDbContextOperationAnalyzer : DiagnosticAnalyzer
                 .Add(DiagnosticPropertyNames.SuggestedRemediation, Remediation)
                 .Add(DiagnosticPropertyNames.DocumentationReference, DocumentationKey);
 
-            _context.ReportDiagnostic(Diagnostic.Create(Rule, location, properties));
+            _context.ReportDiagnostic(EfDiagnostic.Create(Rule, location, properties));
         }
 
         private static IEnumerable<IOperation> DescendantsOutsideFunctions(IOperation operation)

@@ -179,7 +179,7 @@ public sealed class UnboundedQueryMaterializationAnalyzerTests
         Assert.Equal("context.Entities.Where(entity => entity.Active).ToListAsync()", Text(matches[1]));
         Assert.All(matches, static diagnostic =>
         {
-            Assert.Equal(DiagnosticSeverity.Warning, diagnostic.Severity);
+            Assert.Equal(DiagnosticSeverity.Info, diagnostic.Severity);
             Assert.Equal("medium", diagnostic.Properties[DiagnosticPropertyNames.Confidence]);
             Assert.Contains("DbSet origin", diagnostic.Properties[DiagnosticPropertyNames.Evidence]);
             Assert.Contains("recognized row bound is None (None)", diagnostic.Properties[DiagnosticPropertyNames.Evidence]);
@@ -465,6 +465,21 @@ public sealed class UnboundedQueryMaterializationAnalyzerTests
         Assert.Equal("medium", UnboundedQueryMaterializationAnalyzer.Confidence);
         Assert.Contains("without", UnboundedQueryMaterializationAnalyzer.Rule.MessageFormat.ToString(), StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("always", UnboundedQueryMaterializationAnalyzer.Rule.MessageFormat.ToString(), StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Theory]
+    [Trait("Spec", "analyzer-package/Rule with several confidence levels")]
+    [InlineData("static List<Entity> Run(TestContext context) => context.Entities.ToList();", "CustomerService", "high", DiagnosticSeverity.Warning)]
+    [InlineData("static List<Entity> Run(TestContext context) => context.Entities.ToList();", "Subject", "medium", DiagnosticSeverity.Info)]
+    [InlineData("static List<Entity> Run(TestContext context, int id) => context.Entities.Where(entity => entity.ProductId == id).ToList();", "Subject", "advisory", DiagnosticSeverity.Info)]
+    public async Task BuildSeverityFollowsTheConfidenceOfEachFinding(string member, string containingType, string confidence, DiagnosticSeverity severity)
+    {
+        var diagnostic = Assert.Single(
+            await AnalyzeAsync(QuerySource(member, containingType: containingType)),
+            static diagnostic => diagnostic.Id == UnboundedQueryMaterializationAnalyzer.DiagnosticId);
+
+        Assert.Equal(confidence, diagnostic.Properties[DiagnosticPropertyNames.Confidence]);
+        Assert.Equal(severity, diagnostic.Severity);
     }
 
     private static Task<System.Collections.Immutable.ImmutableArray<Diagnostic>> AnalyzeAsync(string source) =>

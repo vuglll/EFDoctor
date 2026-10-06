@@ -27,7 +27,8 @@ public sealed class PrematureQueryMaterializationAnalyzer : DiagnosticAnalyzer
         "Performance",
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
-        description: "Reports proven EF Core queries materialized immediately before simple SQL-capable LINQ-to-Objects composition.");
+        description: "Reports proven EF Core queries materialized immediately before simple SQL-capable LINQ-to-Objects composition.",
+        helpLinkUri: EfHelpLinks.For(DiagnosticId));
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(Rule);
 
@@ -40,6 +41,11 @@ public sealed class PrematureQueryMaterializationAnalyzer : DiagnosticAnalyzer
 
     private static void StartCompilation(CompilationStartAnalysisContext context)
     {
+        if (!EfAnalysisScope.Includes(context.Options, context.Compilation))
+        {
+            return;
+        }
+
         var enumerable = context.Compilation.GetTypeByMetadataName(EnumerableMetadataName);
         var queryable = context.Compilation.GetTypeByMetadataName(QueryableMetadataName);
         var dbSet = context.Compilation.GetTypeByMetadataName(DbSetMetadataName);
@@ -104,7 +110,7 @@ public sealed class PrematureQueryMaterializationAnalyzer : DiagnosticAnalyzer
             .Add(DiagnosticPropertyNames.SuggestedRemediation, remediation)
             .Add(DiagnosticPropertyNames.DocumentationReference, DocumentationKey);
 
-        context.ReportDiagnostic(Diagnostic.Create(Rule, materializer.Syntax.GetLocation(), properties, operatorName));
+        context.ReportDiagnostic(EfDiagnostic.Create(Rule, materializer.Syntax.GetLocation(), properties, operatorName));
     }
 
     internal static bool TryClassifyMaterializer(

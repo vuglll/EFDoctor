@@ -38,7 +38,7 @@ Loading a project runs its MSBuild logic, so analyze only repositories you trust
 | Rule | Finding |
 |---|---|
 | EFD001 | `SaveChanges`/`SaveChangesAsync` inside a loop |
-| EFD002 | `Count`/`CountAsync` used only to test existence |
+| EFD002 | `Count`/`CountAsync` used only to test existence, or `FirstOrDefault` used only as a null check |
 | EFD003 | Foreign key without a covering index in a SQL Server or PostgreSQL model snapshot |
 | EFD004 | Query materialized before filtering, projection, ordering, or paging |
 | EFD005 | `ToList`/`ToListAsync` without a recognized row bound |
@@ -59,6 +59,10 @@ Loading a project runs its MSBuild logic, so analyze only repositories you trust
 | EFD025 | Duplicate or already-covered `Include` path in the same query (Info) |
 | EFD027 | Concurrent EF Core operations on the same `DbContext`, such as `Task.WhenAll` over two queries |
 | EFD029 | Second `OrderBy` that discards an earlier ordering instead of `ThenBy` |
+| EFD037 | Entities materialized into a local when only a few of their columns are read (advisory) |
+| EFD038 | `ExecuteUpdate`/`ExecuteDelete` that leaves already-tracked entities of the same type stale |
+
+The same rules are available as analyzers that run in every build and in the IDE: see the `EFDoctor.Analyzers` package.
 
 Suppress an intentional finding with standard Roslyn mechanisms (`#pragma warning disable EFD001`, `.editorconfig`, or `[SuppressMessage]`) and record why.
 

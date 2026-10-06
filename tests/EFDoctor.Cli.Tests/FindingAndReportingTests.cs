@@ -134,6 +134,34 @@ public sealed class FindingAndReportingTests
         Assert.Equal(expectedSeverity, finding.Severity);
     }
 
+    // In a build, medium-confidence diagnostics are capped at Info. Reports keep them as warnings.
+    [Theory]
+    [InlineData("EFD005", "medium", DiagnosticSeverity.Info, FindingSeverity.Warning)]
+    [InlineData("EFD005", "medium", DiagnosticSeverity.Warning, FindingSeverity.Warning)]
+    [InlineData("EFD005", "medium", DiagnosticSeverity.Error, FindingSeverity.Error)]
+    [InlineData("EFD005", "high", DiagnosticSeverity.Warning, FindingSeverity.Warning)]
+    [InlineData("EFD005", "advisory", DiagnosticSeverity.Info, FindingSeverity.Info)]
+    [InlineData("EFD025", "high", DiagnosticSeverity.Info, FindingSeverity.Info)]
+    public void MapperKeepsReportSeverityIndependentOfTheBuildCap(
+        string ruleId,
+        string confidence,
+        DiagnosticSeverity buildSeverity,
+        FindingSeverity expectedSeverity)
+    {
+        var rule = ruleId == "EFD025" ? RedundantIncludeAnalyzer.Rule : UnboundedQueryMaterializationAnalyzer.Rule;
+        var tree = CSharpSyntaxTree.ParseText("class C { void M() { } }", path: "/repo/materialize.cs");
+        var location = Location.Create(tree, new Microsoft.CodeAnalysis.Text.TextSpan(10, 4));
+        var properties = ImmutableDictionary<string, string?>.Empty
+            .Add(DiagnosticPropertyNames.Confidence, confidence)
+            .Add(DiagnosticPropertyNames.Evidence, "Evidence.")
+            .Add(DiagnosticPropertyNames.LikelyImpact, "Impact.")
+            .Add(DiagnosticPropertyNames.SuggestedRemediation, "Remediation.")
+            .Add(DiagnosticPropertyNames.DocumentationReference, ruleId);
+        var diagnostic = Diagnostic.Create(rule, location, buildSeverity, additionalLocations: null, properties);
+
+        Assert.Equal(expectedSeverity, DiagnosticFindingMapper.Map(diagnostic).Severity);
+    }
+
     [Fact]
     public void MixedRuleReportsPreserveSchemaAndRuleIdTieBreak()
     {
@@ -156,7 +184,7 @@ public sealed class FindingAndReportingTests
     {
         return new Finding(
             ruleId,
-            ruleId == "EFD002" ? "Count used only to test existence" : "SaveChanges executed inside a loop",
+            ruleId == "EFD002" ? "Query result used only to test existence" : "SaveChanges executed inside a loop",
             FindingSeverity.Warning,
             FindingConfidence.High,
             "This EF Core save executes inside a loop and may cause repeated database round trips.",

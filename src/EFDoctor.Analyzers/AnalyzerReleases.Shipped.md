@@ -43,3 +43,22 @@ Rule ID | Category | Severity | Notes
 --------|----------|----------|-------
 EFD027 | Reliability | Warning | Detect an EF Core asynchronous operation that starts while another operation on the same DbContext instance is still pending.
 EFD029 | Correctness | Warning | Detect an EF Core OrderBy or OrderByDescending that discards an earlier ordering in the same inline query chain instead of using ThenBy.
+
+## Release 0.4.0
+
+### New Rules
+
+Rule ID | Category | Severity | Notes
+--------|----------|----------|-------
+EFD037 | Performance | Info | Detect an EF Core query materialized into a local when the method reads only a small subset of the entity's scalar properties.
+EFD038 | Correctness | Warning | Detect an EF Core ExecuteUpdate or ExecuteDelete that runs after entities of the same type were loaded with tracking from the same DbContext instance.
+
+### Changed Rules
+
+Rule ID | New Category | New Severity | Old Category | Old Severity | Notes
+--------|--------------|--------------|--------------|--------------|-------
+EFD006 | Performance | Info | Performance | Warning | Medium-confidence findings are suggestions in a build.
+EFD009 | Performance | Info | Performance | Warning | Medium-confidence findings are suggestions in a build.
+EFD010 | Performance | Info | Performance | Warning | Medium-confidence findings are suggestions in a build.
+EFD013 | Performance | Info | Performance | Warning | Medium-confidence findings are suggestions in a build.
+EFD020 | Performance | Info | Performance | Warning | Medium-confidence findings are suggestions in a build.

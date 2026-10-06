@@ -37,7 +37,7 @@ Both branches require the CI check to pass, and an approving review from a code 
 
 ### Cutting a release
 
-1. On `dev`, set `<Version>` in `src/EFDoctor.Cli/EFDoctor.Cli.csproj` and update `<PackageReleaseNotes>`.
+1. On `dev`, set `<Version>` and update `<PackageReleaseNotes>` in `Directory.Build.props`. Both packages, the `EFDoctor` tool and `EFDoctor.Analyzers`, take them from there.
 2. In `CHANGELOG.md`, turn the **Unreleased** section into `## X.Y.Z`, and start a new, empty **Unreleased** section above it.
 3. In `src/EFDoctor.Analyzers/`, move any rules from `AnalyzerReleases.Unshipped.md` to `AnalyzerReleases.Shipped.md` under `## Release X.Y.Z`.
 4. Merge `dev` into `main` through a pull request, using **Create a merge commit**. Squashing would give `main` a commit that `dev` doesn't have, and later release pull requests would show old changes again. Pull requests into `dev` are squash-merged.
@@ -47,7 +47,17 @@ Both branches require the CI check to pass, and an approving review from a code 
    git tag vX.Y.Z && git push origin vX.Y.Z
    ```
 
-The `Release` workflow then checks that the tag is on `main` and matches `<Version>`, runs the tests, publishes the package to nuget.org through Trusted Publishing, and creates the GitHub release from the CHANGELOG section.
+   The `Release` workflow then checks that the tag is on `main` and matches `<Version>`, runs the tests, publishes both packages to nuget.org through Trusted Publishing, and creates the GitHub release from the CHANGELOG section.
+6. Merge `main` back into `dev`, so the release merge commit is in `dev`'s history too. The merge changes no files; it only keeps the branches from drifting apart:
+
+   ```bash
+   git fetch origin
+   git switch -c chore/merge-main-into-dev-X.Y.Z origin/dev
+   git merge --no-ff origin/main -m "chore: merge main into dev after X.Y.Z"
+   git push -u origin chore/merge-main-into-dev-X.Y.Z
+   ```
+
+   Open a pull request into `dev` and merge it with **Create a merge commit**. This is the one pull request into `dev` that isn't squash-merged: squashing would leave out the release merge commit this step exists to bring in.
 
 Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/): `feat(analyzers): …`, `fix(efd005): …`, `docs(openspec): …`.
 
@@ -75,6 +85,8 @@ Commit messages follow [Conventional Commits](https://www.conventionalcommits.or
 **Don't add a `cli-analysis` requirement for a new rule.** The requirement "Run every shipped analyzer during workspace analysis" covers every rule, and the registration check enforces it. A rule's behavior belongs in its own capability spec.
 
 **Keep analyzer descriptions consistent with the spec.** A descriptor's `description:` text must not contradict the rule's spec.
+
+**Follow the shared analyzer conventions.** Start `StartCompilation` with the `EfAnalysisScope.Includes` check, create diagnostics with `EfDiagnostic.Create`, set `helpLinkUri: EfHelpLinks.For(DiagnosticId)`, and give a rule that never reports above medium confidence `Info` as its default severity. Use no Roslyn API newer than 4.8. The consistency tests check all of these.
 
 ### Trace scenarios to tests
 

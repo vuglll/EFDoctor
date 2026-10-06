@@ -35,7 +35,9 @@ public static class WorkspaceAnalyzer
             new LeadingWildcardSearchAnalyzer(),
             new SyncDatabaseCallInAsyncAnalyzer(),
             new OrderByReplacesOrderingAnalyzer(),
-            new ConcurrentDbContextOperationAnalyzer());
+            new ConcurrentDbContextOperationAnalyzer(),
+            new EntityOverFetchAnalyzer(),
+            new StaleTrackedEntitiesAnalyzer());
 
     private static readonly ImmutableHashSet<string> DiagnosticIds = Analyzers
         .SelectMany(static analyzer => analyzer.SupportedDiagnostics)
@@ -110,8 +112,9 @@ public static class WorkspaceAnalyzer
                 analyzableEfProjects++;
             }
 
+            // The analyzers skip test projects on their own; an included one needs their opt-in.
             var analyzerOptions = new CompilationWithAnalyzersOptions(
-                project.AnalyzerOptions,
+                isTestProject ? TestProjectAnalyzerOptions.OptIn(project.AnalyzerOptions) : project.AnalyzerOptions,
                 onAnalyzerException: null,
                 concurrentAnalysis: true,
                 logAnalyzerExecutionTime: false,
@@ -206,25 +209,9 @@ public static class WorkspaceAnalyzer
 
     private static bool IsTestProject(Project project, Compilation compilation)
     {
-        if ((project.AnalyzerOptions.AnalyzerConfigOptionsProvider.GlobalOptions.TryGetValue(
-                "build_property.IsTestProject",
-                out var isTestProject)
-            && bool.TryParse(isTestProject, out var markedAsTest)
-            && markedAsTest)
-            || IsMarkedTestProject(project.FilePath))
-        {
-            return true;
-        }
-
-        return compilation.References
-            .Select(compilation.GetAssemblyOrModuleSymbol)
-            .OfType<IAssemblySymbol>()
-            .Select(static assembly => assembly.Identity.Name)
-            .Any(static name =>
-                name.StartsWith("xunit", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(name, "nunit.framework", StringComparison.OrdinalIgnoreCase)
-                || name.StartsWith("Microsoft.VisualStudio.TestPlatform", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(name, "Microsoft.NET.Test.Sdk", StringComparison.OrdinalIgnoreCase));
+        return EfTestProjectDetection.IsMarkedTestProject(project.AnalyzerOptions.AnalyzerConfigOptionsProvider.GlobalOptions)
+            || IsMarkedTestProject(project.FilePath)
+            || EfTestProjectDetection.ReferencesTestFramework(compilation);
     }
 
     private static bool IsMarkedTestProject(string? projectFilePath)

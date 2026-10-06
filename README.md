@@ -6,13 +6,13 @@
 
 **Find the EF Core performance and correctness problems that survive code review.**
 
-EFDoctor is a .NET tool that reads your solution with Roslyn and reports EF Core anti-patterns: `SaveChanges` inside a loop, synchronous database calls in async code, unbounded `ToList`, cartesian `Include` chains, raw SQL built from strings, and more. Each finding comes with the evidence that matched, the likely impact, and a fix. It runs locally, and nothing leaves your machine.
+EFDoctor reads your code with Roslyn and reports EF Core anti-patterns: `SaveChanges` inside a loop, synchronous database calls in async code, unbounded `ToList`, cartesian `Include` chains, raw SQL built from strings, and more. Each finding comes with the evidence that matched, the likely impact, and a fix. It runs locally, as a .NET tool or as an analyzer package in your build, and nothing leaves your machine.
 
 ![efdoctor analyzing Microsoft's eShop](docs/assets/demo.svg)
 
 <sub>Real output of `efdoctor` 0.2.0 on [Microsoft's eShop](https://github.com/dotnet/eShop) at commit `b4a4087`, trimmed to two of its 15 findings. Paths are shown relative to the checkout.</sub>
 
-> **Project status:** 0.x. EFD001 through EFD006, EFD009 through EFD014, EFD017 through EFD023, EFD025, EFD027, and EFD029 ship in the `efdoctor` tool. Rules, options, and output may still change before 1.0; see the [roadmap](docs/roadmap.md).
+> **Project status:** 0.x. EFD001 through EFD006, EFD009 through EFD014, EFD017 through EFD023, EFD025, EFD027, EFD029, EFD037, and EFD038 ship in the `efdoctor` tool and the `EFDoctor.Analyzers` package. Rules, options, and output may still change before 1.0; see the [roadmap](docs/roadmap.md).
 
 ## Quick start
 
@@ -24,6 +24,29 @@ efdoctor analyze path/to/App.sln
 ```
 
 Use `--format json` for automation. The exit code is `0` for no findings, `1` for findings, and `2` when the target can't be analyzed. The [usage guide](docs/usage.md) covers every option, JSON output, and local-tool installs.
+
+## CLI or analyzer package
+
+The same rules ship in two packages. Use either, or both.
+
+| | `EFDoctor` (.NET tool) | `EFDoctor.Analyzers` (analyzer package) |
+|---|---|---|
+| Runs | When you run `efdoctor analyze`, locally or in CI | In every build and in the IDE, as you type |
+| Shows | A report: evidence, likely impact, and remediation for each finding; console or JSON | Compiler diagnostics, each linked to its rule page |
+| Setup | Nothing in the repository | One package reference, for example through central package management |
+| Good for | Auditing a codebase, CI gates, and reviewing every finding with its context | Catching a problem while the code is being written |
+
+```xml
+<!-- Directory.Packages.props -->
+<PackageVersion Include="EFDoctor.Analyzers" Version="x.y.z" />
+
+<!-- Directory.Build.props -->
+<ItemGroup>
+  <PackageReference Include="EFDoctor.Analyzers" PrivateAssets="all" />
+</ItemGroup>
+```
+
+In a build, only high-confidence findings are warnings; medium-confidence and advisory findings are suggestions, and test projects are skipped. The [usage guide](docs/usage.md#analyzer-package) covers severities, `.editorconfig` overrides, and supported SDKs.
 
 ## What it finds in real code
 
@@ -45,14 +68,14 @@ var catalogItem = await catalogContext.CatalogItems.FindAsync(orderStockItem.Pro
 
 The same corpus turned up synchronous `Count()` calls on queries inside async maintenance tasks in [Jellyfin](https://github.com/jellyfin/jellyfin), and a synchronous `SingleOrDefault` in eShop's `DeleteItemById` endpoint.
 
-Precision matters more than rule count, so every finding on the corpus gets a verdict. Across eShop, Jellyfin, Bitwarden, Smartstore, OpenIddict, and Ardalis's Clean Architecture template, 114 findings are triaged so far, with **no false positives**. Many of them are correct but acceptable in context, and each rule's documentation names those cases. The rest, mostly EFD005, are still being triaged. See the [validation corpus and results](validation/).
+Precision matters more than rule count, so every finding on the corpus gets a verdict. Across eShop, Jellyfin, Bitwarden, Smartstore, OpenIddict, and Ardalis's Clean Architecture template, 135 findings are triaged so far, with **no false positives**. Many of them are correct but acceptable in context, and each rule's documentation names those cases. The rest, mostly EFD005, are still being triaged. See the [validation corpus and results](validation/).
 
 ## Rules
 
 | Rule | Finding | Confidence |
 |---|---|---|
 | **EFD001** | `SaveChanges` or `SaveChangesAsync` executed inside a loop | High |
-| **EFD002** | `Count` or `CountAsync` used only to test existence instead of `Any` or `AnyAsync` | High |
+| **EFD002** | `Count` or `CountAsync` used only to test existence instead of `Any` or `AnyAsync`; `FirstOrDefault` used only as a null check | High / Medium |
 | **EFD003** | Foreign key without a covering index in a SQL Server or PostgreSQL model snapshot | High |
 | **EFD004** | Query materialized before filtering, projection, ordering, or paging that could run in SQL | High |
 | **EFD005** | `ToList` or `ToListAsync` on a query with no recognized row bound | High / Medium / Advisory |
@@ -73,12 +96,14 @@ Precision matters more than rule count, so every finding on the corpus gets a ve
 | **EFD025** | `Include` path that duplicates, or is covered by, another `Include` in the same query | High |
 | **EFD027** | Two EF Core operations running at once on the same `DbContext`, which throws at run time | High |
 | **EFD029** | Second `OrderBy` that discards an earlier ordering where `ThenBy` was meant | High |
+| **EFD037** | Entities materialized into a local when the method reads only a few of their columns | Advisory |
+| **EFD038** | `ExecuteUpdate` or `ExecuteDelete` after entities of the same type were loaded with tracking, which leaves them stale | High / Medium |
 
 Each rule has a reference page in [`docs/rules/`](docs/rules/) with what triggers it, what deliberately doesn't, the remediation, and how to suppress it. [Rule boundaries](docs/rules/README.md) summarizes how far each rule follows your code.
 
 ## Documentation
 
-- [Usage](docs/usage.md): commands, options, exit codes, JSON output, installation, and the trust boundary
+- [Usage](docs/usage.md): commands, options, exit codes, JSON output, installation, the analyzer package, and the trust boundary
 - [Suppressing findings](docs/suppression.md): pragmas, `.editorconfig`, and `SuppressMessage`
 - [Rules](docs/rules/): one page per rule, and the [rule boundaries](docs/rules/README.md)
 - [Roadmap](docs/roadmap.md): candidate rules, priorities, and the quality bar every rule meets

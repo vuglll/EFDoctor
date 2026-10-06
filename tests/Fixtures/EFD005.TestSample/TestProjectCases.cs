@@ -10,9 +10,20 @@ public sealed class TestEntity
     public TestEntity? Parent { get; set; }
 }
 
+public sealed class WideEntity
+{
+    public int Id { get; set; }
+    public string Code { get; set; } = "";
+    public string Title { get; set; } = "";
+    public string Body { get; set; } = "";
+    public DateTime CreatedUtc { get; set; }
+}
+
 public sealed class TestContext : DbContext
 {
     public DbSet<TestEntity> Entities => Set<TestEntity>();
+
+    public DbSet<WideEntity> Wide => Set<WideEntity>();
 }
 
 public static class TestProjectCases
@@ -66,4 +77,16 @@ public static class TestProjectCases
 
     public static Task ConcurrentQueries(TestContext context) =>
         Task.WhenAll(context.Entities.AnyAsync(), context.Entities.CountAsync());
+
+    public static List<int> OverFetch(TestContext context)
+    {
+        var rows = context.Wide.Take(10).ToList();
+        return rows.Select(row => row.Id).ToList();
+    }
+
+    public static void StaleAfterBulkDelete(TestContext context, int id)
+    {
+        var entity = context.Entities.Find(id);
+        context.Entities.Where(candidate => candidate.Id == id).ExecuteDelete();
+    }
 }

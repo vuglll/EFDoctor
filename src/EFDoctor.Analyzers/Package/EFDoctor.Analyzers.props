@@ -1,0 +1,8 @@
+<Project>
+  <!-- The analyzers skip test projects. MSBuild properties reach an analyzer only when they are
+       declared compiler-visible. -->
+  <ItemGroup>
+    <CompilerVisibleProperty Include="IsTestProject" />
+    <CompilerVisibleProperty Include="EFDoctorAnalyzeTestProjects" />
+  </ItemGroup>
+</Project>

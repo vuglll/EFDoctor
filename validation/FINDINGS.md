@@ -195,3 +195,63 @@ The corpus was re-run for the two rules added in the public repository. jasontay
 
 - **EFD029** (`OrderBy` that discards an earlier ordering): 1 finding, **TP**. Smartstore `ProductBatchContext.BuildSpecAttributesQuery` sorts with `.OrderBy(x => x.ProductId).OrderBy(x => x.DisplayOrder)`, where `ThenBy` was meant. The impact is benign there, because the results are regrouped by `ProductId`, but the first ordering is dead code.
 - **EFD027** (concurrent operations on one `DbContext`): 0 findings. The corpus has 90 non-test `Task.WhenAll`/`Task.WhenAny` call sites. The ones that could involve data access (Jellyfin `SearchManager`, Smartstore `LocalizedEntityService`) combine provider or cache tasks, not EF operations on a shared context. So the corpus doesn't exercise the rule's shapes, and its precision on real code is still unmeasured. A codebase that mixes a scoped `DbContext` with `Task.WhenAll` would be a useful addition to the corpus.
+
+## Build-time cost of the analyzer package (2026-10-06)
+
+The rules also ship as the `EFDoctor.Analyzers` package, so their cost inside a build matters. It was measured with the compiler's analyzer report (`-p:ReportAnalyzer=true`), with the analyzer assembly added to two corpus builds on the .NET 10 SDK.
+
+| Build | Compilations | All analyzers | EFDoctor | Share | Most expensive rule |
+|---|---:|---:|---:|---:|---|
+| Jellyfin, `Jellyfin.Server.Implementations` and its dependencies | 11 | 19.96 s | 0.28 s | 1.4% | EFD027, 0.08 s |
+| eShop, `Catalog.API` and its dependencies | 5 | 0.53 s | 0.02 s | 4.4% | EFD003, 0.009 s |
+
+- No rule dominates. The most expensive rule in any single compilation took 0.02 s.
+- EFD003 reads a whole model snapshot, and cost 0.009 s on eShop's PostgreSQL snapshot. It looks only at the snapshot's `BuildModel` method, and does nothing in a project with no snapshot or no supported provider.
+- A project that doesn't reference EF Core costs under a millisecond per rule, because every rule returns at compilation start when EF Core types are missing.
+
+## New rule: EFD037 (2026-10-06)
+
+The corpus was re-run for EFD037, entities materialized into a local when the method reads only a few of their scalar properties. No other rule's findings changed.
+
+- **15 findings, no false positive.** 8 are `TP` and 7 are `acceptable`, so detection precision is 100% and strict precision is 53%. The rule is advisory, so it doesn't count against the high- and medium-confidence gate.
+- **Bitwarden, 1 TP.** `NotificationRepository.MarkNotificationsAsDeletedByTask` loads tracked `Notification` entities and reads `Id` and `UserId`, 2 of 11 scalar properties.
+- **Smartstore, 7 TP.** The clearest is `LocalizedEntityService`, twice: a prefetch on a cached hot path loads 13 columns of `LocalizedProperty`, including the hidden flag and audit columns, and keeps `EntityId` and `LocaleValue`. The others load every `Country` or `CustomerRole` to build an Id map or option list, every resource of a language for an XML export, and external login records to build `UserLoginInfo`.
+- **Smartstore, 7 acceptable.** Six are in installation seed data, and one is in a migration. The shape is right, but the code runs once over a few rows.
+- eShop, Jellyfin, OpenIddict, and Ardalis's template have no finding. Their materialized entities are returned, mapped by a helper, or filtered in memory first, all of which the rule's closed list of uses leaves alone.
+
+What the rule didn't see is the larger number. Results that pass through `Where`, `OrderBy`, or `First` before being read are common in the corpus, and following them is the obvious next step for recall.
+
+## New rule: EFD038 (2026-10-06)
+
+The corpus was re-run for EFD038, a bulk operation after a tracked load of the same entity type on the same context. The corpus uses bulk operations heavily: about 115 `ExecuteUpdate`/`ExecuteDelete` call sites each in Jellyfin, Bitwarden, and Smartstore, and 14 in OpenIddict.
+
+**The first run found a false positive, which changed the rule.** A Smartstore migration (`20221028120000_PriceSettings`) loads the setting named `PriceSettings.DefaultRegularPriceLabelId` to check that it exists, bulk-deletes the setting named `CatalogSettings.PriceDisplayStyle`, and then saves unrelated additions. The draft rule reported it with high confidence, because `SaveChanges` followed the bulk operation. Two things were wrong, and both are fixed:
+
+- **The filters can't match the same row.** The rule is now silent when the load and the bulk operation each compare the same property with a different constant.
+- **A `SaveChanges` proves nothing by itself.** It writes stale state back only when a loaded entity was modified, so it now raises the confidence only then.
+
+**After the fix: 3 findings, all in Bitwarden, no false positive.** 1 is `TP` and 2 are `acceptable`.
+
+- **TP, high confidence.** `AccessPolicyRepository.UpdateProjectServiceAccountsAccessPoliciesAsync` loads a project's access policies with tracking, bulk-deletes a subset selected by the IDs of those same entities, and then passes the whole list, deleted entities included, to its upsert helper before `SaveChanges`. The sibling method `UpdateServiceAccountGrantedPoliciesAsync` does the same job with `RemoveRange`, which keeps the tracker in step, and is correctly not reported.
+- **Acceptable, medium confidence, twice.** `OrganizationUserRepository.DeleteManyOrganizationUsersAndRelatedDataAsync` loads `CollectionUsers` and `OrganizationUsers`, reads them, and bulk-deletes them with the same filter. Nothing uses them afterwards, and the context ends with the method. This is what the medium tier is for.
+
+Jellyfin, Smartstore, and OpenIddict have no finding: their bulk operations run without a tracked load of the same type in the same method.
+
+One high-confidence finding is too few to measure the tier's precision. The known weak spot is a bulk filter that can't match the loaded rows for a reason other than different constants, such as loading active rows and deleting expired ones.
+
+## EFD019 extension: stored count-only lists (2026-10-06)
+
+The corpus was re-run after EFD019 learned to report a materialized result stored in a local that the method uses only for its count, and to recommend `Any` when a count only tests existence.
+
+- **2 new findings, no false positive.** 1 `TP`, 1 `acceptable`.
+- **Bitwarden, TP.** `ProjectRepository.ProjectsAreInOrganization` loads every matching `Project` entity and then compares `results.Count` with the number of requested IDs. `CountAsync` returns that number without loading a row.
+- **Smartstore, acceptable.** A migration loads the settings with one name and only tests the list for emptiness, where `AnyAsync` would do. It runs once over a handful of rows. EFD005 used to report this materializer as unbounded; it now yields to EFD019, whose message says what is wrong.
+- No existing EFD019 finding changed, and no inline finding in the corpus compares a count for existence, so the `Any` recommendation didn't change any remediation there.
+
+## EFD002 extension: stored counts and null-checked `FirstOrDefault` (2026-10-06)
+
+The corpus was re-run after EFD002 learned to follow a count through a local, and to report a `FirstOrDefault` whose result is only checked for `null`.
+
+- **1 new finding, no false positive.** Smartstore's `InvariantSeedData.Menus` stores `_db.Manufacturers.Count()` in `manufacturerCount` and only compares it with `> 0`, twice. The shape is right; it is installation seed code, so the verdict is `acceptable`.
+- **No null-checked `FirstOrDefault` in the corpus.** Where the corpus null-checks a `FirstOrDefault`, it goes on to use the entity, which the rule leaves alone. So the medium-confidence tier is unmeasured here. Its evidence is the proposal itself: the reporter found three such cases in production code, each with the result in a local.
+- **The proposal's test file is now an acceptance test.** Its twenty methods each get exactly one finding: fourteen from EFD002 and six from EFD019.

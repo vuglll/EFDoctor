@@ -184,14 +184,104 @@ public sealed class RepositoryConsistencyTests
         AssertNoProblems(problems);
     }
 
-    private static IReadOnlyList<string> ShippedRuleIds() =>
+    [Fact]
+    [Trait("Spec", "analyzer-package/Roslyn baseline")]
+    public void AnalyzerAssemblyLoadsInTheDotNet8SdkCompiler()
+    {
+        var roslyn = typeof(SaveChangesInLoopAnalyzer).Assembly.GetReferencedAssemblies()
+            .Single(static reference => reference.Name == "Microsoft.CodeAnalysis");
+
+        Assert.True(
+            roslyn.Version <= new Version(4, 8, 0, 0),
+            $"EFDoctor.Analyzers references Microsoft.CodeAnalysis {roslyn.Version}. A compiler older than that drops the analyzers with CS8032; keep the reference at 4.8 or lower.");
+    }
+
+    [Fact]
+    [Trait("Spec", "analyzer-package/Every analyzer checks the scope")]
+    public void AnalyzersCheckTheScopeAndReportThroughTheSharedFactory()
+    {
+        var problems = new List<string>();
+        var sources = Directory.GetFiles(Path.Combine(Root, "src", "EFDoctor.Analyzers"), "*Analyzer.cs");
+        foreach (var source in sources)
+        {
+            var name = Path.GetFileName(source);
+            var text = File.ReadAllText(source);
+            var start = text.IndexOf("void StartCompilation(CompilationStartAnalysisContext context)", StringComparison.Ordinal);
+            var scope = text.IndexOf("if (!EfAnalysisScope.Includes(context.Options, context.Compilation))", StringComparison.Ordinal);
+            var firstRegistration = start < 0 ? -1 : text.IndexOf("context.Register", start, StringComparison.Ordinal);
+            if (start < 0 || scope < start || (firstRegistration >= 0 && scope > firstRegistration))
+            {
+                problems.Add($"{name}: StartCompilation must check EfAnalysisScope.Includes before registering any action, so test projects are skipped");
+            }
+
+            if (Regex.IsMatch(text, @"(?<![A-Za-z])Diagnostic\.Create\("))
+            {
+                problems.Add($"{name}: create diagnostics with EfDiagnostic.Create, so build severity follows confidence");
+            }
+        }
+
+        Assert.Equal(AnalyzerTypes().Count, sources.Length);
+        AssertNoProblems(problems);
+    }
+
+    [Fact]
+    [Trait("Spec", "analyzer-package/Help link")]
+    public void EveryRuleLinksToItsDocumentationPage()
+    {
+        var repositoryUrl = Regex.Match(Read("Directory.Build.props"), @"<EFDoctorRepositoryUrl>(.+?)</EFDoctorRepositoryUrl>").Groups[1].Value;
+        var problems = new List<string>();
+        foreach (var descriptor in ShippedDescriptors())
+        {
+            var expected = $"{repositoryUrl}/blob/main/docs/rules/{descriptor.Id}.md";
+            if (descriptor.HelpLinkUri != expected)
+            {
+                problems.Add($"{descriptor.Id}: help link is \"{descriptor.HelpLinkUri}\" but should be \"{expected}\"");
+            }
+        }
+
+        Assert.NotEmpty(repositoryUrl);
+        AssertNoProblems(problems);
+    }
+
+    [Fact]
+    [Trait("Spec", "analyzer-package/Reader chooses between the CLI and the package")]
+    public void AnalyzerPackageIsDocumented()
+    {
+        var readme = Read("README.md");
+        var usage = Read("docs/usage.md");
+        var problems = new List<string>();
+        Require(readme.Contains("## CLI or analyzer package", StringComparison.Ordinal), "README.md: a \"CLI or analyzer package\" section");
+        Require(usage.Contains("<PackageReference Include=\"EFDoctor.Analyzers\"", StringComparison.Ordinal), "docs/usage.md: the EFDoctor.Analyzers package reference");
+        Require(Regex.IsMatch(usage, @"dotnet_diagnostic\.EFD\d{3}\.severity"), "docs/usage.md: a dotnet_diagnostic severity override");
+        Require(usage.Contains("EFDoctorAnalyzeTestProjects", StringComparison.Ordinal), "docs/usage.md: the EFDoctorAnalyzeTestProjects property");
+
+        AssertNoProblems(problems);
+
+        void Require(bool present, string location)
+        {
+            if (!present)
+            {
+                problems.Add($"missing {location}");
+            }
+        }
+    }
+
+    private static IReadOnlyList<Type> AnalyzerTypes() =>
         typeof(SaveChangesInLoopAnalyzer).Assembly.GetTypes()
             .Where(static type => !type.IsAbstract
                 && typeof(DiagnosticAnalyzer).IsAssignableFrom(type)
                 && type.GetCustomAttribute<DiagnosticAnalyzerAttribute>() is not null)
+            .ToList();
+
+    private static IReadOnlyList<Microsoft.CodeAnalysis.DiagnosticDescriptor> ShippedDescriptors() =>
+        AnalyzerTypes()
             .SelectMany(static type => ((DiagnosticAnalyzer)Activator.CreateInstance(type)!).SupportedDiagnostics)
+            .Where(static descriptor => RuleIdPattern.IsMatch(descriptor.Id))
+            .ToList();
+
+    private static IReadOnlyList<string> ShippedRuleIds() =>
+        ShippedDescriptors()
             .Select(static descriptor => descriptor.Id)
-            .Where(static id => RuleIdPattern.IsMatch(id))
             .Distinct(StringComparer.Ordinal)
             .OrderBy(static id => id, StringComparer.Ordinal)
             .ToList();

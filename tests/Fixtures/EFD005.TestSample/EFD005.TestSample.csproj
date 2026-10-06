@@ -3,7 +3,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <OutputType>Library</OutputType>
     <IsTestProject>true</IsTestProject>
-    <WarningsNotAsErrors>$(WarningsNotAsErrors);EFD001;EFD005;EFD012;EFD013;EFD017;EFD018;EFD019;EFD025;EFD009;EFD023;EFD029;EFD027</WarningsNotAsErrors>
+    <WarningsNotAsErrors>$(WarningsNotAsErrors);EFD001;EFD005;EFD012;EFD013;EFD017;EFD018;EFD019;EFD025;EFD009;EFD023;EFD029;EFD027;EFD038</WarningsNotAsErrors>
     <NoWarn>$(NoWarn);EF1002;EF1003</NoWarn>
   </PropertyGroup>
   <ItemGroup>

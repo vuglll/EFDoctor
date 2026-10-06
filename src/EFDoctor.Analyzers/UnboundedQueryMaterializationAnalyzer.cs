@@ -29,7 +29,8 @@ public sealed class UnboundedQueryMaterializationAnalyzer : DiagnosticAnalyzer
         "Performance",
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
-        description: "Reports proven EF Core list materialization whose proven query has no recognized strong row bound.");
+        description: "Reports proven EF Core list materialization whose proven query has no recognized strong row bound.",
+        helpLinkUri: EfHelpLinks.For(DiagnosticId));
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(Rule);
 
@@ -42,6 +43,11 @@ public sealed class UnboundedQueryMaterializationAnalyzer : DiagnosticAnalyzer
 
     private static void StartCompilation(CompilationStartAnalysisContext context)
     {
+        if (!EfAnalysisScope.Includes(context.Options, context.Compilation))
+        {
+            return;
+        }
+
         var enumerable = context.Compilation.GetTypeByMetadataName(EnumerableMetadataName);
         var queryable = context.Compilation.GetTypeByMetadataName(QueryableMetadataName);
         var dbSet = context.Compilation.GetTypeByMetadataName(DbSetMetadataName);
@@ -128,7 +134,7 @@ public sealed class UnboundedQueryMaterializationAnalyzer : DiagnosticAnalyzer
             .Add(DiagnosticPropertyNames.SuggestedRemediation, Remediation)
             .Add(DiagnosticPropertyNames.DocumentationReference, DocumentationKey);
 
-        context.ReportDiagnostic(Diagnostic.Create(Rule, materializer.Syntax.GetLocation(), properties));
+        context.ReportDiagnostic(EfDiagnostic.Create(Rule, materializer.Syntax.GetLocation(), properties));
     }
 
     private static string GetConfidence(EfQueryChainAnalysis queryAnalysis, ISymbol containingSymbol)

@@ -31,7 +31,8 @@ public sealed class OrderByReplacesOrderingAnalyzer : DiagnosticAnalyzer
         "Correctness",
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
-        description: "Reports an OrderBy or OrderByDescending over a proven EF Core query that is already ordered in the same inline chain, reached only through filtering, include, tracking, tagging, or split-query operators, so the earlier ordering is discarded.");
+        description: "Reports an OrderBy or OrderByDescending over a proven EF Core query that is already ordered in the same inline chain, reached only through filtering, include, tracking, tagging, or split-query operators, so the earlier ordering is discarded.",
+        helpLinkUri: EfHelpLinks.For(DiagnosticId));
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(Rule);
 
@@ -44,6 +45,11 @@ public sealed class OrderByReplacesOrderingAnalyzer : DiagnosticAnalyzer
 
     private static void StartCompilation(CompilationStartAnalysisContext context)
     {
+        if (!EfAnalysisScope.Includes(context.Options, context.Compilation))
+        {
+            return;
+        }
+
         var queryable = context.Compilation.GetTypeByMetadataName(QueryableMetadataName);
         var dbSet = context.Compilation.GetTypeByMetadataName(DbSetMetadataName);
         var dbContext = context.Compilation.GetTypeByMetadataName(DbContextMetadataName);
@@ -122,7 +128,7 @@ public sealed class OrderByReplacesOrderingAnalyzer : DiagnosticAnalyzer
             .Add(DiagnosticPropertyNames.SuggestedRemediation, Remediation)
             .Add(DiagnosticPropertyNames.DocumentationReference, DocumentationKey);
 
-        context.ReportDiagnostic(Diagnostic.Create(Rule, GetLocation(invocation), properties, method.Name));
+        context.ReportDiagnostic(EfDiagnostic.Create(Rule, GetLocation(invocation), properties, method.Name));
     }
 
     private static bool IsQueryableMethod(IMethodSymbol method, INamedTypeSymbol queryable) =>

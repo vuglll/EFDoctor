@@ -24,7 +24,8 @@ public sealed class StaticDbContextFieldAnalyzer : DiagnosticAnalyzer
         "Reliability",
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
-        description: "Reports an EF Core DbContext held in a static field, which is not thread-safe and outlives the intended unit of work.");
+        description: "Reports an EF Core DbContext held in a static field, which is not thread-safe and outlives the intended unit of work.",
+        helpLinkUri: EfHelpLinks.For(DiagnosticId));
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(Rule);
 
@@ -37,6 +38,11 @@ public sealed class StaticDbContextFieldAnalyzer : DiagnosticAnalyzer
 
     private static void StartCompilation(CompilationStartAnalysisContext context)
     {
+        if (!EfAnalysisScope.Includes(context.Options, context.Compilation))
+        {
+            return;
+        }
+
         var dbContext = context.Compilation.GetTypeByMetadataName(DbContextMetadataName);
         if (dbContext is null)
         {
@@ -69,6 +75,6 @@ public sealed class StaticDbContextFieldAnalyzer : DiagnosticAnalyzer
             .Add(DiagnosticPropertyNames.SuggestedRemediation, Remediation)
             .Add(DiagnosticPropertyNames.DocumentationReference, DocumentationKey);
 
-        context.ReportDiagnostic(Diagnostic.Create(Rule, location, properties));
+        context.ReportDiagnostic(EfDiagnostic.Create(Rule, location, properties));
     }
 }

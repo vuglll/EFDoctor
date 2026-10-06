@@ -4,6 +4,36 @@ All notable changes to EFDoctor are documented here. Versions follow [Semantic V
 
 ## Unreleased
 
+## 0.4.0
+
+The rules now ship in two packages: the `EFDoctor` tool, and the new `EFDoctor.Analyzers` package for builds and the IDE. There are two new rules, for 24 in all, and EFD002 and EFD019 follow a result stored in a local.
+
+Thanks to the people whose suggestions shaped this release:
+
+- [@jnyrup](https://github.com/jnyrup) proposed the EFD002 and EFD019 changes and supplied the test cases for them ([#13](https://github.com/vuglll/EFDoctor/issues/13)).
+- u/anonuser1511 on r/dotnet asked for the analyzer package ([#12](https://github.com/vuglll/EFDoctor/issues/12)).
+- u/geesuth on r/dotnet suggested EFD037 ([#10](https://github.com/vuglll/EFDoctor/issues/10)).
+- u/Lonely-Unit6754 on r/dotnet suggested EFD038 ([#11](https://github.com/vuglll/EFDoctor/issues/11)).
+
+### Added
+
+- The `EFDoctor.Analyzers` NuGet package, which runs every rule inside the compiler: in each build, and in the IDE. Reference it from one project, or once for all projects through central package management. It needs the .NET 8 SDK or later, has no dependencies, and has the same version as the tool.
+  - In a build, only high-confidence findings are warnings. Medium-confidence and advisory findings are suggestions, so adopting the package can't fail a warnings-as-errors build on a judgment call. `.editorconfig` changes any rule's severity.
+  - Test projects are skipped, as in the CLI. Set the MSBuild property `EFDoctorAnalyzeTestProjects` to `true` to analyze one.
+- Every rule's diagnostic has a help link to its page in `docs/rules/`.
+- EFD037: an EF Core query that materializes complete entities into a local when the method reads only a few of their scalar properties, where a `Select` projection in the query would fetch only those columns and track nothing. Advisory, at `Info` severity, under the `Performance` category. It reports only when every use of the result in the method is a scalar read (`foreach`, `Select`, lambda reducers, counts, and index reads), at most half of the entity's scalar properties are read, and at least four are left unread. Entities that are returned, passed on, stored, or modified are never reported.
+- EFD038: an `ExecuteUpdate`, `ExecuteDelete`, or async form that runs after the same method loaded entities of the same type, with tracking, into a local from the same `DbContext` instance. Bulk operations bypass the change tracker, so those entities keep their old values. Reported under the `Correctness` category: with high confidence at `Warning` severity when the method then uses the loaded entities, loads the type again from the same context, or saves after modifying one of them, and with medium confidence otherwise. The same instance is proven by symbol, as in EFD027. Not reported after `ChangeTracker.Clear()`, `Entry(…).Reload()`, or a detach, for a no-tracking load, or when the two filters compare the same property with different constants.
+
+### Changed
+
+- EFD019 now reports a materialized result stored in a local when the method uses the local only for its count: every read is `Count`, `Length`, `Any()`, `Count()`, or `LongCount()`, and the local is never enumerated, indexed, passed, returned, or reassigned. For example, `var products = db.Products.ToList(); return products.Count > 0;`. EFD005 no longer reports those materializers, because EFD019 does.
+- EFD002's title is now "Query result used only to test existence", because the rule also covers an entity loaded only for a null check. It was "Count used only to test existence". The rule ID, messages, and severities of existing findings are unchanged; the `ruleTitle` in console and JSON reports changes.
+- EFD002 now follows a count through a local: `var n = db.Products.Count(); return n > 0;` is reported when every read of the local is an existence comparison. A local that is also used as a number is not reported.
+- EFD002 now reports `FirstOrDefault` and awaited `FirstOrDefaultAsync` on an entity query with no projection when the result is only checked for `null`, directly or through a local. These findings have medium confidence, because the saving is at most one row's columns and change tracking. Projected queries, `SingleOrDefault`, and results that are used after the check are not reported.
+- EFD019 recommends `Any`/`AnyAsync`, or its negation, when a count is only compared for existence, such as `ToList().Count > 0`. Before, it recommended `Count`, and following that advice produced a shape that EFD002 reports.
+- The default diagnostic severity of EFD006, EFD009, EFD010, EFD013, and EFD020 is now `Info` instead of `Warning`, because their findings have medium confidence. CLI reports are unchanged: these findings are still reported at `Warning` severity.
+- The analyzers compile against Roslyn 4.8 instead of 5.9.0.
+
 ## 0.3.0
 
 Two new rules, both from the roadmap's "Next" tier, for 22 in all.
