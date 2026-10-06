@@ -9,7 +9,7 @@ namespace EFDoctor.Analyzers;
 public sealed class CountUsedForExistenceAnalyzer : DiagnosticAnalyzer
 {
     public const string DiagnosticId = "EFD002";
-    public const string RuleTitle = "Count used only to test existence";
+    public const string RuleTitle = "Query result used only to test existence";
     public const string Confidence = "high";
     public const string Impact = "Counting solely to test existence can require the database to process more matching rows than an existence query that can stop after the first match.";
     public const string DocumentationKey = "EFD002";

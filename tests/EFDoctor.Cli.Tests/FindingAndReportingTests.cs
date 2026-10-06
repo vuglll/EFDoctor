@@ -184,7 +184,7 @@ public sealed class FindingAndReportingTests
     {
         return new Finding(
             ruleId,
-            ruleId == "EFD002" ? "Count used only to test existence" : "SaveChanges executed inside a loop",
+            ruleId == "EFD002" ? "Query result used only to test existence" : "SaveChanges executed inside a loop",
             FindingSeverity.Warning,
             FindingConfidence.High,
             "This EF Core save executes inside a loop and may cause repeated database round trips.",

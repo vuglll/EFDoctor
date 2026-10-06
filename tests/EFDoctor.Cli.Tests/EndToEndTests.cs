@@ -731,7 +731,7 @@ public sealed class EndToEndTests
         Assert.All(findings, static finding =>
         {
             Assert.Equal("EFD002", finding.GetProperty("ruleId").GetString());
-            Assert.Equal("Count used only to test existence", finding.GetProperty("ruleTitle").GetString());
+            Assert.Equal("Query result used only to test existence", finding.GetProperty("ruleTitle").GetString());
             Assert.Equal("warning", finding.GetProperty("severity").GetString());
             Assert.EndsWith("tests/Fixtures/EFD002.Sample/StoredExistenceCases.cs", finding.GetProperty("sourceFile").GetString(), StringComparison.Ordinal);
             Assert.Equal("EFD002", finding.GetProperty("documentationReference").GetString());
