@@ -29,7 +29,8 @@ public sealed class StringComparisonInPredicateAnalyzer : DiagnosticAnalyzer
         "Correctness",
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
-        description: "Reports a StringComparison string overload used inside a proven EF Core query predicate, which EF Core cannot translate to SQL.");
+        description: "Reports a StringComparison string overload used inside a proven EF Core query predicate, which EF Core cannot translate to SQL.",
+        helpLinkUri: EfHelpLinks.For(DiagnosticId));
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(Rule);
 
@@ -42,6 +43,11 @@ public sealed class StringComparisonInPredicateAnalyzer : DiagnosticAnalyzer
 
     private static void StartCompilation(CompilationStartAnalysisContext context)
     {
+        if (!EfAnalysisScope.Includes(context.Options, context.Compilation))
+        {
+            return;
+        }
+
         var queryable = context.Compilation.GetTypeByMetadataName(QueryableMetadataName);
         var dbSet = context.Compilation.GetTypeByMetadataName(DbSetMetadataName);
         var dbContext = context.Compilation.GetTypeByMetadataName(DbContextMetadataName);
@@ -106,7 +112,7 @@ public sealed class StringComparisonInPredicateAnalyzer : DiagnosticAnalyzer
             .Add(DiagnosticPropertyNames.SuggestedRemediation, Remediation)
             .Add(DiagnosticPropertyNames.DocumentationReference, DocumentationKey);
 
-        context.ReportDiagnostic(Diagnostic.Create(Rule, invocation.Syntax.GetLocation(), properties));
+        context.ReportDiagnostic(EfDiagnostic.Create(Rule, invocation.Syntax.GetLocation(), properties));
     }
 
     private static bool IsStringComparisonCall(IInvocationOperation invocation, INamedTypeSymbol stringComparison)

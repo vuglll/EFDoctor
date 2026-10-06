@@ -33,7 +33,8 @@ public sealed class SaveChangesInLoopAnalyzer : DiagnosticAnalyzer
         "Performance",
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
-        description: "Reports semantically resolved EF Core SaveChanges calls that execute once per item in supported loop bodies; loops that save once per chunk, page, or threshold-flushed batch are not reported.");
+        description: "Reports semantically resolved EF Core SaveChanges calls that execute once per item in supported loop bodies; loops that save once per chunk, page, or threshold-flushed batch are not reported.",
+        helpLinkUri: EfHelpLinks.For(DiagnosticId));
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(Rule);
 
@@ -46,6 +47,11 @@ public sealed class SaveChangesInLoopAnalyzer : DiagnosticAnalyzer
 
     private static void StartCompilation(CompilationStartAnalysisContext context)
     {
+        if (!EfAnalysisScope.Includes(context.Options, context.Compilation))
+        {
+            return;
+        }
+
         var dbContext = context.Compilation.GetTypeByMetadataName(DbContextMetadataName);
         if (dbContext is null)
         {
@@ -82,7 +88,7 @@ public sealed class SaveChangesInLoopAnalyzer : DiagnosticAnalyzer
             .Add(DiagnosticPropertyNames.SuggestedRemediation, Remediation)
             .Add(DiagnosticPropertyNames.DocumentationReference, DocumentationKey);
 
-        context.ReportDiagnostic(Diagnostic.Create(Rule, invocation.Syntax.GetLocation(), properties));
+        context.ReportDiagnostic(EfDiagnostic.Create(Rule, invocation.Syntax.GetLocation(), properties));
     }
 
     private static bool IsEfCoreSaveMethod(IMethodSymbol method, INamedTypeSymbol dbContext)

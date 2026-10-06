@@ -78,7 +78,7 @@ public sealed class NonSargableCaseTransformAnalyzerTests
         Assert.Equal(expectedCount, diagnostics.Length);
         Assert.All(diagnostics, diagnostic =>
         {
-            Assert.Equal(DiagnosticSeverity.Warning, diagnostic.Severity);
+            Assert.Equal(DiagnosticSeverity.Info, diagnostic.Severity);
             Assert.Equal(NonSargableCaseTransformAnalyzer.RuleTitle, diagnostic.Descriptor.Title.ToString());
             Assert.Equal("medium", diagnostic.Properties[DiagnosticPropertyNames.Confidence]);
             Assert.Equal("EFD009", diagnostic.Properties[DiagnosticPropertyNames.DocumentationReference]);
@@ -245,11 +245,11 @@ public sealed class NonSargableCaseTransformAnalyzerTests
     }
 
     [Fact]
-    public void DescriptorUsesPerformanceWarningMetadata()
+    public void DescriptorUsesPerformanceInfoMetadata()
     {
         Assert.Equal("EFD009", NonSargableCaseTransformAnalyzer.Rule.Id);
         Assert.Equal("Performance", NonSargableCaseTransformAnalyzer.Rule.Category);
-        Assert.Equal(DiagnosticSeverity.Warning, NonSargableCaseTransformAnalyzer.Rule.DefaultSeverity);
+        Assert.Equal(DiagnosticSeverity.Info, NonSargableCaseTransformAnalyzer.Rule.DefaultSeverity);
         Assert.True(NonSargableCaseTransformAnalyzer.Rule.IsEnabledByDefault);
     }
 

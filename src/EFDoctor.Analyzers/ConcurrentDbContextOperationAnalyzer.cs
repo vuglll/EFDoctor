@@ -30,7 +30,8 @@ public sealed class ConcurrentDbContextOperationAnalyzer : DiagnosticAnalyzer
         "Reliability",
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
-        description: "Reports an EF Core asynchronous operation that starts while another operation on the same, symbol-proven DbContext instance is pending: operations passed together to Task.WhenAll or Task.WhenAny, an operation started before an earlier task local is observed, or an operation projected by Enumerable.Select into a task combinator over a captured context.");
+        description: "Reports an EF Core asynchronous operation that starts while another operation on the same, symbol-proven DbContext instance is pending: operations passed together to Task.WhenAll or Task.WhenAny, an operation started before an earlier task local is observed, or an operation projected by Enumerable.Select into a task combinator over a captured context.",
+        helpLinkUri: EfHelpLinks.For(DiagnosticId));
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(Rule);
 
@@ -43,6 +44,11 @@ public sealed class ConcurrentDbContextOperationAnalyzer : DiagnosticAnalyzer
 
     private static void StartCompilation(CompilationStartAnalysisContext context)
     {
+        if (!EfAnalysisScope.Includes(context.Options, context.Compilation))
+        {
+            return;
+        }
+
         var task = context.Compilation.GetTypeByMetadataName(TaskMetadataName);
         var enumerable = context.Compilation.GetTypeByMetadataName(EnumerableMetadataName);
         var queryable = context.Compilation.GetTypeByMetadataName(QueryableMetadataName);
@@ -154,8 +160,11 @@ public sealed class ConcurrentDbContextOperationAnalyzer : DiagnosticAnalyzer
                         }
 
                         break;
-                    case ICollectionExpressionOperation collection:
-                        foreach (var element in collection.Elements)
+                    // Matched by kind value: ICollectionExpressionOperation is newer than the oldest
+                    // Roslyn the analyzers load into. Its child operations are its elements. A
+                    // params span argument is an implicit one, so the syntax can't identify it.
+                    case { } collection when (int)collection.Kind == EfQueryOperationAnalysis.CollectionExpressionOperationKind:
+                        foreach (var element in collection.ChildOperations)
                         {
                             yield return EfQueryOperationAnalysis.Unwrap(element);
                         }
@@ -420,7 +429,7 @@ public sealed class ConcurrentDbContextOperationAnalyzer : DiagnosticAnalyzer
                 .Add(DiagnosticPropertyNames.SuggestedRemediation, Remediation)
                 .Add(DiagnosticPropertyNames.DocumentationReference, DocumentationKey);
 
-            _context.ReportDiagnostic(Diagnostic.Create(Rule, location, properties));
+            _context.ReportDiagnostic(EfDiagnostic.Create(Rule, location, properties));
         }
 
         private static IEnumerable<IOperation> DescendantsOutsideFunctions(IOperation operation)

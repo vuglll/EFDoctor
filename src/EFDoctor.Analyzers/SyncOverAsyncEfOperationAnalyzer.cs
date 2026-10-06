@@ -30,7 +30,8 @@ public sealed class SyncOverAsyncEfOperationAnalyzer : DiagnosticAnalyzer
         "Performance",
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
-        description: "Reports direct synchronous blocking consumption of supported EF Core asynchronous operations.");
+        description: "Reports direct synchronous blocking consumption of supported EF Core asynchronous operations.",
+        helpLinkUri: EfHelpLinks.For(DiagnosticId));
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(Rule);
 
@@ -43,6 +44,11 @@ public sealed class SyncOverAsyncEfOperationAnalyzer : DiagnosticAnalyzer
 
     private static void StartCompilation(CompilationStartAnalysisContext context)
     {
+        if (!EfAnalysisScope.Includes(context.Options, context.Compilation))
+        {
+            return;
+        }
+
         var dbContext = context.Compilation.GetTypeByMetadataName(DbContextMetadataName);
         var dbSet = context.Compilation.GetTypeByMetadataName(DbSetMetadataName);
         var efExtensions = context.Compilation.GetTypeByMetadataName(EfExtensionsMetadataName);
@@ -202,6 +208,6 @@ public sealed class SyncOverAsyncEfOperationAnalyzer : DiagnosticAnalyzer
             .Add(DiagnosticPropertyNames.SuggestedRemediation, Remediation)
             .Add(DiagnosticPropertyNames.DocumentationReference, DocumentationKey);
 
-        context.ReportDiagnostic(Diagnostic.Create(Rule, blockingOperation.Syntax.GetLocation(), properties));
+        context.ReportDiagnostic(EfDiagnostic.Create(Rule, blockingOperation.Syntax.GetLocation(), properties));
     }
 }

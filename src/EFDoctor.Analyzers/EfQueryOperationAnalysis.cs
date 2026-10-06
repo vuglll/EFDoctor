@@ -143,6 +143,10 @@ internal static class EfQueryOperationAnalysis
         return false;
     }
 
+    // OperationKind.CollectionExpression, which the Roslyn baseline the analyzers compile against
+    // doesn't declare yet.
+    public const int CollectionExpressionOperationKind = 0x7f;
+
     public static IOperation Unwrap(IOperation operation)
     {
         while (true)

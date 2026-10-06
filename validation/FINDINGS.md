@@ -195,3 +195,16 @@ The corpus was re-run for the two rules added in the public repository. jasontay
 
 - **EFD029** (`OrderBy` that discards an earlier ordering): 1 finding, **TP**. Smartstore `ProductBatchContext.BuildSpecAttributesQuery` sorts with `.OrderBy(x => x.ProductId).OrderBy(x => x.DisplayOrder)`, where `ThenBy` was meant. The impact is benign there, because the results are regrouped by `ProductId`, but the first ordering is dead code.
 - **EFD027** (concurrent operations on one `DbContext`): 0 findings. The corpus has 90 non-test `Task.WhenAll`/`Task.WhenAny` call sites. The ones that could involve data access (Jellyfin `SearchManager`, Smartstore `LocalizedEntityService`) combine provider or cache tasks, not EF operations on a shared context. So the corpus doesn't exercise the rule's shapes, and its precision on real code is still unmeasured. A codebase that mixes a scoped `DbContext` with `Task.WhenAll` would be a useful addition to the corpus.
+
+## Build-time cost of the analyzer package (2026-10-06)
+
+The rules also ship as the `EFDoctor.Analyzers` package, so their cost inside a build matters. It was measured with the compiler's analyzer report (`-p:ReportAnalyzer=true`), with the analyzer assembly added to two corpus builds on the .NET 10 SDK.
+
+| Build | Compilations | All analyzers | EFDoctor | Share | Most expensive rule |
+|---|---:|---:|---:|---:|---|
+| Jellyfin, `Jellyfin.Server.Implementations` and its dependencies | 11 | 19.96 s | 0.28 s | 1.4% | EFD027, 0.08 s |
+| eShop, `Catalog.API` and its dependencies | 5 | 0.53 s | 0.02 s | 4.4% | EFD003, 0.009 s |
+
+- No rule dominates. The most expensive rule in any single compilation took 0.02 s.
+- EFD003 reads a whole model snapshot, and cost 0.009 s on eShop's PostgreSQL snapshot. It looks only at the snapshot's `BuildModel` method, and does nothing in a project with no snapshot or no supported provider.
+- A project that doesn't reference EF Core costs under a millisecond per rule, because every rule returns at compilation start when EF Core types are missing.

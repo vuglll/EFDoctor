@@ -27,7 +27,8 @@ public sealed class MaterializeThenReduceAnalyzer : DiagnosticAnalyzer
         "Performance",
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
-        description: "Reports proven EF Core queries materialized with ToList or ToArray and immediately reduced on the client to an element, count, existence check, or aggregate.");
+        description: "Reports proven EF Core queries materialized with ToList or ToArray and immediately reduced on the client to an element, count, existence check, or aggregate.",
+        helpLinkUri: EfHelpLinks.For(DiagnosticId));
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(Rule);
 
@@ -40,6 +41,11 @@ public sealed class MaterializeThenReduceAnalyzer : DiagnosticAnalyzer
 
     private static void StartCompilation(CompilationStartAnalysisContext context)
     {
+        if (!EfAnalysisScope.Includes(context.Options, context.Compilation))
+        {
+            return;
+        }
+
         var enumerable = context.Compilation.GetTypeByMetadataName(EnumerableMetadataName);
         var queryable = context.Compilation.GetTypeByMetadataName(QueryableMetadataName);
         var dbSet = context.Compilation.GetTypeByMetadataName(DbSetMetadataName);
@@ -90,7 +96,7 @@ public sealed class MaterializeThenReduceAnalyzer : DiagnosticAnalyzer
             .Add(DiagnosticPropertyNames.SuggestedRemediation, remediation)
             .Add(DiagnosticPropertyNames.DocumentationReference, DocumentationKey);
 
-        context.ReportDiagnostic(Diagnostic.Create(Rule, materializer.Syntax.GetLocation(), properties, reduction.Display));
+        context.ReportDiagnostic(EfDiagnostic.Create(Rule, materializer.Syntax.GetLocation(), properties, reduction.Display));
     }
 
     internal static bool TryGetEligibleReducer(

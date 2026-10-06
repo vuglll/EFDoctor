@@ -58,7 +58,7 @@ JSON output SHALL be valid JSON with no ANSI control sequences and SHALL include
 - **THEN** the report contains schema version `1`, a zero-finding summary, and an empty findings array
 
 ### Requirement: Severity may be derived from confidence
-The diagnostic-to-finding mapping SHALL derive finding severity from the reported confidence when a rule does not fix its own severity. A finding whose confidence is advisory SHALL map to `Info` severity; a finding whose confidence is medium or high SHALL map to `Warning` severity. This mapping MUST NOT change the finding contract, the field set, or the JSON schema version, and MUST NOT alter the severity of rules that report a fixed confidence and severity.
+The diagnostic-to-finding mapping SHALL derive finding severity from the reported confidence when a rule does not fix its own severity. A finding whose confidence is advisory SHALL map to `Info` severity; a finding whose confidence is medium or high SHALL map to `Warning` severity. A medium-confidence finding SHALL map to `Warning` even though its diagnostic has `Info` severity in a build (see the `analyzer-package` capability). This mapping MUST NOT change the finding contract, the field set, or the JSON schema version, and MUST NOT alter the severity of rules that report a fixed confidence and severity.
 
 #### Scenario: Advisory maps to Info
 - **WHEN** a rule reports a finding with advisory confidence
@@ -67,6 +67,14 @@ The diagnostic-to-finding mapping SHALL derive finding severity from the reporte
 #### Scenario: Medium and high map to Warning
 - **WHEN** a rule reports a finding with medium or high confidence
 - **THEN** the mapped finding has `Warning` severity
+
+#### Scenario: Medium stays Warning when the build severity is Info
+- **WHEN** a medium-confidence diagnostic has `Info` severity, as it does by default in a build
+- **THEN** the mapped finding has `Warning` severity
+
+#### Scenario: Rule with a fixed severity
+- **WHEN** EFD025 reports a high-confidence finding at its fixed `Info` severity
+- **THEN** the mapped finding has `Info` severity
 
 #### Scenario: Schema version unchanged
 - **WHEN** confidence-driven severity is applied

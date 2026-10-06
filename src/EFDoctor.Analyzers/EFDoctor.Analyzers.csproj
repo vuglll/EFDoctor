@@ -4,8 +4,45 @@
     <AssemblyName>EFDoctor.Analyzers</AssemblyName>
     <RootNamespace>EFDoctor.Analyzers</RootNamespace>
     <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+    <!-- The analyzer package has no lib folder for a symbols package to index. -->
+    <DebugType>embedded</DebugType>
   </PropertyGroup>
+
+  <PropertyGroup Label="Analyzer package">
+    <PackageId>EFDoctor.Analyzers</PackageId>
+    <Description>Roslyn analyzers that report EF Core performance and correctness problems in every build and in the IDE: SaveChanges in loops, premature materialization, unawaited EF Core calls, and more. The same rules as the EFDoctor tool.</Description>
+    <PackageTags>efcore;entity-framework-core;entityframework;roslyn;analyzers;static-analysis;performance</PackageTags>
+    <PackageReadmeFile>PACKAGE.md</PackageReadmeFile>
+    <PackageIcon>icon.png</PackageIcon>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <DevelopmentDependency>true</DevelopmentDependency>
+    <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+    <!-- NU5128: an analyzer package has no lib or ref assets on purpose. -->
+    <NoWarn>$(NoWarn);NU5128</NoWarn>
+    <!-- Repository URLs and Source Link only when EFDoctorRepositoryUrl is set (Directory.Build.props). -->
+    <PublishRepositoryUrl>false</PublishRepositoryUrl>
+    <EnableSourceLink>false</EnableSourceLink>
+  </PropertyGroup>
+
+  <PropertyGroup Label="Repository" Condition="'$(EFDoctorRepositoryUrl)' != ''">
+    <RepositoryUrl>$(EFDoctorRepositoryUrl)</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageProjectUrl>$(EFDoctorRepositoryUrl)</PackageProjectUrl>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EnableSourceLink>true</EnableSourceLink>
+  </PropertyGroup>
+
   <ItemGroup>
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" PrivateAssets="all" />
+    <!-- Older than the CLI's Roslyn on purpose: the .NET 8 SDK compiler must be able to load the analyzers. -->
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" VersionOverride="4.8.0" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup Label="Package assets">
+    <None Include="$(OutputPath)$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+    <None Include="Package/EFDoctor.Analyzers.props" Pack="true" PackagePath="build/" />
+    <None Include="Package/PACKAGE.md" Pack="true" PackagePath="/" />
+    <None Include="../EFDoctor.Cli/Package/icon.png" Pack="true" PackagePath="/" Visible="false" />
+    <None Include="../../NOTICE" Pack="true" PackagePath="/" Visible="false" />
+    <None Include="../../CHANGELOG.md" Pack="true" PackagePath="/" Visible="false" />
   </ItemGroup>
 </Project>

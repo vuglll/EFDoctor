@@ -28,7 +28,8 @@ public sealed class UnawaitedAsyncEfOperationAnalyzer : DiagnosticAnalyzer
         "Correctness",
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
-        description: "Reports resolved EF Core asynchronous operations whose returned task is discarded by an expression statement, a discard assignment, or a void-returning lambda.");
+        description: "Reports resolved EF Core asynchronous operations whose returned task is discarded by an expression statement, a discard assignment, or a void-returning lambda.",
+        helpLinkUri: EfHelpLinks.For(DiagnosticId));
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(Rule);
 
@@ -41,6 +42,11 @@ public sealed class UnawaitedAsyncEfOperationAnalyzer : DiagnosticAnalyzer
 
     private static void StartCompilation(CompilationStartAnalysisContext context)
     {
+        if (!EfAnalysisScope.Includes(context.Options, context.Compilation))
+        {
+            return;
+        }
+
         var dbContext = context.Compilation.GetTypeByMetadataName(DbContextMetadataName);
         var dbSet = context.Compilation.GetTypeByMetadataName(DbSetMetadataName);
         var efExtensions = context.Compilation.GetTypeByMetadataName(EfExtensionsMetadataName);
@@ -89,7 +95,7 @@ public sealed class UnawaitedAsyncEfOperationAnalyzer : DiagnosticAnalyzer
             .Add(DiagnosticPropertyNames.SuggestedRemediation, Remediation)
             .Add(DiagnosticPropertyNames.DocumentationReference, DocumentationKey);
 
-        context.ReportDiagnostic(Diagnostic.Create(Rule, discarded.Syntax.GetLocation(), properties));
+        context.ReportDiagnostic(EfDiagnostic.Create(Rule, discarded.Syntax.GetLocation(), properties));
     }
 
     private static bool IsExtendedOperation(

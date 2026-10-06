@@ -25,9 +25,10 @@ public sealed class NonSargableCaseTransformAnalyzer : DiagnosticAnalyzer
         RuleTitle,
         Message,
         "Performance",
-        DiagnosticSeverity.Warning,
+        DiagnosticSeverity.Info,
         isEnabledByDefault: true,
-        description: "Reports ToLower() or ToUpper() applied to a mapped string column in a predicate of a proven EF Core query when the column is compared with a value that does not reference the entity.");
+        description: "Reports ToLower() or ToUpper() applied to a mapped string column in a predicate of a proven EF Core query when the column is compared with a value that does not reference the entity.",
+        helpLinkUri: EfHelpLinks.For(DiagnosticId));
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(Rule);
 
@@ -40,6 +41,11 @@ public sealed class NonSargableCaseTransformAnalyzer : DiagnosticAnalyzer
 
     private static void StartCompilation(CompilationStartAnalysisContext context)
     {
+        if (!EfAnalysisScope.Includes(context.Options, context.Compilation))
+        {
+            return;
+        }
+
         var scan = EfPredicateScan.Create(context.Compilation);
         if (scan is null)
         {
@@ -85,7 +91,7 @@ public sealed class NonSargableCaseTransformAnalyzer : DiagnosticAnalyzer
                 .Add(DiagnosticPropertyNames.SuggestedRemediation, GetRemediation(provider))
                 .Add(DiagnosticPropertyNames.DocumentationReference, DocumentationKey);
 
-            context.ReportDiagnostic(Diagnostic.Create(Rule, transformation.Syntax.GetLocation(), properties));
+            context.ReportDiagnostic(EfDiagnostic.Create(Rule, transformation.Syntax.GetLocation(), properties));
         }
     }
 

@@ -31,7 +31,8 @@ public sealed class RedundantIncludeAnalyzer : DiagnosticAnalyzer
         "Maintainability",
         DiagnosticSeverity.Info,
         isEnabledByDefault: true,
-        description: "Reports Include/ThenInclude chains in a proven EF Core query that duplicate another chain's path or are a strict prefix of a longer path in the same query.");
+        description: "Reports Include/ThenInclude chains in a proven EF Core query that duplicate another chain's path or are a strict prefix of a longer path in the same query.",
+        helpLinkUri: EfHelpLinks.For(DiagnosticId));
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(Rule);
 
@@ -44,6 +45,11 @@ public sealed class RedundantIncludeAnalyzer : DiagnosticAnalyzer
 
     private static void StartCompilation(CompilationStartAnalysisContext context)
     {
+        if (!EfAnalysisScope.Includes(context.Options, context.Compilation))
+        {
+            return;
+        }
+
         var queryable = context.Compilation.GetTypeByMetadataName(QueryableMetadataName);
         var dbSet = context.Compilation.GetTypeByMetadataName(DbSetMetadataName);
         var dbContext = context.Compilation.GetTypeByMetadataName(DbContextMetadataName);
@@ -136,7 +142,7 @@ public sealed class RedundantIncludeAnalyzer : DiagnosticAnalyzer
                 .Add(DiagnosticPropertyNames.SuggestedRemediation, Remediation)
                 .Add(DiagnosticPropertyNames.DocumentationReference, DocumentationKey);
 
-            context.ReportDiagnostic(Diagnostic.Create(Rule, GetLocation(chain), properties));
+            context.ReportDiagnostic(EfDiagnostic.Create(Rule, GetLocation(chain), properties));
         }
     }
 

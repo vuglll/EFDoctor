@@ -32,7 +32,8 @@ public sealed class ProjectionDropsIncludeAnalyzer : DiagnosticAnalyzer
         "Correctness",
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
-        description: "Reports proven EF Core query chains whose resolved Include or ThenInclude calls are followed by a Queryable.Select that projects only scalar, value, or newly constructed non-entity results.");
+        description: "Reports proven EF Core query chains whose resolved Include or ThenInclude calls are followed by a Queryable.Select that projects only scalar, value, or newly constructed non-entity results.",
+        helpLinkUri: EfHelpLinks.For(DiagnosticId));
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(Rule);
 
@@ -45,6 +46,11 @@ public sealed class ProjectionDropsIncludeAnalyzer : DiagnosticAnalyzer
 
     private static void StartCompilation(CompilationStartAnalysisContext context)
     {
+        if (!EfAnalysisScope.Includes(context.Options, context.Compilation))
+        {
+            return;
+        }
+
         var queryable = context.Compilation.GetTypeByMetadataName(QueryableMetadataName);
         var dbSet = context.Compilation.GetTypeByMetadataName(DbSetMetadataName);
         var dbContext = context.Compilation.GetTypeByMetadataName(DbContextMetadataName);
@@ -115,7 +121,7 @@ public sealed class ProjectionDropsIncludeAnalyzer : DiagnosticAnalyzer
             .Add(DiagnosticPropertyNames.SuggestedRemediation, remediation)
             .Add(DiagnosticPropertyNames.DocumentationReference, DocumentationKey);
 
-        context.ReportDiagnostic(Diagnostic.Create(Rule, invocation.Syntax.GetLocation(), properties));
+        context.ReportDiagnostic(EfDiagnostic.Create(Rule, invocation.Syntax.GetLocation(), properties));
     }
 
     private static bool TryAnalyzeChain(

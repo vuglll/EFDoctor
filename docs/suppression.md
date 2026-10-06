@@ -37,7 +37,7 @@ void SaveIndependently(DbContext context, IEnumerable<Item> items)
 }
 ```
 
-EFDoctor has no proprietary suppression file.
+EFDoctor has no proprietary suppression file. The same mechanisms work for the CLI and for the `EFDoctor.Analyzers` package. With the package, `.editorconfig` can also raise or lower a rule's severity; see [Default severities](usage.md#default-severities).
 
 `SuppressMessage` matches on the rule's category as well as its ID. Most rules use `Performance`; EFD012 uses `Security`, EFD014, EFD017, EFD018, EFD022, and EFD029 use `Correctness`, EFD021 and EFD027 use `Reliability`, and EFD025 uses `Maintainability`. Each rule page shows the exact attribute.
 

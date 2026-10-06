@@ -40,9 +40,10 @@ public sealed class MultipleEnumerationAnalyzer : DiagnosticAnalyzer
         RuleTitle,
         Message,
         "Performance",
-        DiagnosticSeverity.Warning,
+        DiagnosticSeverity.Info,
         isEnabledByDefault: true,
-        description: "Reports an EF Core IQueryable local that is executed more than once on the same path through a method; uses composed into another query's expression tree and predicate terminals are not counted.");
+        description: "Reports an EF Core IQueryable local that is executed more than once on the same path through a method; uses composed into another query's expression tree and predicate terminals are not counted.",
+        helpLinkUri: EfHelpLinks.For(DiagnosticId));
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(Rule);
 
@@ -55,6 +56,11 @@ public sealed class MultipleEnumerationAnalyzer : DiagnosticAnalyzer
 
     private static void StartCompilation(CompilationStartAnalysisContext context)
     {
+        if (!EfAnalysisScope.Includes(context.Options, context.Compilation))
+        {
+            return;
+        }
+
         var queryable = context.Compilation.GetTypeByMetadataName(QueryableMetadataName);
         var iqueryable = context.Compilation.GetTypeByMetadataName(IQueryableMetadataName);
         var dbSet = context.Compilation.GetTypeByMetadataName(DbSetMetadataName);
@@ -149,7 +155,7 @@ public sealed class MultipleEnumerationAnalyzer : DiagnosticAnalyzer
                 .Add(DiagnosticPropertyNames.SuggestedRemediation, Remediation)
                 .Add(DiagnosticPropertyNames.DocumentationReference, DocumentationKey);
 
-            context.ReportDiagnostic(Diagnostic.Create(Rule, candidate.Value.Syntax.GetLocation(), properties));
+            context.ReportDiagnostic(EfDiagnostic.Create(Rule, candidate.Value.Syntax.GetLocation(), properties));
         }
     }
 

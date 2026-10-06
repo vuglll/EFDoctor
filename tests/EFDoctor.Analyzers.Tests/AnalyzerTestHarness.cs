@@ -27,11 +27,13 @@ internal static class AnalyzerTestHarness
         bool includeMySql = false,
         ReportDiagnostic? configuredSeverity = null,
         DiagnosticAnalyzer? analyzer = null,
-        string diagnosticId = SaveChangesInLoopAnalyzer.DiagnosticId)
+        string diagnosticId = SaveChangesInLoopAnalyzer.DiagnosticId,
+        IReadOnlyDictionary<string, string>? globalOptions = null,
+        bool includeTestFramework = false)
     {
-        var compilation = CreateCompilation(source, includeEntityFramework, includeRelational, includeSqlServer, includeNpgsql, includeMySql, configuredSeverity, diagnosticId);
+        var compilation = CreateCompilation(source, includeEntityFramework, includeRelational, includeSqlServer, includeNpgsql, includeMySql, configuredSeverity, diagnosticId, includeTestFramework);
         var analyzerOptions = new CompilationWithAnalyzersOptions(
-            new AnalyzerOptions(ImmutableArray<AdditionalText>.Empty),
+            new AnalyzerOptions(ImmutableArray<AdditionalText>.Empty, new GlobalOptionsProvider(globalOptions)),
             onAnalyzerException: null,
             concurrentAnalysis: true,
             logAnalyzerExecutionTime: false,
@@ -50,7 +52,7 @@ internal static class AnalyzerTestHarness
         bool includeNpgsql = false,
         bool includeMySql = false)
     {
-        return CreateCompilation(source, includeEntityFramework, includeRelational, includeSqlServer, includeNpgsql, includeMySql, null, SaveChangesInLoopAnalyzer.DiagnosticId)
+        return CreateCompilation(source, includeEntityFramework, includeRelational, includeSqlServer, includeNpgsql, includeMySql, null, SaveChangesInLoopAnalyzer.DiagnosticId, includeTestFramework: false)
             .GetDiagnostics();
     }
 
@@ -102,14 +104,41 @@ internal static class AnalyzerTestHarness
         }
         """;
 
-    private static IEnumerable<MetadataReference> TrustedPlatformReferences()
+    // The test host's own assemblies include the test framework, and a compilation that references
+    // one is a test project, which the analyzers skip. Fixtures stand for production code.
+    private static IEnumerable<MetadataReference> TrustedPlatformReferences(bool includeTestFramework)
     {
         var paths = ((string?)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES"))?
             .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)
             ?? throw new InvalidOperationException("Trusted platform assemblies are unavailable.");
         return paths
             .Where(static path => !OptionalProviderAssemblyNames.Contains(Path.GetFileName(path)))
+            .Where(path => includeTestFramework || !IsTestFrameworkAssembly(Path.GetFileNameWithoutExtension(path)))
             .Select(static path => MetadataReference.CreateFromFile(path));
+    }
+
+    private static bool IsTestFrameworkAssembly(string name) =>
+        name.StartsWith("xunit", StringComparison.OrdinalIgnoreCase)
+        || name.StartsWith("Microsoft.VisualStudio.TestPlatform", StringComparison.OrdinalIgnoreCase)
+        || name.StartsWith("Microsoft.TestPlatform", StringComparison.OrdinalIgnoreCase)
+        || name.StartsWith("testhost", StringComparison.OrdinalIgnoreCase);
+
+    private sealed class GlobalOptionsProvider(IReadOnlyDictionary<string, string>? values) : AnalyzerConfigOptionsProvider
+    {
+        public override AnalyzerConfigOptions GlobalOptions { get; } = new Options(values);
+
+        public override AnalyzerConfigOptions GetOptions(SyntaxTree tree) => new Options(null);
+
+        public override AnalyzerConfigOptions GetOptions(AdditionalText textFile) => new Options(null);
+
+        private sealed class Options(IReadOnlyDictionary<string, string>? values) : AnalyzerConfigOptions
+        {
+            public override bool TryGetValue(string key, out string value)
+            {
+                value = string.Empty;
+                return values is not null && values.TryGetValue(key, out value!);
+            }
+        }
     }
 
     internal static CSharpCompilation CreateCompilation(
@@ -120,7 +149,8 @@ internal static class AnalyzerTestHarness
         bool includeNpgsql,
         bool includeMySql,
         ReportDiagnostic? configuredSeverity,
-        string diagnosticId)
+        string diagnosticId,
+        bool includeTestFramework = false)
     {
         var syntaxTree = CSharpSyntaxTree.ParseText(
             source,
@@ -137,7 +167,7 @@ internal static class AnalyzerTestHarness
                 });
         }
 
-        var references = TrustedPlatformReferences().ToList();
+        var references = TrustedPlatformReferences(includeTestFramework).ToList();
         var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         if (includeEntityFramework)
         {

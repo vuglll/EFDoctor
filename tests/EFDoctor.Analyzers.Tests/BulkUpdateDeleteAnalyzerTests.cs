@@ -119,7 +119,7 @@ public sealed class BulkUpdateDeleteAnalyzerTests
         var text = await diagnostic.Location.SourceTree!.GetTextAsync();
 
         Assert.Equal("context.Entities.Where(e => e.Id > 10).ToList()", text.ToString(diagnostic.Location.SourceSpan));
-        Assert.Equal(DiagnosticSeverity.Warning, diagnostic.Severity);
+        Assert.Equal(DiagnosticSeverity.Info, diagnostic.Severity);
         Assert.Equal(BulkUpdateDeleteAnalyzer.RuleTitle, diagnostic.Descriptor.Title.ToString());
         Assert.Equal("medium", diagnostic.Properties[DiagnosticPropertyNames.Confidence]);
         Assert.Contains("uniform assignments to Active, Status", diagnostic.Properties[DiagnosticPropertyNames.Evidence], StringComparison.Ordinal);

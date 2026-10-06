@@ -31,7 +31,8 @@ public sealed class UnorderedPaginationAnalyzer : DiagnosticAnalyzer
         "Correctness",
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
-        description: "Reports a proven EF Core query that pages with Skip without a preceding OrderBy, producing non-deterministic results.");
+        description: "Reports a proven EF Core query that pages with Skip without a preceding OrderBy, producing non-deterministic results.",
+        helpLinkUri: EfHelpLinks.For(DiagnosticId));
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(Rule);
 
@@ -44,6 +45,11 @@ public sealed class UnorderedPaginationAnalyzer : DiagnosticAnalyzer
 
     private static void StartCompilation(CompilationStartAnalysisContext context)
     {
+        if (!EfAnalysisScope.Includes(context.Options, context.Compilation))
+        {
+            return;
+        }
+
         var queryable = context.Compilation.GetTypeByMetadataName(QueryableMetadataName);
         var dbSet = context.Compilation.GetTypeByMetadataName(DbSetMetadataName);
         var dbContext = context.Compilation.GetTypeByMetadataName(DbContextMetadataName);
@@ -110,7 +116,7 @@ public sealed class UnorderedPaginationAnalyzer : DiagnosticAnalyzer
             .Add(DiagnosticPropertyNames.SuggestedRemediation, Remediation)
             .Add(DiagnosticPropertyNames.DocumentationReference, DocumentationKey);
 
-        context.ReportDiagnostic(Diagnostic.Create(Rule, invocation.Syntax.GetLocation(), properties));
+        context.ReportDiagnostic(EfDiagnostic.Create(Rule, invocation.Syntax.GetLocation(), properties));
     }
 
     private static bool IsQueryablePaging(IInvocationOperation invocation, INamedTypeSymbol queryable)

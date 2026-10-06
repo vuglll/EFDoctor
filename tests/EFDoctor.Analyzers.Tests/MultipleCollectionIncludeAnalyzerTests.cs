@@ -81,7 +81,7 @@ public sealed class MultipleCollectionIncludeAnalyzerTests
         Assert.Equal(expectedCount, diagnostics.Length);
         Assert.All(diagnostics, diagnostic =>
         {
-            Assert.Equal(DiagnosticSeverity.Warning, diagnostic.Severity);
+            Assert.Equal(DiagnosticSeverity.Info, diagnostic.Severity);
             Assert.Equal(MultipleCollectionIncludeAnalyzer.RuleTitle, diagnostic.Descriptor.Title.ToString());
             Assert.Equal("medium", diagnostic.Properties[DiagnosticPropertyNames.Confidence]);
             Assert.Equal("EFD006", diagnostic.Properties[DiagnosticPropertyNames.DocumentationReference]);
@@ -210,7 +210,7 @@ public sealed class MultipleCollectionIncludeAnalyzerTests
     public void DescriptorUsesQualifiedLanguage()
     {
         Assert.Equal("Performance", MultipleCollectionIncludeAnalyzer.Rule.Category);
-        Assert.Equal(DiagnosticSeverity.Warning, MultipleCollectionIncludeAnalyzer.Rule.DefaultSeverity);
+        Assert.Equal(DiagnosticSeverity.Info, MultipleCollectionIncludeAnalyzer.Rule.DefaultSeverity);
         Assert.Contains("may", MultipleCollectionIncludeAnalyzer.Rule.MessageFormat.ToString(), StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("will", MultipleCollectionIncludeAnalyzer.Rule.MessageFormat.ToString(), StringComparison.OrdinalIgnoreCase);
     }
