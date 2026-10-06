@@ -10,6 +10,7 @@ All notable changes to EFDoctor are documented here. Versions follow [Semantic V
   - In a build, only high-confidence findings are warnings. Medium-confidence and advisory findings are suggestions, so adopting the package can't fail a warnings-as-errors build on a judgment call. `.editorconfig` changes any rule's severity.
   - Test projects are skipped, as in the CLI. Set the MSBuild property `EFDoctorAnalyzeTestProjects` to `true` to analyze one.
 - Every rule's diagnostic has a help link to its page in `docs/rules/`.
+- EFD037: an EF Core query that materializes complete entities into a local when the method reads only a few of their scalar properties, where a `Select` projection in the query would fetch only those columns and track nothing. Advisory, at `Info` severity, under the `Performance` category. It reports only when every use of the result in the method is a scalar read (`foreach`, `Select`, lambda reducers, counts, and index reads), at most half of the entity's scalar properties are read, and at least four are left unread. Entities that are returned, passed on, stored, or modified are never reported.
 
 ### Changed
 

@@ -208,3 +208,15 @@ The rules also ship as the `EFDoctor.Analyzers` package, so their cost inside a 
 - No rule dominates. The most expensive rule in any single compilation took 0.02 s.
 - EFD003 reads a whole model snapshot, and cost 0.009 s on eShop's PostgreSQL snapshot. It looks only at the snapshot's `BuildModel` method, and does nothing in a project with no snapshot or no supported provider.
 - A project that doesn't reference EF Core costs under a millisecond per rule, because every rule returns at compilation start when EF Core types are missing.
+
+## New rule: EFD037 (2026-10-06)
+
+The corpus was re-run for EFD037, entities materialized into a local when the method reads only a few of their scalar properties. No other rule's findings changed.
+
+- **15 findings, no false positive.** 8 are `TP` and 7 are `acceptable`, so detection precision is 100% and strict precision is 53%. The rule is advisory, so it doesn't count against the high- and medium-confidence gate.
+- **Bitwarden, 1 TP.** `NotificationRepository.MarkNotificationsAsDeletedByTask` loads tracked `Notification` entities and reads `Id` and `UserId`, 2 of 11 scalar properties.
+- **Smartstore, 7 TP.** The clearest is `LocalizedEntityService`, twice: a prefetch on a cached hot path loads 13 columns of `LocalizedProperty`, including the hidden flag and audit columns, and keeps `EntityId` and `LocaleValue`. The others load every `Country` or `CustomerRole` to build an Id map or option list, every resource of a language for an XML export, and external login records to build `UserLoginInfo`.
+- **Smartstore, 7 acceptable.** Six are in installation seed data, and one is in a migration. The shape is right, but the code runs once over a few rows.
+- eShop, Jellyfin, OpenIddict, and Ardalis's template have no finding. Their materialized entities are returned, mapped by a helper, or filtered in memory first, all of which the rule's closed list of uses leaves alone.
+
+What the rule didn't see is the larger number. Results that pass through `Where`, `OrderBy`, or `First` before being read are common in the corpus, and following them is the obvious next step for recall.

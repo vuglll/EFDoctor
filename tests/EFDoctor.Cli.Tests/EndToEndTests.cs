@@ -234,7 +234,7 @@ public sealed class EndToEndTests
 
         Assert.Equal(1, console.ExitCode);
         Assert.Empty(console.StandardError);
-        Assert.Contains("Found 12 findings.", console.StandardOutput);
+        Assert.Contains("Found 13 findings.", console.StandardOutput);
         Assert.Contains("EFD001", console.StandardOutput, StringComparison.Ordinal);
         Assert.Contains("EFD005", console.StandardOutput, StringComparison.Ordinal);
         Assert.Contains("EFD012", console.StandardOutput, StringComparison.Ordinal);
@@ -247,16 +247,17 @@ public sealed class EndToEndTests
         Assert.Contains("EFD023", console.StandardOutput, StringComparison.Ordinal);
         Assert.Contains("EFD029", console.StandardOutput, StringComparison.Ordinal);
         Assert.Contains("EFD027", console.StandardOutput, StringComparison.Ordinal);
-        Assert.Equal(12, CountOccurrences(console.StandardOutput, "Severity: Info"));
-        Assert.Equal(12, CountOccurrences(console.StandardOutput, "Confidence: Advisory"));
+        Assert.Contains("EFD037", console.StandardOutput, StringComparison.Ordinal);
+        Assert.Equal(13, CountOccurrences(console.StandardOutput, "Severity: Info"));
+        Assert.Equal(13, CountOccurrences(console.StandardOutput, "Confidence: Advisory"));
 
         Assert.Equal(1, json.ExitCode);
         Assert.Empty(json.StandardError);
         using var document = JsonDocument.Parse(json.StandardOutput);
         Assert.Equal(1, document.RootElement.GetProperty("schemaVersion").GetInt32());
         var findings = document.RootElement.GetProperty("findings").EnumerateArray().ToArray();
-        Assert.Equal(12, findings.Length);
-        Assert.Equal(new[] { "EFD005", "EFD001", "EFD012", "EFD013", "EFD017", "EFD018", "EFD019", "EFD025", "EFD009", "EFD023", "EFD029", "EFD027" }, findings.Select(static finding => finding.GetProperty("ruleId").GetString()));
+        Assert.Equal(13, findings.Length);
+        Assert.Equal(new[] { "EFD005", "EFD001", "EFD012", "EFD013", "EFD017", "EFD018", "EFD019", "EFD025", "EFD009", "EFD023", "EFD029", "EFD027", "EFD037" }, findings.Select(static finding => finding.GetProperty("ruleId").GetString()));
         Assert.All(findings, static finding =>
         {
             Assert.Equal("info", finding.GetProperty("severity").GetString());
@@ -691,6 +692,53 @@ public sealed class EndToEndTests
         Assert.Contains("already ordered by 'OrderBy -> ThenBy', which this OrderByDescending replaces", findings[1].GetProperty("evidence").GetString(), StringComparison.Ordinal);
         var orderedKeys = findings.Select(static finding => $"{finding.GetProperty("sourceFile").GetString()}:{finding.GetProperty("range").GetProperty("startLine").GetInt32():D6}:{finding.GetProperty("range").GetProperty("startColumn").GetInt32():D6}:{finding.GetProperty("ruleId").GetString()}").ToArray();
         Assert.Equal(orderedKeys.OrderBy(static key => key, StringComparer.Ordinal), orderedKeys);
+    }
+
+    [Fact]
+    [Trait("Spec", "efd037-entity-over-fetch/Complete structured finding")]
+    [Trait("Spec", "efd037-entity-over-fetch/Diagnostic location")]
+    [Trait("Spec", "efd037-entity-over-fetch/Standard suppression")]
+    public async Task Efd037FixtureProducesOnlyUnsuppressedOverFetchFindings()
+    {
+        var project = Path.Combine(RepositoryRoot(), "tests", "Fixtures", "EFD037.Sample", "EFD037.Sample.csproj");
+
+        var console = await RunCliAsync("analyze", project, "--no-color", "--quiet");
+        var json = await RunCliAsync("analyze", project, "--format", "json", "--quiet");
+
+        Assert.Equal(1, console.ExitCode);
+        Assert.Empty(console.StandardError);
+        Assert.Contains("Found 2 findings.", console.StandardOutput);
+        Assert.Equal(2, CountOccurrences(console.StandardOutput, "  EFD037:"));
+        Assert.Equal(2, CountOccurrences(console.StandardOutput, "Severity: Info | Confidence: Advisory"));
+        Assert.Contains("Entities are materialized but only a few columns are read", console.StandardOutput);
+        Assert.DoesNotContain("EditorConfigSuppressed.cs", console.StandardOutput);
+        Assert.DoesNotContain('\u001b', console.StandardOutput);
+
+        Assert.Equal(1, json.ExitCode);
+        Assert.Empty(json.StandardError);
+        using var document = JsonDocument.Parse(json.StandardOutput);
+        Assert.Equal(1, document.RootElement.GetProperty("schemaVersion").GetInt32());
+        var findings = document.RootElement.GetProperty("findings").EnumerateArray()
+            .Where(static finding => finding.GetProperty("ruleId").GetString() == "EFD037")
+            .ToArray();
+        Assert.Equal(2, findings.Length);
+        Assert.All(findings, static finding =>
+        {
+            Assert.Equal("Entities are materialized but only a few columns are read", finding.GetProperty("ruleTitle").GetString());
+            Assert.Equal("info", finding.GetProperty("severity").GetString());
+            Assert.Equal("advisory", finding.GetProperty("confidence").GetString());
+            Assert.EndsWith("tests/Fixtures/EFD037.Sample/OverFetchCases.cs", finding.GetProperty("sourceFile").GetString(), StringComparison.Ordinal);
+            Assert.Contains("DbSet origin 'context.Invoices'", finding.GetProperty("evidence").GetString(), StringComparison.Ordinal);
+            Assert.Contains("materialized into local 'invoices'", finding.GetProperty("evidence").GetString(), StringComparison.Ordinal);
+            Assert.Contains("actual cost depends", finding.GetProperty("likelyImpact").GetString(), StringComparison.Ordinal);
+            Assert.Equal("EFD037", finding.GetProperty("documentationReference").GetString());
+        });
+        Assert.Equal((37, 30, 37, 111), Range(findings[0]));
+        Assert.Equal((44, 24, 44, 105), Range(findings[1]));
+        Assert.Equal("This query loads complete 'Invoice' entities, but the method reads only 2 of their 8 scalar properties", findings[0].GetProperty("message").GetString());
+        Assert.Contains("reads 2 of the 8 scalar properties of 'Invoice': Id, Total.", findings[0].GetProperty("evidence").GetString(), StringComparison.Ordinal);
+        Assert.Contains("Select(x => new { x.Id, x.Total })", findings[0].GetProperty("suggestedRemediation").GetString(), StringComparison.Ordinal);
+        Assert.Contains("reads 3 of the 8 scalar properties of 'Invoice': Number, PaidUtc, Total.", findings[1].GetProperty("evidence").GetString(), StringComparison.Ordinal);
     }
 
     [Fact]

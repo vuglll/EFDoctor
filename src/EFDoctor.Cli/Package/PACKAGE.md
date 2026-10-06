@@ -59,6 +59,7 @@ Loading a project runs its MSBuild logic, so analyze only repositories you trust
 | EFD025 | Duplicate or already-covered `Include` path in the same query (Info) |
 | EFD027 | Concurrent EF Core operations on the same `DbContext`, such as `Task.WhenAll` over two queries |
 | EFD029 | Second `OrderBy` that discards an earlier ordering instead of `ThenBy` |
+| EFD037 | Entities materialized into a local when only a few of their columns are read (advisory) |
 
 The same rules are available as analyzers that run in every build and in the IDE: see the `EFDoctor.Analyzers` package.
 

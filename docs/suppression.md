@@ -81,4 +81,6 @@ For EFD025, use diagnostic ID `EFD025` and record why the redundant include is k
 
 For EFD027, use diagnostic ID `EFD027` only when the operations provably can't overlap, for example because the context is a thread-safe test double. Otherwise, await the operations in turn or give each its own context. See [`docs/rules/EFD027.md`](rules/EFD027.md) for suppression examples.
 
+For EFD037, use diagnostic ID `EFD037` and record why loading the whole entity is fine—for example, because the table is narrow. To turn the advisory rule off entirely, set `dotnet_diagnostic.EFD037.severity = none` in `.editorconfig`. See [`docs/rules/EFD037.md`](rules/EFD037.md) for suppression examples.
+
 For EFD029, use diagnostic ID `EFD029` and record why the earlier ordering is overridden on purpose. Deleting the earlier ordering is usually clearer than suppressing. See [`docs/rules/EFD029.md`](rules/EFD029.md) for suppression examples.
