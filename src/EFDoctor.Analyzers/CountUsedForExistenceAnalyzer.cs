@@ -212,11 +212,22 @@ public sealed class CountUsedForExistenceAnalyzer : DiagnosticAnalyzer
 
         comparison = string.Empty;
         testsForEmpty = false;
-        if (isAsync && !observedAwait)
+        return (!isAsync || observedAwait) && TryClassifyExistenceComparison(current, out comparison, out testsForEmpty);
+    }
+
+    // Whether a count value is compared with a constant in a way that only tests existence:
+    // `> 0`, `!= 0`, `>= 1`, or, for an empty set, `== 0`, `<= 0`, `< 1`, in either operand order.
+    internal static bool TryClassifyExistenceComparison(IOperation count, out string comparison, out bool testsForEmpty)
+    {
+        var current = count;
+        while (current.Parent is IParenthesizedOperation
+            || (current.Parent is IConversionOperation { IsImplicit: true } conversion && conversion.Operand == current))
         {
-            return false;
+            current = current.Parent;
         }
 
+        comparison = string.Empty;
+        testsForEmpty = false;
         if (current.Parent is not IBinaryOperation binary || binary.OperatorMethod is not null)
         {
             return false;
