@@ -16,7 +16,7 @@ Nothing below is a promise. A candidate becomes a rule only when it passes the q
 | Area | Rules |
 |---|---|
 | Round trips and batching | EFD001 `SaveChanges` in a loop, EFD013 load-modify-save that could be `ExecuteUpdate`/`ExecuteDelete` |
-| Query shape | EFD002 `Count` for existence, EFD004 premature materialization, EFD005 unbounded materialization, EFD006 cartesian `Include`, EFD019 materialize-then-reduce, EFD020 repeated enumeration, EFD025 redundant `Include` |
+| Query shape | EFD002 `Count` for existence, EFD004 premature materialization, EFD005 unbounded materialization, EFD006 cartesian `Include`, EFD019 materialize-then-reduce, EFD020 repeated enumeration, EFD025 redundant `Include`, EFD037 entities loaded for a few columns (advisory) |
 | Correctness | EFD014 unordered pagination, EFD017 `Include` dropped by `Select`, EFD022 untranslatable `StringComparison`, EFD029 `OrderBy` that discards an earlier ordering |
 | Async and lifetime | EFD010 sync database call in async code, EFD011 blocking on EF async, EFD018 unawaited EF task, EFD021 static `DbContext`, EFD027 concurrent operations on one `DbContext` |
 | Safety | EFD012 raw SQL built from interpolation or concatenation |
@@ -70,7 +70,7 @@ Value, static detectability, and false-positive risk are estimates. Rules marked
 
 - **EFD028** prevents a runtime exception, with one precise, semantically resolved trigger. That's the shape that has worked best so far.
 - **EFD030 and EFD031** are cheap and precise, but the shapes are less common.
-- **EFD032** needs the analysis to follow query *results* through locals, not only queries.
+- **EFD032** needs the analysis to follow query *results* through locals, not only queries. EFD037 does that for one closed set of uses; EFD032 needs writes and saves as well.
 - **EFD036** could be the highest-impact static finding. It maps predicate columns to snapshot indexes, which is real work.
 - **EFD007 and EFD008** are valuable but depend on context the analyzer can't see, so they would be noisy. They stay held back until there's a precise formulation.
 

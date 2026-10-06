@@ -35,7 +35,8 @@ public static class WorkspaceAnalyzer
             new LeadingWildcardSearchAnalyzer(),
             new SyncDatabaseCallInAsyncAnalyzer(),
             new OrderByReplacesOrderingAnalyzer(),
-            new ConcurrentDbContextOperationAnalyzer());
+            new ConcurrentDbContextOperationAnalyzer(),
+            new EntityOverFetchAnalyzer());
 
     private static readonly ImmutableHashSet<string> DiagnosticIds = Analyzers
         .SelectMany(static analyzer => analyzer.SupportedDiagnostics)
