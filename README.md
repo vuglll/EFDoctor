@@ -12,7 +12,7 @@ EFDoctor reads your code with Roslyn and reports EF Core anti-patterns: `SaveCha
 
 <sub>Real output of `efdoctor` 0.2.0 on [Microsoft's eShop](https://github.com/dotnet/eShop) at commit `b4a4087`, trimmed to two of its 15 findings. Paths are shown relative to the checkout.</sub>
 
-> **Project status:** 0.x. EFD001 through EFD006, EFD009 through EFD014, EFD017 through EFD023, EFD025, EFD027, EFD029, and EFD037 ship in the `efdoctor` tool and the `EFDoctor.Analyzers` package. Rules, options, and output may still change before 1.0; see the [roadmap](docs/roadmap.md).
+> **Project status:** 0.x. EFD001 through EFD006, EFD009 through EFD014, EFD017 through EFD023, EFD025, EFD027, EFD029, EFD037, and EFD038 ship in the `efdoctor` tool and the `EFDoctor.Analyzers` package. Rules, options, and output may still change before 1.0; see the [roadmap](docs/roadmap.md).
 
 ## Quick start
 
@@ -68,7 +68,7 @@ var catalogItem = await catalogContext.CatalogItems.FindAsync(orderStockItem.Pro
 
 The same corpus turned up synchronous `Count()` calls on queries inside async maintenance tasks in [Jellyfin](https://github.com/jellyfin/jellyfin), and a synchronous `SingleOrDefault` in eShop's `DeleteItemById` endpoint.
 
-Precision matters more than rule count, so every finding on the corpus gets a verdict. Across eShop, Jellyfin, Bitwarden, Smartstore, OpenIddict, and Ardalis's Clean Architecture template, 129 findings are triaged so far, with **no false positives**. Many of them are correct but acceptable in context, and each rule's documentation names those cases. The rest, mostly EFD005, are still being triaged. See the [validation corpus and results](validation/).
+Precision matters more than rule count, so every finding on the corpus gets a verdict. Across eShop, Jellyfin, Bitwarden, Smartstore, OpenIddict, and Ardalis's Clean Architecture template, 132 findings are triaged so far, with **no false positives**. Many of them are correct but acceptable in context, and each rule's documentation names those cases. The rest, mostly EFD005, are still being triaged. See the [validation corpus and results](validation/).
 
 ## Rules
 
@@ -97,6 +97,7 @@ Precision matters more than rule count, so every finding on the corpus gets a ve
 | **EFD027** | Two EF Core operations running at once on the same `DbContext`, which throws at run time | High |
 | **EFD029** | Second `OrderBy` that discards an earlier ordering where `ThenBy` was meant | High |
 | **EFD037** | Entities materialized into a local when the method reads only a few of their columns | Advisory |
+| **EFD038** | `ExecuteUpdate` or `ExecuteDelete` after entities of the same type were loaded with tracking, which leaves them stale | High / Medium |
 
 Each rule has a reference page in [`docs/rules/`](docs/rules/) with what triggers it, what deliberately doesn't, the remediation, and how to suppress it. [Rule boundaries](docs/rules/README.md) summarizes how far each rule follows your code.
 

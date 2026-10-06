@@ -131,7 +131,7 @@ public sealed class EntityOverFetchAnalyzer : DiagnosticAnalyzer
         return false;
     }
 
-    private static bool TryGetEntityType(IOperation origin, INamedTypeSymbol dbSet, out INamedTypeSymbol entity)
+    internal static bool TryGetEntityType(IOperation origin, INamedTypeSymbol dbSet, out INamedTypeSymbol entity)
     {
         for (var type = origin.Type as INamedTypeSymbol; type is not null; type = type.BaseType)
         {
