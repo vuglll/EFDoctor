@@ -7,8 +7,8 @@
 ## What Changes
 
 - Add EFD038, which reports an `ExecuteUpdate`, `ExecuteDelete`, or their async forms when the same method has already loaded entities of the same type, with tracking, into a local from the same `DbContext` instance.
-- Two confidence tiers: medium when the tracked entities are only left stale, and high when the method uses them after the bulk operation, loads the type again from the same context, or calls `SaveChanges`.
-- Stay silent when the context is cleared, or an entity is reloaded or detached, after the load.
+- Two confidence tiers: medium when the tracked entities are only left stale, and high when the method uses them after the bulk operation, loads the type again from the same context, or saves a modified one.
+- Stay silent when the context is cleared, or an entity is reloaded or detached, after the load, and when the two filters compare the same property with different constants.
 - Extract EFD027's proof that two operations use one context instance, so both rules share it.
 - Reference EFD038 from EFD013's rule page.
 

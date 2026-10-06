@@ -234,7 +234,7 @@ public sealed class EndToEndTests
 
         Assert.Equal(1, console.ExitCode);
         Assert.Empty(console.StandardError);
-        Assert.Contains("Found 13 findings.", console.StandardOutput);
+        Assert.Contains("Found 14 findings.", console.StandardOutput);
         Assert.Contains("EFD001", console.StandardOutput, StringComparison.Ordinal);
         Assert.Contains("EFD005", console.StandardOutput, StringComparison.Ordinal);
         Assert.Contains("EFD012", console.StandardOutput, StringComparison.Ordinal);
@@ -248,16 +248,17 @@ public sealed class EndToEndTests
         Assert.Contains("EFD029", console.StandardOutput, StringComparison.Ordinal);
         Assert.Contains("EFD027", console.StandardOutput, StringComparison.Ordinal);
         Assert.Contains("EFD037", console.StandardOutput, StringComparison.Ordinal);
-        Assert.Equal(13, CountOccurrences(console.StandardOutput, "Severity: Info"));
-        Assert.Equal(13, CountOccurrences(console.StandardOutput, "Confidence: Advisory"));
+        Assert.Contains("EFD038", console.StandardOutput, StringComparison.Ordinal);
+        Assert.Equal(14, CountOccurrences(console.StandardOutput, "Severity: Info"));
+        Assert.Equal(14, CountOccurrences(console.StandardOutput, "Confidence: Advisory"));
 
         Assert.Equal(1, json.ExitCode);
         Assert.Empty(json.StandardError);
         using var document = JsonDocument.Parse(json.StandardOutput);
         Assert.Equal(1, document.RootElement.GetProperty("schemaVersion").GetInt32());
         var findings = document.RootElement.GetProperty("findings").EnumerateArray().ToArray();
-        Assert.Equal(13, findings.Length);
-        Assert.Equal(new[] { "EFD005", "EFD001", "EFD012", "EFD013", "EFD017", "EFD018", "EFD019", "EFD025", "EFD009", "EFD023", "EFD029", "EFD027", "EFD037" }, findings.Select(static finding => finding.GetProperty("ruleId").GetString()));
+        Assert.Equal(14, findings.Length);
+        Assert.Equal(new[] { "EFD005", "EFD001", "EFD012", "EFD013", "EFD017", "EFD018", "EFD019", "EFD025", "EFD009", "EFD023", "EFD029", "EFD027", "EFD037", "EFD038" }, findings.Select(static finding => finding.GetProperty("ruleId").GetString()));
         Assert.All(findings, static finding =>
         {
             Assert.Equal("info", finding.GetProperty("severity").GetString());
@@ -692,6 +693,57 @@ public sealed class EndToEndTests
         Assert.Contains("already ordered by 'OrderBy -> ThenBy', which this OrderByDescending replaces", findings[1].GetProperty("evidence").GetString(), StringComparison.Ordinal);
         var orderedKeys = findings.Select(static finding => $"{finding.GetProperty("sourceFile").GetString()}:{finding.GetProperty("range").GetProperty("startLine").GetInt32():D6}:{finding.GetProperty("range").GetProperty("startColumn").GetInt32():D6}:{finding.GetProperty("ruleId").GetString()}").ToArray();
         Assert.Equal(orderedKeys.OrderBy(static key => key, StringComparer.Ordinal), orderedKeys);
+    }
+
+    [Fact]
+    [Trait("Spec", "efd038-stale-tracked-entities/Complete structured finding")]
+    [Trait("Spec", "efd038-stale-tracked-entities/Diagnostic location")]
+    [Trait("Spec", "efd038-stale-tracked-entities/Standard suppression")]
+    [Trait("Spec", "efd038-stale-tracked-entities/Same type loaded again")]
+    [Trait("Spec", "efd038-stale-tracked-entities/Left stale")]
+    public async Task Efd038FixtureProducesOnlyUnsuppressedStaleEntityFindings()
+    {
+        var project = Path.Combine(RepositoryRoot(), "tests", "Fixtures", "EFD038.Sample", "EFD038.Sample.csproj");
+
+        var console = await RunCliAsync("analyze", project, "--no-color", "--quiet");
+        var json = await RunCliAsync("analyze", project, "--format", "json", "--quiet");
+
+        Assert.Equal(1, console.ExitCode);
+        Assert.Empty(console.StandardError);
+        Assert.Contains("Found 2 findings.", console.StandardOutput);
+        Assert.Equal(2, CountOccurrences(console.StandardOutput, "  EFD038:"));
+        Assert.Contains("Bulk operation leaves tracked entities stale", console.StandardOutput);
+        Assert.Equal(1, CountOccurrences(console.StandardOutput, "Severity: Warning | Confidence: High"));
+        Assert.Equal(1, CountOccurrences(console.StandardOutput, "Severity: Warning | Confidence: Medium"));
+        Assert.Contains("ChangeTracker.Clear()", console.StandardOutput, StringComparison.Ordinal);
+        Assert.DoesNotContain("EditorConfigSuppressed.cs", console.StandardOutput);
+        Assert.DoesNotContain('\u001b', console.StandardOutput);
+
+        Assert.Equal(1, json.ExitCode);
+        Assert.Empty(json.StandardError);
+        using var document = JsonDocument.Parse(json.StandardOutput);
+        Assert.Equal(1, document.RootElement.GetProperty("schemaVersion").GetInt32());
+        Assert.Equal(2, document.RootElement.GetProperty("summary").GetProperty("findingCount").GetInt32());
+        var findings = document.RootElement.GetProperty("findings").EnumerateArray().ToArray();
+        Assert.Equal(2, findings.Length);
+        Assert.All(findings, static finding =>
+        {
+            Assert.Equal("EFD038", finding.GetProperty("ruleId").GetString());
+            Assert.Equal("Bulk operation leaves tracked entities stale", finding.GetProperty("ruleTitle").GetString());
+            Assert.Equal("warning", finding.GetProperty("severity").GetString());
+            Assert.EndsWith("tests/Fixtures/EFD038.Sample/StaleEntityCases.cs", finding.GetProperty("sourceFile").GetString(), StringComparison.Ordinal);
+            Assert.Contains("on context 'context'", finding.GetProperty("evidence").GetString(), StringComparison.Ordinal);
+            Assert.Contains("bypass the change tracker", finding.GetProperty("likelyImpact").GetString(), StringComparison.Ordinal);
+            Assert.Contains("ChangeTracker.Clear()", finding.GetProperty("suggestedRemediation").GetString(), StringComparison.Ordinal);
+            Assert.Equal("EFD038", finding.GetProperty("documentationReference").GetString());
+        });
+        Assert.Equal((25, 15, 25, 161), Range(findings[0]));
+        Assert.Equal("high", findings[0].GetProperty("confidence").GetString());
+        Assert.Equal("This ExecuteUpdateAsync bypasses the change tracker, so the 'Product' entities already tracked through 'product' are stale", findings[0].GetProperty("message").GetString());
+        Assert.Contains("The method then loads 'Product' again with 'context.Products.FindAsync(id)' on line 26", findings[0].GetProperty("evidence").GetString(), StringComparison.Ordinal);
+        Assert.Equal((35, 9, 35, 84), Range(findings[1]));
+        Assert.Equal("medium", findings[1].GetProperty("confidence").GetString());
+        Assert.Contains("Nothing later in this method uses 'products'", findings[1].GetProperty("evidence").GetString(), StringComparison.Ordinal);
     }
 
     [Fact]

@@ -34,7 +34,7 @@ The load statement SHALL be directly inside a block, and the bulk operation SHAL
 - **THEN** EFD038 reports the bulk operation
 
 ### Requirement: Stay silent when staleness is not proven
-EFD038 MUST NOT report when the load is not tracked, when it loads a different entity type or a projection, when the context instances are different or cannot be compared by symbol, when the load does not precede the bulk operation in an enclosing block, when either is inside a lambda or local function, or when a statement after the load in the load's block calls `ChangeTracker.Clear()`, `Entry(…).Reload()` or `ReloadAsync()`, or sets `Entry(…).State` to `EntityState.Detached` on the same context.
+EFD038 MUST NOT report when the load is not tracked, when it loads a different entity type or a projection, when the context instances are different or cannot be compared by symbol, when the load does not precede the bulk operation in an enclosing block, when either is inside a lambda or local function, when the load's filter and the bulk operation's filter each require the same property to equal a constant and the constants differ, or when a statement after the load in the load's block calls `ChangeTracker.Clear()`, `Entry(…).Reload()` or `ReloadAsync()`, or sets `Entry(…).State` to `EntityState.Detached` on the same context.
 
 #### Scenario: No-tracking load
 - **WHEN** the load uses `AsNoTracking` or `AsNoTrackingWithIdentityResolution`
@@ -56,12 +56,16 @@ EFD038 MUST NOT report when the load is not tracked, when it loads a different e
 - **WHEN** a statement after the load calls `ChangeTracker.Clear()`, `Entry(entity).Reload()`, `Entry(entity).ReloadAsync()`, or sets `Entry(entity).State = EntityState.Detached` on the same context
 - **THEN** EFD038 does not report
 
+#### Scenario: Filters that cannot overlap
+- **WHEN** the load filters with `x.Name == "a"` and the bulk operation filters with `x.Name == "b"`, as top-level conjuncts of predicates in their inline query chains
+- **THEN** EFD038 does not report, and it still reports when a constant is replaced by a variable, the constants are equal, or the comparison is not a top-level equality
+
 #### Scenario: Bulk operation alone
 - **WHEN** a method runs a bulk operation and loads nothing of that type before it
 - **THEN** EFD038 does not report
 
 ### Requirement: Raise confidence when the stale state is used
-EFD038 SHALL report with high confidence when, after the bulk operation and within the remaining statements of the load's block, the method references the loaded local, performs another tracked load of the same entity type from the same context, or calls `SaveChanges` or `SaveChangesAsync` on the same context. Otherwise it SHALL report with medium confidence.
+EFD038 SHALL report with high confidence when, after the bulk operation and within the remaining statements of the load's block, the method references the loaded local, performs another tracked load of the same entity type from the same context, or calls `SaveChanges` or `SaveChangesAsync` on the same context when a member of a loaded entity is written after the load. A loaded entity is the local itself, a `foreach` variable over it, or an indexed element of it. Otherwise it SHALL report with medium confidence.
 
 #### Scenario: Loaded entity read afterwards
 - **WHEN** the loaded local is referenced after the bulk operation
@@ -71,12 +75,12 @@ EFD038 SHALL report with high confidence when, after the bulk operation and with
 - **WHEN** `Find`, `FindAsync`, or a tracked query terminal loads the same entity type from the same context after the bulk operation
 - **THEN** the finding has high confidence, and the evidence says the load returns the tracked instance
 
-#### Scenario: SaveChanges afterwards
-- **WHEN** `SaveChanges` or `SaveChangesAsync` is called on the same context after the bulk operation
-- **THEN** the finding has high confidence
+#### Scenario: Modified entity saved afterwards
+- **WHEN** a member of a loaded entity is written, and `SaveChanges` or `SaveChangesAsync` is called on the same context after the bulk operation
+- **THEN** the finding has high confidence, and the evidence names the save
 
 #### Scenario: Left stale
-- **WHEN** nothing after the bulk operation uses the loaded local, loads the type again, or saves
+- **WHEN** nothing after the bulk operation uses the loaded local or loads the type again, and no modified loaded entity is saved, including when `SaveChanges` runs but no loaded entity was written
 - **THEN** the finding has medium confidence
 
 ### Requirement: Report evidence-based findings

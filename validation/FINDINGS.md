@@ -220,3 +220,21 @@ The corpus was re-run for EFD037, entities materialized into a local when the me
 - eShop, Jellyfin, OpenIddict, and Ardalis's template have no finding. Their materialized entities are returned, mapped by a helper, or filtered in memory first, all of which the rule's closed list of uses leaves alone.
 
 What the rule didn't see is the larger number. Results that pass through `Where`, `OrderBy`, or `First` before being read are common in the corpus, and following them is the obvious next step for recall.
+
+## New rule: EFD038 (2026-10-06)
+
+The corpus was re-run for EFD038, a bulk operation after a tracked load of the same entity type on the same context. The corpus uses bulk operations heavily: about 115 `ExecuteUpdate`/`ExecuteDelete` call sites each in Jellyfin, Bitwarden, and Smartstore, and 14 in OpenIddict.
+
+**The first run found a false positive, which changed the rule.** A Smartstore migration (`20221028120000_PriceSettings`) loads the setting named `PriceSettings.DefaultRegularPriceLabelId` to check that it exists, bulk-deletes the setting named `CatalogSettings.PriceDisplayStyle`, and then saves unrelated additions. The draft rule reported it with high confidence, because `SaveChanges` followed the bulk operation. Two things were wrong, and both are fixed:
+
+- **The filters can't match the same row.** The rule is now silent when the load and the bulk operation each compare the same property with a different constant.
+- **A `SaveChanges` proves nothing by itself.** It writes stale state back only when a loaded entity was modified, so it now raises the confidence only then.
+
+**After the fix: 3 findings, all in Bitwarden, no false positive.** 1 is `TP` and 2 are `acceptable`.
+
+- **TP, high confidence.** `AccessPolicyRepository.UpdateProjectServiceAccountsAccessPoliciesAsync` loads a project's access policies with tracking, bulk-deletes a subset selected by the IDs of those same entities, and then passes the whole list, deleted entities included, to its upsert helper before `SaveChanges`. The sibling method `UpdateServiceAccountGrantedPoliciesAsync` does the same job with `RemoveRange`, which keeps the tracker in step, and is correctly not reported.
+- **Acceptable, medium confidence, twice.** `OrganizationUserRepository.DeleteManyOrganizationUsersAndRelatedDataAsync` loads `CollectionUsers` and `OrganizationUsers`, reads them, and bulk-deletes them with the same filter. Nothing uses them afterwards, and the context ends with the method. This is what the medium tier is for.
+
+Jellyfin, Smartstore, and OpenIddict have no finding: their bulk operations run without a tracked load of the same type in the same method.
+
+One high-confidence finding is too few to measure the tier's precision. The known weak spot is a bulk filter that can't match the loaded rows for a reason other than different constants, such as loading active rows and deleting expired ones.

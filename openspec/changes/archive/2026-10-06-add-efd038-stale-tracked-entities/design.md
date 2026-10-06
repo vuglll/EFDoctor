@@ -54,9 +54,15 @@ After the bulk operation, in the remaining statements of the load's block, the r
 
 - a reference to the loaded local;
 - another tracked load of the same type from the same context, which returns the tracked instance;
-- `SaveChanges` or `SaveChangesAsync` on the same context.
+- `SaveChanges` or `SaveChangesAsync` on the same context, when a member of a loaded entity is written after the load.
 
-Any of them makes the finding high confidence, and the evidence names it. Otherwise the confidence is medium: the entities are stale, but this method doesn't use them. Decided with the maintainer.
+Any of them makes the finding high confidence, and the evidence names it. Otherwise the confidence is medium: the entities are stale, but this method doesn't use them. The two tiers were decided with the maintainer.
+
+The first draft counted any later `SaveChanges`. The corpus showed why that is wrong: a Smartstore migration loads one setting to check that it exists, bulk-deletes another, and saves unrelated additions. A save only writes stale state back when a loaded entity was modified, which is also what the issue describes ("the stale entity is later modified and saved"). So the save counts only then.
+
+### Provably disjoint filters are silent
+
+The same corpus finding had filters that can't match the same row: `x.Name == "A"` for the load and `x.Name == "B"` for the bulk delete. When a predicate in the load's inline chain and one in the bulk operation's inline chain each have a top-level `&&` conjunct that compares the same property with a constant, and the constants differ, the rule is silent. This is the only filter comparison the rule makes. Variables, ranges, `||`, and `Find` keys are not compared.
 
 The descriptor is `Warning` under `Correctness`. In a build, the shared diagnostic factory makes the medium findings suggestions.
 
@@ -66,7 +72,7 @@ The finding is on the bulk operation's invocation. When several loads qualify, t
 
 ## Risks / Trade-offs
 
-- [The bulk filter can't match the loaded rows, for example a cleanup of expired rows after loading active ones] → The rule can't compare predicates. The rule page names this as the case to suppress, and the evidence shows both expressions.
+- [The bulk filter can't match the loaded rows, for example a cleanup of expired rows after loading active ones] → Only different constants on the same property are recognized. For the rest, the rule page names this as the case to suppress, and the evidence shows both expressions.
 - [A no-tracking default on the context] → Invisible to static analysis; documented.
 - [The coarse silence rules hide a real finding] → Accepted in favor of precision.
 

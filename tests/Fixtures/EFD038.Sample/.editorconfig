@@ -1,0 +1,3 @@
+[EditorConfigSuppressed.cs]
+# Reviewed: the cleanup filter can't match the loaded product.
+dotnet_diagnostic.EFD038.severity = none

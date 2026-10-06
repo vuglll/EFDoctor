@@ -6,6 +6,7 @@
 Rule ID | Category | Severity | Notes
 --------|----------|----------|-------
 EFD037 | Performance | Info | Detect an EF Core query materialized into a local when the method reads only a small subset of the entity's scalar properties.
+EFD038 | Correctness | Warning | Detect an EF Core ExecuteUpdate or ExecuteDelete that runs after entities of the same type were loaded with tracking from the same DbContext instance.
 
 ### Changed Rules
 
