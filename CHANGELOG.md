@@ -8,6 +8,13 @@ All notable changes to EFDoctor are documented here. Versions follow [Semantic V
 
 The rules now ship in two packages: the `EFDoctor` tool, and the new `EFDoctor.Analyzers` package for builds and the IDE. There are two new rules, for 24 in all, and EFD002 and EFD019 follow a result stored in a local.
 
+Thanks to the people whose suggestions shaped this release:
+
+- [@jnyrup](https://github.com/jnyrup) proposed the EFD002 and EFD019 changes and supplied the test cases for them ([#13](https://github.com/vuglll/EFDoctor/issues/13)).
+- u/anonuser1511 on r/dotnet asked for the analyzer package ([#12](https://github.com/vuglll/EFDoctor/issues/12)).
+- u/geesuth on r/dotnet suggested EFD037 ([#10](https://github.com/vuglll/EFDoctor/issues/10)).
+- u/Lonely-Unit6754 on r/dotnet suggested EFD038 ([#11](https://github.com/vuglll/EFDoctor/issues/11)).
+
 ### Added
 
 - The `EFDoctor.Analyzers` NuGet package, which runs every rule inside the compiler: in each build, and in the IDE. Reference it from one project, or once for all projects through central package management. It needs the .NET 8 SDK or later, has no dependencies, and has the same version as the tool.
