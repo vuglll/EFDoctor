@@ -16,6 +16,9 @@ All notable changes to EFDoctor are documented here. Versions follow [Semantic V
 ### Changed
 
 - EFD019 now reports a materialized result stored in a local when the method uses the local only for its count: every read is `Count`, `Length`, `Any()`, `Count()`, or `LongCount()`, and the local is never enumerated, indexed, passed, returned, or reassigned. For example, `var products = db.Products.ToList(); return products.Count > 0;`. EFD005 no longer reports those materializers, because EFD019 does.
+- EFD002's title is now "Query result used only to test existence", because the rule also covers an entity loaded only for a null check. It was "Count used only to test existence". The rule ID, messages, and severities of existing findings are unchanged; the `ruleTitle` in console and JSON reports changes.
+- EFD002 now follows a count through a local: `var n = db.Products.Count(); return n > 0;` is reported when every read of the local is an existence comparison. A local that is also used as a number is not reported.
+- EFD002 now reports `FirstOrDefault` and awaited `FirstOrDefaultAsync` on an entity query with no projection when the result is only checked for `null`, directly or through a local. These findings have medium confidence, because the saving is at most one row's columns and change tracking. Projected queries, `SingleOrDefault`, and results that are used after the check are not reported.
 - EFD019 recommends `Any`/`AnyAsync`, or its negation, when a count is only compared for existence, such as `ToList().Count > 0`. Before, it recommended `Count`, and following that advice produced a shape that EFD002 reports.
 - The default diagnostic severity of EFD006, EFD009, EFD010, EFD013, and EFD020 is now `Info` instead of `Warning`, because their findings have medium confidence. CLI reports are unchanged: these findings are still reported at `Warning` severity.
 - The analyzers compile against Roslyn 4.8 instead of 5.9.0.

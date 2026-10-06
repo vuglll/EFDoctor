@@ -247,3 +247,11 @@ The corpus was re-run after EFD019 learned to report a materialized result store
 - **Bitwarden, TP.** `ProjectRepository.ProjectsAreInOrganization` loads every matching `Project` entity and then compares `results.Count` with the number of requested IDs. `CountAsync` returns that number without loading a row.
 - **Smartstore, acceptable.** A migration loads the settings with one name and only tests the list for emptiness, where `AnyAsync` would do. It runs once over a handful of rows. EFD005 used to report this materializer as unbounded; it now yields to EFD019, whose message says what is wrong.
 - No existing EFD019 finding changed, and no inline finding in the corpus compares a count for existence, so the `Any` recommendation didn't change any remediation there.
+
+## EFD002 extension: stored counts and null-checked `FirstOrDefault` (2026-10-06)
+
+The corpus was re-run after EFD002 learned to follow a count through a local, and to report a `FirstOrDefault` whose result is only checked for `null`.
+
+- **1 new finding, no false positive.** Smartstore's `InvariantSeedData.Menus` stores `_db.Manufacturers.Count()` in `manufacturerCount` and only compares it with `> 0`, twice. The shape is right; it is installation seed code, so the verdict is `acceptable`.
+- **No null-checked `FirstOrDefault` in the corpus.** Where the corpus null-checks a `FirstOrDefault`, it goes on to use the entity, which the rule leaves alone. So the medium-confidence tier is unmeasured here. Its evidence is the proposal itself: the reporter found three such cases in production code, each with the result in a local.
+- **The proposal's test file is now an acceptance test.** Its twenty methods each get exactly one finding: fourteen from EFD002 and six from EFD019.

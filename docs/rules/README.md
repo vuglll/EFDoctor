@@ -35,9 +35,11 @@ The first version is intentionally not interprocedural: it does not follow helpe
 
 ## EFD002 expression boundary
 
-EFD002 semantically identifies `Queryable.Count` expressions proven to originate from an EF Core `DbSet`, plus EF Core `CountAsync`. It reports direct zero/one comparisons used only for existence and recommends the equivalent `Any` or `AnyAsync` form.
+EFD002 semantically identifies `Queryable.Count` expressions proven to originate from an EF Core `DbSet`, plus EF Core `CountAsync`. It reports direct zero/one comparisons used only for existence and recommends the equivalent `Any` or `AnyAsync` form. It follows the count through one local that is declared by the count and read only by such comparisons.
 
-The first version intentionally does not follow counts stored in variables, infer providers for arbitrary `IQueryable<T>` values, or report exact-count comparisons. See [`docs/rules/EFD002.md`](EFD002.md) for supported forms, exclusions, remediation, and suppression examples.
+With medium confidence, it also reports `Queryable.FirstOrDefault` and awaited `FirstOrDefaultAsync` on a query traced to a `DbSet` that returns the entity itself, when the result is only checked for `null`, directly or through such a local.
+
+It does not follow results stored in fields or properties or returned by helpers, report projected queries or `SingleOrDefault`, infer providers for arbitrary `IQueryable<T>` values, or report exact-count comparisons. See [`docs/rules/EFD002.md`](EFD002.md) for supported forms, exclusions, remediation, and suppression examples.
 
 ## EFD003 model-snapshot boundary
 
