@@ -1,7 +1,8 @@
 # EFDoctor
 
 [![CI](https://github.com/vuglll/EFDoctor/actions/workflows/ci.yml/badge.svg)](https://github.com/vuglll/EFDoctor/actions/workflows/ci.yml)
-[![NuGet](https://img.shields.io/nuget/v/EFDoctor.svg)](https://www.nuget.org/packages/EFDoctor)
+[![NuGet: EFDoctor](https://img.shields.io/nuget/v/EFDoctor.svg?label=EFDoctor)](https://www.nuget.org/packages/EFDoctor)
+[![NuGet: EFDoctor.Analyzers](https://img.shields.io/nuget/v/EFDoctor.Analyzers.svg?label=EFDoctor.Analyzers)](https://www.nuget.org/packages/EFDoctor.Analyzers)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
 **Find the EF Core performance and correctness problems that survive code review.**
@@ -68,14 +69,14 @@ var catalogItem = await catalogContext.CatalogItems.FindAsync(orderStockItem.Pro
 
 The same corpus turned up synchronous `Count()` calls on queries inside async maintenance tasks in [Jellyfin](https://github.com/jellyfin/jellyfin), and a synchronous `SingleOrDefault` in eShop's `DeleteItemById` endpoint.
 
-Precision matters more than rule count, so every finding on the corpus gets a verdict. Across eShop, Jellyfin, Bitwarden, Smartstore, OpenIddict, and Ardalis's Clean Architecture template, 135 findings are triaged so far, with **no false positives**. Many of them are correct but acceptable in context, and each rule's documentation names those cases. The rest, mostly EFD005, are still being triaged. See the [validation corpus and results](validation/).
+Precision matters more than rule count, so every finding on the corpus gets a verdict. Across eShop, Jellyfin, Bitwarden, Smartstore, OpenIddict, and Ardalis's Clean Architecture template, 136 findings are triaged so far, with **no false positives**. Many of them are correct but acceptable in context, and each rule's documentation names those cases. The rest, mostly EFD005, are still being triaged. See the [validation corpus and results](validation/).
 
 ## Rules
 
 | Rule | Finding | Confidence |
 |---|---|---|
 | **EFD001** | `SaveChanges` or `SaveChangesAsync` executed inside a loop | High |
-| **EFD002** | `Count` or `CountAsync` used only to test existence instead of `Any` or `AnyAsync`; `FirstOrDefault` used only as a null check | High / Medium |
+| **EFD002** | Query result used only to test existence: `Count` or `CountAsync` compared with zero instead of `Any` or `AnyAsync`, or `FirstOrDefault` used only as a null check | High / Medium |
 | **EFD003** | Foreign key without a covering index in a SQL Server or PostgreSQL model snapshot | High |
 | **EFD004** | Query materialized before filtering, projection, ordering, or paging that could run in SQL | High |
 | **EFD005** | `ToList` or `ToListAsync` on a query with no recognized row bound | High / Medium / Advisory |
@@ -88,7 +89,7 @@ Precision matters more than rule count, so every finding on the corpus gets a ve
 | **EFD014** | `Skip` pagination with no preceding `OrderBy`, so pages are non-deterministic | High |
 | **EFD017** | `Include` ignored by a later `Select` that projects only non-entity values | High |
 | **EFD018** | EF Core async operation whose task is discarded instead of awaited | High |
-| **EFD019** | Query materialized and immediately reduced, such as `ToList().First()` | High |
+| **EFD019** | Query materialized and immediately reduced, such as `ToList().First()`, or stored in a local that is used only for its count | High |
 | **EFD020** | `IQueryable` local enumerated more than once, re-running the query each time | Medium |
 | **EFD021** | `DbContext` held in a `static` field, which isn't thread-safe | High |
 | **EFD022** | `StringComparison` overload in a query predicate, which EF Core can't translate and throws at runtime | High |
