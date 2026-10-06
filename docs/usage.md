@@ -136,9 +136,9 @@ A diagnostic's default severity follows the confidence of its finding:
 
 | Confidence | Default severity | Rules |
 |---|---|---|
-| High | `warning` | EFD001 through EFD004, EFD011, EFD012, EFD014, EFD017 through EFD019, EFD021, EFD022, EFD027, EFD029, and the high-confidence findings of EFD005 and EFD038 |
+| High | `warning` | EFD001, EFD003, EFD004, EFD011, EFD012, EFD014, EFD017 through EFD019, EFD021, EFD022, EFD027, EFD029, and the high-confidence findings of EFD002, EFD005, and EFD038 |
 | High, cleanup | `suggestion` | EFD025 |
-| Medium | `suggestion` | EFD006, EFD009, EFD010, EFD013, EFD020, and the medium-confidence findings of EFD005 and EFD038 |
+| Medium | `suggestion` | EFD006, EFD009, EFD010, EFD013, EFD020, and the medium-confidence findings of EFD002 (a null-checked `FirstOrDefault`), EFD005, and EFD038 |
 | Advisory | `suggestion` | EFD023, EFD037, and the advisory findings of EFD005 |
 
 So only a high-confidence finding can fail a build that treats warnings as errors. Suggestions appear in the IDE, but not in command-line build output. The CLI reports every finding, and its report severities are not affected: there, a medium-confidence finding is a `Warning`.

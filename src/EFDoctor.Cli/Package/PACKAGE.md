@@ -38,7 +38,7 @@ Loading a project runs its MSBuild logic, so analyze only repositories you trust
 | Rule | Finding |
 |---|---|
 | EFD001 | `SaveChanges`/`SaveChangesAsync` inside a loop |
-| EFD002 | `Count`/`CountAsync` used only to test existence |
+| EFD002 | `Count`/`CountAsync` used only to test existence, or `FirstOrDefault` used only as a null check |
 | EFD003 | Foreign key without a covering index in a SQL Server or PostgreSQL model snapshot |
 | EFD004 | Query materialized before filtering, projection, ordering, or paging |
 | EFD005 | `ToList`/`ToListAsync` without a recognized row bound |

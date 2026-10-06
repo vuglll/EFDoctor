@@ -706,6 +706,61 @@ public sealed class EndToEndTests
     }
 
     [Fact]
+    public async Task Efd002FixtureReportsStoredCountsAndNullCheckedEntityLoads()
+    {
+        var project = Path.Combine(RepositoryRoot(), "tests", "Fixtures", "EFD002.Sample", "EFD002.Sample.csproj");
+
+        var console = await RunCliAsync("analyze", project, "--no-color", "--quiet");
+        var json = await RunCliAsync("analyze", project, "--format", "json", "--quiet");
+
+        Assert.Equal(1, console.ExitCode);
+        Assert.Empty(console.StandardError);
+        Assert.Contains("Found 4 findings.", console.StandardOutput);
+        Assert.Equal(4, CountOccurrences(console.StandardOutput, "  EFD002:"));
+        Assert.Equal(2, CountOccurrences(console.StandardOutput, "Severity: Warning | Confidence: High"));
+        Assert.Equal(2, CountOccurrences(console.StandardOutput, "Severity: Warning | Confidence: Medium"));
+        Assert.DoesNotContain("EditorConfigSuppressed.cs", console.StandardOutput);
+        Assert.DoesNotContain('\u001b', console.StandardOutput);
+
+        Assert.Equal(1, json.ExitCode);
+        Assert.Empty(json.StandardError);
+        using var document = JsonDocument.Parse(json.StandardOutput);
+        Assert.Equal(1, document.RootElement.GetProperty("schemaVersion").GetInt32());
+        var findings = document.RootElement.GetProperty("findings").EnumerateArray().ToArray();
+        Assert.Equal(4, findings.Length);
+        Assert.All(findings, static finding =>
+        {
+            Assert.Equal("EFD002", finding.GetProperty("ruleId").GetString());
+            Assert.Equal("Count used only to test existence", finding.GetProperty("ruleTitle").GetString());
+            Assert.Equal("warning", finding.GetProperty("severity").GetString());
+            Assert.EndsWith("tests/Fixtures/EFD002.Sample/StoredExistenceCases.cs", finding.GetProperty("sourceFile").GetString(), StringComparison.Ordinal);
+            Assert.Equal("EFD002", finding.GetProperty("documentationReference").GetString());
+        });
+
+        Assert.Equal((21, 24, 21, 75), Range(findings[0]));
+        Assert.Equal("high", findings[0].GetProperty("confidence").GetString());
+        Assert.Equal("This EF Core count is used only to test existence and may process more rows than an existence query", findings[0].GetProperty("message").GetString());
+        Assert.Contains("stored in local 'products', which this method only compares for existence: 'products > 0'.", findings[0].GetProperty("evidence").GetString(), StringComparison.Ordinal);
+        Assert.StartsWith("Use Any for this existence test", findings[0].GetProperty("suggestedRemediation").GetString(), StringComparison.Ordinal);
+
+        Assert.Equal((28, 30, 28, 59), Range(findings[1]));
+        Assert.Equal("high", findings[1].GetProperty("confidence").GetString());
+        Assert.StartsWith("Use the negation of AnyAsync for this existence test", findings[1].GetProperty("suggestedRemediation").GetString(), StringComparison.Ordinal);
+
+        Assert.Equal((35, 23, 35, 87), Range(findings[2]));
+        Assert.Equal("medium", findings[2].GetProperty("confidence").GetString());
+        Assert.Equal("This EF Core FirstOrDefault result is used only to test existence and loads an entity where an existence query would do", findings[2].GetProperty("message").GetString());
+        Assert.Contains("DbSet origin 'context.Products'", findings[2].GetProperty("evidence").GetString(), StringComparison.Ordinal);
+        Assert.Contains("stored in local 'product', which this method only checks for null: 'product is not null'.", findings[2].GetProperty("evidence").GetString(), StringComparison.Ordinal);
+        Assert.Contains("at most one row", findings[2].GetProperty("likelyImpact").GetString(), StringComparison.Ordinal);
+        Assert.StartsWith("Use Any with the same predicate", findings[2].GetProperty("suggestedRemediation").GetString(), StringComparison.Ordinal);
+
+        Assert.Equal((41, 15, 41, 84), Range(findings[3]));
+        Assert.Equal("medium", findings[3].GetProperty("confidence").GetString());
+        Assert.StartsWith("Use AnyAsync with the same predicate", findings[3].GetProperty("suggestedRemediation").GetString(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     [Trait("Spec", "efd038-stale-tracked-entities/Complete structured finding")]
     [Trait("Spec", "efd038-stale-tracked-entities/Diagnostic location")]
     [Trait("Spec", "efd038-stale-tracked-entities/Standard suppression")]

@@ -91,5 +91,6 @@ Each rule was delivered as its own OpenSpec change, archived under `openspec/cha
 18. `add-efd037-entity-over-fetch` added EFD037, the first rule that follows a materialized *result* instead of a query: it reports entities loaded into a local when every use in the method reads only a few scalar properties.
 19. `add-efd038-stale-tracked-entities` added EFD038, which reports a bulk operation that leaves tracked entities of the same type stale, with a second confidence tier when the method goes on to use them. It extracted EFD027's proof that two operations share one `DbContext` instance into `EfContextIdentity`.
 20. `improve-efd019-stored-count` let EFD019 report a materialized result stored in a local that is used only for its count, and made it recommend `Any` when a count only tests existence. It shares EFD002's existence-comparison classifier.
+21. `improve-efd002-stored-existence` let EFD002 follow a count through a local that is only compared for existence, and added the null-checked `FirstOrDefault` at medium confidence. The test file posted with the proposal is kept as an acceptance test over EFD002 and EFD019.
 
 The current behavior contract for every rule and for the CLI lives in `openspec/specs/`. The remaining candidate rules and their priorities are in the [roadmap](roadmap.md).
