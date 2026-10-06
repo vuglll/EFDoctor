@@ -63,8 +63,6 @@ Loading a project runs its MSBuild logic, so analyze only repositories you trust
 
 The same rules are available as analyzers that run in every build and in the IDE: see the `EFDoctor.Analyzers` package.
 
-The same rules are available as analyzers that run in every build and in the IDE: see the `EFDoctor.Analyzers` package.
-
 Suppress an intentional finding with standard Roslyn mechanisms (`#pragma warning disable EFD001`, `.editorconfig`, or `[SuppressMessage]`) and record why.
 
 ## License
