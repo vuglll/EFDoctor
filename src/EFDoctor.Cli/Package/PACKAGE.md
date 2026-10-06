@@ -31,6 +31,8 @@ efdoctor analyze path/to/App.csproj --format json --quiet
 
 A project that uses EF Core but whose EF Core types don't resolve (not restored, or a failed design-time build) isn't analyzed, and EFDoctor warns about it on standard error. If no EF Core project resolves, the run exits with `2` instead of reporting a clean result.
 
+Test projects are skipped by default. Pass `--include-test-projects` to analyze them too; their findings are then reported as advisory.
+
 Loading a project runs its MSBuild logic, so analyze only repositories you trust.
 
 ## Rules
@@ -38,7 +40,7 @@ Loading a project runs its MSBuild logic, so analyze only repositories you trust
 | Rule | Finding |
 |---|---|
 | EFD001 | `SaveChanges`/`SaveChangesAsync` inside a loop |
-| EFD002 | `Count`/`CountAsync` used only to test existence, or `FirstOrDefault` used only as a null check |
+| EFD002 | Query result used only to test existence: `Count`/`CountAsync` compared with zero, or `FirstOrDefault` used only as a null check |
 | EFD003 | Foreign key without a covering index in a SQL Server or PostgreSQL model snapshot |
 | EFD004 | Query materialized before filtering, projection, ordering, or paging |
 | EFD005 | `ToList`/`ToListAsync` without a recognized row bound |
@@ -51,7 +53,7 @@ Loading a project runs its MSBuild logic, so analyze only repositories you trust
 | EFD014 | `Skip` pagination with no preceding `OrderBy`, producing non-deterministic pages |
 | EFD017 | `Include` ignored by a later non-entity `Select` |
 | EFD018 | EF Core async call whose task is discarded |
-| EFD019 | Query materialized and then immediately reduced, such as `ToList().First()` |
+| EFD019 | Query materialized and then immediately reduced, such as `ToList().First()`, or stored in a local used only for its count |
 | EFD020 | EF Core query enumerated more than once, re-running it each time |
 | EFD021 | EF Core `DbContext` held in a `static` field |
 | EFD022 | `StringComparison` overload in a query predicate that EF Core cannot translate |
@@ -62,7 +64,9 @@ Loading a project runs its MSBuild logic, so analyze only repositories you trust
 | EFD037 | Entities materialized into a local when only a few of their columns are read (advisory) |
 | EFD038 | `ExecuteUpdate`/`ExecuteDelete` that leaves already-tracked entities of the same type stale |
 
-The same rules are available as analyzers that run in every build and in the IDE: see the `EFDoctor.Analyzers` package.
+Each rule has a [reference page](https://github.com/vuglll/EFDoctor/tree/main/docs/rules) with what triggers it, what deliberately doesn't, and the fix. The [usage guide](https://github.com/vuglll/EFDoctor/blob/main/docs/usage.md) covers every option and the JSON output.
+
+The same rules are available as analyzers that run in every build and in the IDE: see the [`EFDoctor.Analyzers`](https://www.nuget.org/packages/EFDoctor.Analyzers) package.
 
 Suppress an intentional finding with standard Roslyn mechanisms (`#pragma warning disable EFD001`, `.editorconfig`, or `[SuppressMessage]`) and record why.
 
