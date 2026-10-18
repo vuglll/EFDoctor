@@ -39,7 +39,7 @@ void SaveIndependently(DbContext context, IEnumerable<Item> items)
 
 EFDoctor has no proprietary suppression file. The same mechanisms work for the CLI and for the `EFDoctor.Analyzers` package. With the package, `.editorconfig` can also raise or lower a rule's severity; see [Default severities](usage.md#default-severities).
 
-`SuppressMessage` matches on the rule's category as well as its ID. Most rules use `Performance`; EFD012 uses `Security`, EFD014, EFD017, EFD018, EFD022, EFD028, EFD029, and EFD038 use `Correctness`, EFD021 and EFD027 use `Reliability`, and EFD025 uses `Maintainability`. Each rule page shows the exact attribute.
+`SuppressMessage` matches on the rule's category as well as its ID. Most rules use `Performance`; EFD012 uses `Security`, EFD014, EFD017, EFD018, EFD022, EFD028, EFD029, and EFD038 use `Correctness`, EFD021, EFD027, and EFD030 use `Reliability`, and EFD025 uses `Maintainability`. Each rule page shows the exact attribute.
 
 For EFD002, use the same mechanisms with diagnostic ID `EFD002`. Examples and guidance for positive, empty-set, synchronous, and asynchronous existence checks are in [`docs/rules/EFD002.md`](rules/EFD002.md).
 
@@ -80,6 +80,8 @@ For EFD023, use diagnostic ID `EFD023` and record why a scan is acceptable—for
 For EFD025, use diagnostic ID `EFD025` and record why the redundant include is kept—for example, to mirror a generated query template. To turn the cleanup rule off entirely, set `dotnet_diagnostic.EFD025.severity = none` in `.editorconfig`. See [`docs/rules/EFD025.md`](rules/EFD025.md) for suppression examples.
 
 For EFD027, use diagnostic ID `EFD027` only when the operations provably can't overlap, for example because the context is a thread-safe test double. Otherwise, await the operations in turn or give each its own context. See [`docs/rules/EFD027.md`](rules/EFD027.md) for suppression examples.
+
+For EFD030, use diagnostic ID `EFD030` only when every caller provably enumerates the query before the method's scope ends, and record why. Otherwise materialize before returning, or let the caller own the context. See [`docs/rules/EFD030.md`](rules/EFD030.md) for suppression examples.
 
 For EFD037, use diagnostic ID `EFD037` and record why loading the whole entity is fine—for example, because the table is narrow. To turn the advisory rule off entirely, set `dotnet_diagnostic.EFD037.severity = none` in `.editorconfig`. See [`docs/rules/EFD037.md`](rules/EFD037.md) for suppression examples.
 
