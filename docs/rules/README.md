@@ -101,9 +101,9 @@ The first version does not follow tasks through locals or general data flow, rep
 
 ## EFD012 raw-SQL boundary
 
-EFD012 semantically identifies interpolated strings and non-constant concatenation passed as the SQL argument of EF Core `FromSqlRaw`, `ExecuteSqlRaw`, or `ExecuteSqlRawAsync`, including through a local assigned exactly once in the same straight-line block. It reports high confidence because the dynamic SQL shape is proven; it does not claim that an input is attacker-controlled.
+EFD012 semantically identifies interpolated strings and non-constant concatenation passed as the SQL argument of EF Core `FromSqlRaw`, `ExecuteSqlRaw`, `ExecuteSqlRawAsync`, or `SqlQueryRaw<T>`, including through a local assigned exactly once in the same straight-line block. It reports high confidence because the dynamic SQL shape is proven; it does not claim that an input is attacker-controlled.
 
-Constant SQL, placeholder arguments, and interpolated-safe APIs such as `FromSqlInterpolated` and `ExecuteSqlInterpolatedAsync` are not reported, and the rule does not follow fields, parameters, helpers, or cross-method flow. Pass values as parameters; when SQL structure such as a column name must vary, select it from a fixed allow-list. See [`docs/rules/EFD012.md`](EFD012.md) for the complete contract.
+Constant SQL, placeholder arguments, and interpolated-safe APIs such as `FromSqlInterpolated`, `ExecuteSqlInterpolatedAsync`, and `SqlQuery<T>` are not reported, and the rule does not follow fields, parameters, helpers, or cross-method flow. Pass values as parameters; when SQL structure such as a column name must vary, select it from a fixed allow-list. See [`docs/rules/EFD012.md`](EFD012.md) for the complete contract.
 
 ## EFD013 bulk-operation boundary
 

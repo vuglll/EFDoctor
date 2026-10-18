@@ -26,7 +26,7 @@ public sealed class UnsafeRawSqlAnalyzer : DiagnosticAnalyzer
         "Security",
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
-        description: "Reports interpolation or non-constant concatenation used as SQL text for supported EF Core raw-SQL APIs.",
+        description: "Reports interpolation or non-constant concatenation used as SQL text for EF Core FromSqlRaw, ExecuteSqlRaw, ExecuteSqlRawAsync, and SqlQueryRaw.",
         helpLinkUri: EfHelpLinks.For(DiagnosticId));
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(Rule);
@@ -106,7 +106,7 @@ public sealed class UnsafeRawSqlAnalyzer : DiagnosticAnalyzer
             return true;
         }
 
-        return method.Name is "ExecuteSqlRaw" or "ExecuteSqlRawAsync"
+        return method.Name is "ExecuteSqlRaw" or "ExecuteSqlRawAsync" or "SqlQueryRaw"
             && SymbolEqualityComparer.Default.Equals(method.ContainingType.OriginalDefinition, databaseExtensions);
     }
 
