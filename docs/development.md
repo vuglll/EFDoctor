@@ -96,5 +96,6 @@ Each rule was delivered as its own OpenSpec change, archived under `openspec/cha
 23. `add-efd028-client-method-in-query` added EFD028, the last rule of the roadmap's "Next" tier. It reports a method of the application that reads the query's lambda parameter inside a translated filter or ordering, and excludes database-function mappings and methods that query-rewriting libraries mark.
 24. `improve-efd012-sqlqueryraw` extended EFD012 to EF Core 8's `Database.SqlQueryRaw<T>`.
 25. `add-efd030-query-outlives-context` added EFD030, which reports a deferred query returned from inside the `using` scope, or disposed service scope, of its `DbContext`.
+26. `add-windows-ci` added a Windows job to continuous integration, beside the required Linux job. The full suite passed on Windows with no changes.
 
 The current behavior contract for every rule and for the CLI lives in `openspec/specs/`. The remaining candidate rules and their priorities are in the [roadmap](roadmap.md).

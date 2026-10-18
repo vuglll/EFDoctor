@@ -76,7 +76,6 @@ Value, static detectability, and false-positive risk are estimates. Rules marked
 These improve existing rules rather than adding new ones:
 
 - **Validation.** Keep growing the corpus, and triage every finding against the 90% precision bar.
-- **Platforms.** Add Windows to continuous integration.
 
 ## Possibly later
 
