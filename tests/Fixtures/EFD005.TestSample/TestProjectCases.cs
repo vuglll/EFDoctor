@@ -110,6 +110,12 @@ public static class TestProjectCases
 
     public static void SingletonContext(Microsoft.Extensions.DependencyInjection.IServiceCollection services) =>
         Microsoft.Extensions.DependencyInjection.ServiceCollectionServiceExtensions.AddSingleton<ContextHolder>(services);
+
+    public static void CreateAndMigrate(TestContext context)
+    {
+        context.Database.EnsureCreated();
+        context.Database.Migrate();
+    }
 }
 
 public sealed class ContextHolder(TestContext context)

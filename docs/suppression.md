@@ -39,7 +39,7 @@ void SaveIndependently(DbContext context, IEnumerable<Item> items)
 
 EFDoctor has no proprietary suppression file. The same mechanisms work for the CLI and for the `EFDoctor.Analyzers` package. With the package, `.editorconfig` can also raise or lower a rule's severity; see [Default severities](usage.md#default-severities).
 
-`SuppressMessage` matches on the rule's category as well as its ID. Most rules use `Performance`; EFD012 uses `Security`, EFD014, EFD017, EFD018, EFD022, EFD028, EFD029, EFD032, and EFD038 use `Correctness`, EFD021, EFD027, EFD030, and EFD033 use `Reliability`, and EFD025 uses `Maintainability`. Each rule page shows the exact attribute.
+`SuppressMessage` matches on the rule's category as well as its ID. Most rules use `Performance`; EFD012 uses `Security`, EFD014, EFD017, EFD018, EFD022, EFD028, EFD029, EFD032, EFD034, and EFD038 use `Correctness`, EFD021, EFD027, EFD030, and EFD033 use `Reliability`, and EFD025 uses `Maintainability`. Each rule page shows the exact attribute.
 
 For EFD002, use the same mechanisms with diagnostic ID `EFD002`. Examples and guidance for positive, empty-set, synchronous, and asynchronous existence checks are in [`docs/rules/EFD002.md`](rules/EFD002.md).
 
@@ -86,6 +86,8 @@ For EFD030, use diagnostic ID `EFD030` only when every caller provably enumerate
 For EFD032, use diagnostic ID `EFD032` only when something EFDoctor can't see, such as an interceptor or a `SaveChanges` override, attaches the untracked entity, and name it. Otherwise load with tracking, call `Update` or `Attach`, or use `ExecuteUpdate`. See [`docs/rules/EFD032.md`](rules/EFD032.md) for suppression examples.
 
 For EFD033, use diagnostic ID `EFD033` only when the singleton provably runs on one thread and uses the context briefly, and record why. Otherwise take `IDbContextFactory<T>` or `IServiceScopeFactory`, or register the service as scoped. See [`docs/rules/EFD033.md`](rules/EFD033.md) for suppression examples.
+
+For EFD034, use diagnostic ID `EFD034` only for a throwaway database that is recreated every time, and record why. Otherwise call `Migrate` or apply migrations at deployment. See [`docs/rules/EFD034.md`](rules/EFD034.md) for suppression examples.
 
 For EFD037, use diagnostic ID `EFD037` and record why loading the whole entity is fine—for example, because the table is narrow. To turn the advisory rule off entirely, set `dotnet_diagnostic.EFD037.severity = none` in `.editorconfig`. See [`docs/rules/EFD037.md`](rules/EFD037.md) for suppression examples.
 

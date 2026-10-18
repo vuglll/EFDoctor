@@ -1,8 +1,9 @@
-## Purpose
+# efd034-ensurecreated-with-migrations Specification
 
+## Purpose
 Define high-confidence detection of `Database.EnsureCreated()` on a `DbContext` type that the same project manages with migrations, which bypasses the migration history.
 
-## ADDED Requirements
+## Requirements
 
 ### Requirement: Detect EnsureCreated on a migrated context
 EFD034 SHALL report an invocation of `Microsoft.EntityFrameworkCore.Infrastructure.DatabaseFacade.EnsureCreated` or `EnsureCreatedAsync` whose receiver is the `Database` property of an expression whose type derives from `DbContext`. It SHALL report only when that context type uses migrations in the same compilation.
@@ -10,6 +11,8 @@ EFD034 SHALL report an invocation of `Microsoft.EntityFrameworkCore.Infrastructu
 The context type uses migrations when either of these holds:
 - a class derived from `Microsoft.EntityFrameworkCore.Migrations.Migration` or `Microsoft.EntityFrameworkCore.Infrastructure.ModelSnapshot` is attributed `[DbContext(typeof(T))]`, where the context type is `T` or derives from `T`;
 - the compilation invokes `Migrate` or `MigrateAsync` on the `Database` property of an expression of the same context type.
+
+EFD034 SHALL NOT report an `EnsureCreated` call that is in one arm of a conditional, an `if`/`else` statement or a conditional expression, when the other arm calls `Migrate` or `MigrateAsync` on a context of the same type. Such a provider switch chooses one or the other on purpose. The conditional must be in the same method, lambda, or local function as the call.
 
 EFD034 SHALL anchor the finding on the `EnsureCreated` invocation.
 
@@ -32,6 +35,10 @@ EFD034 SHALL anchor the finding on the `EnsureCreated` invocation.
 #### Scenario: Project without migrations
 - **WHEN** the compilation has no migration classes and no `Migrate` call
 - **THEN** EFD034 does not report `EnsureCreated`
+
+#### Scenario: Provider switch
+- **WHEN** a method calls `await db.Database.EnsureCreatedAsync()` when `db.Database.IsSqlite()`, and `await db.Database.MigrateAsync()` in the `else` branch
+- **THEN** EFD034 does not report the `EnsureCreated` call
 
 #### Scenario: Unrelated EnsureCreated method
 - **WHEN** application code calls a method named `EnsureCreated` that isn't EF Core's `DatabaseFacade` method

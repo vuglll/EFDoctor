@@ -17,7 +17,7 @@ Nothing below is a promise. A candidate becomes a rule only when it passes the q
 |---|---|
 | Round trips and batching | EFD001 `SaveChanges` in a loop, EFD013 load-modify-save that could be `ExecuteUpdate`/`ExecuteDelete` |
 | Query shape | EFD002 result used only to test existence, EFD004 premature materialization, EFD005 unbounded materialization, EFD006 cartesian `Include`, EFD019 materialize-then-reduce, EFD020 repeated enumeration, EFD025 redundant `Include`, EFD037 entities loaded for a few columns (advisory) |
-| Correctness | EFD014 unordered pagination, EFD017 `Include` dropped by `Select`, EFD022 untranslatable `StringComparison`, EFD028 method of the application in a query filter or ordering, EFD029 `OrderBy` that discards an earlier ordering, EFD032 change to an `AsNoTracking` entity that is never saved, EFD038 bulk operation that leaves tracked entities stale |
+| Correctness | EFD014 unordered pagination, EFD017 `Include` dropped by `Select`, EFD022 untranslatable `StringComparison`, EFD028 method of the application in a query filter or ordering, EFD029 `OrderBy` that discards an earlier ordering, EFD032 change to an `AsNoTracking` entity that is never saved, EFD034 `EnsureCreated` on a context that uses migrations, EFD038 bulk operation that leaves tracked entities stale |
 | Async and lifetime | EFD010 sync database call in async code, EFD011 blocking on EF async, EFD018 unawaited EF task, EFD021 static `DbContext`, EFD027 concurrent operations on one `DbContext`, EFD030 query returned after its `DbContext` is disposed, EFD033 `DbContext` captured by a singleton |
 | Safety | EFD012 raw SQL built from interpolation or concatenation |
 | Indexing and sargability | EFD003 foreign key without an index (SQL Server, PostgreSQL), EFD009 `ToLower`/`ToUpper` on a column, EFD023 leading-wildcard search (advisory) |
@@ -52,7 +52,6 @@ Value, static detectability, and false-positive risk are estimates. Rules marked
 | ID | Candidate | Value | Detectability | False-positive risk | Tier |
 |---|---|---|---|---|---|
 | EFD031 | LINQ composition over a stored-procedure call in `FromSqlRaw` | Medium | High | Very low | Soon |
-| EFD034 | `Database.EnsureCreated()` in a project that also uses migrations | Medium | High | Very low | Later |
 | EFD015 | `Contains()` over a large or unbounded in-memory collection in a SQL-backed query | Medium | Medium | Medium | Later |
 | EFD024 | In-memory filtering of an `Include`d collection instead of a filtered `Include` | Medium | Medium | Medium | Later, advisory |
 | EFD026 | `Update(entity)` marking every column modified when only some changed | Medium | Medium | Medium | Later, advisory |
