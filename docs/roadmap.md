@@ -17,7 +17,7 @@ Nothing below is a promise. A candidate becomes a rule only when it passes the q
 |---|---|
 | Round trips and batching | EFD001 `SaveChanges` in a loop, EFD013 load-modify-save that could be `ExecuteUpdate`/`ExecuteDelete` |
 | Query shape | EFD002 result used only to test existence, EFD004 premature materialization, EFD005 unbounded materialization, EFD006 cartesian `Include`, EFD019 materialize-then-reduce, EFD020 repeated enumeration, EFD025 redundant `Include`, EFD037 entities loaded for a few columns (advisory) |
-| Correctness | EFD014 unordered pagination, EFD017 `Include` dropped by `Select`, EFD022 untranslatable `StringComparison`, EFD029 `OrderBy` that discards an earlier ordering, EFD038 bulk operation that leaves tracked entities stale |
+| Correctness | EFD014 unordered pagination, EFD017 `Include` dropped by `Select`, EFD022 untranslatable `StringComparison`, EFD028 method of the application in a query filter or ordering, EFD029 `OrderBy` that discards an earlier ordering, EFD038 bulk operation that leaves tracked entities stale |
 | Async and lifetime | EFD010 sync database call in async code, EFD011 blocking on EF async, EFD018 unawaited EF task, EFD021 static `DbContext`, EFD027 concurrent operations on one `DbContext` |
 | Safety | EFD012 raw SQL built from interpolation or concatenation |
 | Indexing and sargability | EFD003 foreign key without an index (SQL Server, PostgreSQL), EFD009 `ToLower`/`ToUpper` on a column, EFD023 leading-wildcard search (advisory) |
@@ -51,7 +51,6 @@ Value, static detectability, and false-positive risk are estimates. Rules marked
 
 | ID | Candidate | Value | Detectability | False-positive risk | Tier |
 |---|---|---|---|---|---|
-| EFD028 | Client-only (unmapped, user-defined) method inside a SQL-translated predicate or ordering | High | Medium-High | Low-Medium | Next |
 | EFD030 | `IQueryable` returned from a method that disposes its `DbContext` before the caller enumerates it | High | High | Low | Soon |
 | EFD031 | LINQ composition over a stored-procedure call in `FromSqlRaw` | Medium | High | Very low | Soon |
 | EFD032 | Entity loaded with `AsNoTracking`, modified, then saved, so the change is silently lost | High | Medium | Medium | Later (needs result flow) |
@@ -68,7 +67,6 @@ Value, static detectability, and false-positive risk are estimates. Rules marked
 
 ### Why this order
 
-- **EFD028** prevents a runtime exception, with one precise, semantically resolved trigger. That's the shape that has worked best so far.
 - **EFD030 and EFD031** are cheap and precise, but the shapes are less common.
 - **EFD032** needs the analysis to follow query *results* through locals, not only queries. EFD037 does that for one closed set of uses; EFD032 needs writes and saves as well.
 - **EFD036** could be the highest-impact static finding. It maps predicate columns to snapshot indexes, which is real work.
