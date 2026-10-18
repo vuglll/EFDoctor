@@ -84,7 +84,7 @@ Precision matters more than rule count, so every finding on the corpus gets a ve
 | **EFD009** | `ToLower()` or `ToUpper()` on a column in a predicate, which prevents an index seek | Medium |
 | **EFD010** | Synchronous EF Core database call (`ToList`, `Count`, `SaveChanges`, `Find`, …) inside an `async` method | Medium |
 | **EFD011** | `.Result`, `.Wait()`, or `.GetAwaiter().GetResult()` blocking on an EF Core async operation | High |
-| **EFD012** | SQL built by interpolation or concatenation passed to `FromSqlRaw` or `ExecuteSqlRaw` | High |
+| **EFD012** | SQL built by interpolation or concatenation passed to `FromSqlRaw`, `ExecuteSqlRaw`, or `SqlQueryRaw` | High |
 | **EFD013** | Load, loop, and save pattern that could be `ExecuteUpdate` or `ExecuteDelete` | Medium |
 | **EFD014** | `Skip` pagination with no preceding `OrderBy`, so pages are non-deterministic | High |
 | **EFD017** | `Include` ignored by a later `Select` that projects only non-entity values | High |

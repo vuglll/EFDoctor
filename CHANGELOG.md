@@ -10,6 +10,8 @@ All notable changes to EFDoctor are documented here. Versions follow [Semantic V
 
 ### Changed
 
+- EFD012 now also reports dynamically built SQL passed to EF Core 8's `Database.SqlQueryRaw<T>`, as it does for `FromSqlRaw` and `ExecuteSqlRaw`. `Database.SqlQuery<T>` with an interpolated string is safe, and is not reported.
+
 - EFD004, EFD009, EFD010, EFD013, EFD019, EFD022, and EFD023 now follow a query local that is composed conditionally, the most common way queries are built from optional filters:
 
   ```csharp

@@ -12,6 +12,10 @@ public sealed class UnsafeRawSqlAnalyzerTests
         yield return Case("static Task<int> Run(TestContext context, string name) => context.Database.ExecuteSqlRawAsync($\"DELETE FROM Entities WHERE Name = '{name}'\");");
         yield return Case("static Task<int> Run(TestContext context, int id) => context.Database.ExecuteSqlRawAsync(\"DELETE FROM Entities WHERE Id = \" + id, CancellationToken.None);");
         yield return Case("static object Run(TestContext context, int id) => RelationalQueryableExtensions.FromSqlRaw(context.Entities, $\"SELECT * FROM Entities WHERE Id = {id}\");");
+        yield return Case("static object Run(TestContext context, int id) => context.Database.SqlQueryRaw<int>($\"SELECT Id FROM Entities WHERE Id > {id}\");");
+        yield return Case("static object Run(TestContext context, string name) => context.Database.SqlQueryRaw<string>(\"SELECT Name FROM Entities WHERE Name = '\" + name + \"'\");");
+        yield return Case("static object Run(TestContext context, int id) { var sql = $\"SELECT Id FROM Entities WHERE Id > {id}\"; return context.Database.SqlQueryRaw<int>(sql); }");
+        yield return Case("static object Run(TestContext context, int id) => RelationalDatabaseFacadeExtensions.SqlQueryRaw<int>(context.Database, $\"SELECT Id FROM Entities WHERE Id > {id}\");");
         yield return Case("static int Run(TestContext context, int id) => RelationalDatabaseFacadeExtensions.ExecuteSqlRaw(context.Database, $\"DELETE FROM Entities WHERE Id = {id}\");");
         yield return Case("static object Run(TestContext context, int id) { var sql = $\"SELECT * FROM Entities WHERE Id = {id}\"; return context.Entities.FromSqlRaw(sql); }");
         yield return Case("static int Run(TestContext context, string table) { string sql; sql = \"DELETE FROM \" + table; return context.Database.ExecuteSqlRaw(sql); }");
@@ -25,6 +29,9 @@ public sealed class UnsafeRawSqlAnalyzerTests
         yield return Negative("static object Run(TestContext context) => context.Entities.FromSqlRaw(\"SELECT * FROM Entities\");");
         yield return Negative("static object Run(TestContext context, int id) => context.Entities.FromSqlRaw(\"SELECT * FROM Entities WHERE Id = {0}\", id);");
         yield return Negative("static int Run(TestContext context, int id) => context.Database.ExecuteSqlRaw(\"DELETE FROM Entities WHERE Id = {0}\", id);");
+        yield return Negative("static object Run(TestContext context, int id) => context.Database.SqlQueryRaw<int>(\"SELECT Id FROM Entities WHERE Id > {0}\", id);");
+        yield return Negative("static object Run(TestContext context, int id) => context.Database.SqlQuery<int>($\"SELECT Id FROM Entities WHERE Id > {id}\");");
+        yield return Negative("static object Run(FakeDatabase database, int id) => database.SqlQueryRaw<int>($\"SELECT {id}\");", "sealed class FakeDatabase { public object SqlQueryRaw<T>(string sql) => new(); }");
         yield return Negative("static Task<int> Run(TestContext context, int id) => context.Database.ExecuteSqlRawAsync(\"DELETE FROM Entities WHERE Id = {0}\", new object[] { id });");
         yield return Negative("static object Run(TestContext context, int id) => context.Entities.FromSqlInterpolated($\"SELECT * FROM Entities WHERE Id = {id}\");");
         yield return Negative("static int Run(TestContext context, int id) => context.Database.ExecuteSqlInterpolated($\"DELETE FROM Entities WHERE Id = {id}\");");
