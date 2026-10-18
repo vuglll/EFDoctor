@@ -308,3 +308,10 @@ The corpus was re-run after EFD034 was added. It reports `EnsureCreated` on a co
 - **The first run found 1 finding, and it led to a refinement.** ardalis-cleanarch's `MigrateDatabaseAsync` calls `EnsureCreatedAsync()` when `context.Database.IsSqlite()`, and `MigrateAsync()` in the `else` branch. The rule found the shape correctly, but the switch is deliberate: the two calls never meet on one database. The finding would have been `acceptable`, which lowers strict precision for a high-confidence rule.
 - **Refinement:** EFD034 no longer reports `EnsureCreated` in one arm of a conditional when the other arm migrates the same context type, the same exclusion EFD010 makes for its sync/async switches. After it, **0 findings**.
 - No other finding changed.
+
+## New rule: EFD031 (2026-10-18)
+
+The corpus was re-run after EFD031 was added. It reports LINQ composed over a stored-procedure call in `FromSqlRaw`.
+
+- **0 findings, which is correct.** The corpus has one stored-procedure query: Bitwarden's `OrganizationMemberBaseDetailRepository` calls `FromSqlRaw("EXEC [dbo].[MemberAccessReport_…] @OrganizationId", …)` and materializes it directly with `ToListAsync()`, which EF Core supports. The rule leaves it alone, as designed. The corpus's other four `FromSql` calls use composable `SELECT` text.
+- No other finding changed.
