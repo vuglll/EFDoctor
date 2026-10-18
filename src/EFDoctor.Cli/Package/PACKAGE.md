@@ -62,6 +62,7 @@ Loading a project runs its MSBuild logic, so analyze only repositories you trust
 | EFD027 | Concurrent EF Core operations on the same `DbContext`, such as `Task.WhenAll` over two queries |
 | EFD028 | Method of the application inside a query filter or ordering that EF Core cannot translate |
 | EFD029 | Second `OrderBy` that discards an earlier ordering instead of `ThenBy` |
+| EFD030 | Query returned after its `DbContext` is disposed, which throws when the caller enumerates it |
 | EFD037 | Entities materialized into a local when only a few of their columns are read (advisory) |
 | EFD038 | `ExecuteUpdate`/`ExecuteDelete` that leaves already-tracked entities of the same type stale |
 

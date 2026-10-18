@@ -277,3 +277,11 @@ The corpus was re-run after EFD028 was added. It reports a method of the applica
 ## EFD012 extension: `SqlQueryRaw<T>` (2026-10-18)
 
 EFD012 now also checks the SQL passed to `Database.SqlQueryRaw<T>`. No project in the corpus calls `SqlQueryRaw`, so the extension can't change any corpus finding, and the corpus wasn't re-run for it. The analyzer tests cover the new positive and negative shapes.
+
+## New rule: EFD030 (2026-10-18)
+
+The corpus was re-run after EFD030 was added. It reports a deferred query returned from inside the `using` scope of its `DbContext`.
+
+- **0 findings, which is correct.** Every corpus method that returns an `IQueryable`, such as Bitwarden's `IQuery<T>.Run(DatabaseContext)` classes, takes the context as a parameter, so the caller owns its lifetime. The one `IAsyncEnumerable` method that opens a scope is an async iterator, which keeps the scope open during enumeration.
+- No other finding changed.
+- Bitwarden's repositories resolve the context through a helper, `GetDatabaseContext(scope)`, which EFD030 doesn't follow. Those methods materialize before returning anyway.

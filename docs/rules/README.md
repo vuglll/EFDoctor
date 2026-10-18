@@ -183,6 +183,12 @@ EFD028 semantically identifies an invocation of a method declared in the analyze
 
 A call that reads no lambda parameter is evaluated on the client as a query parameter, and is not reported. Methods marked `[DbFunction]`, `[Projectable]`, `[InjectLambda]`, `[Computed]`, or `[Expandable]` are excluded. So are methods named in a `HasDbFunction` call, static methods on a `DbContext`, and throw-only stubs. Projections, methods from referenced assemblies, unmapped properties, delegate invocations, in-memory queries, and unproven sources are outside the rule. See [`docs/rules/EFD028.md`](EFD028.md) for the complete contract.
 
+## EFD030 context-lifetime boundary
+
+EFD030 semantically identifies a `return` whose value is a deferred EF Core query: a value of a type that implements `IQueryable`, or `AsEnumerable()`/`AsAsyncEnumerable()` over one, proven to originate at `DbSet<T>` or `DbContext.Set<TEntity>()`. It reports when the query's context is a local declared by a `using` declaration or `using` statement, synchronous or `await using`, whose scope contains the `return` in the same function. It also reports when the context is resolved with `GetRequiredService`/`GetService` from the `ServiceProvider` of a service scope declared that way. It reports with high confidence, `Warning` severity, and the `Reliability` category.
+
+Materialized results, contexts that outlive the method (fields, parameters, locals without `using`), returns after the `using` block or in a nested lambda or local function, and iterator methods are not reported. Neither are contexts disposed explicitly or created by a helper. See [`docs/rules/EFD030.md`](EFD030.md) for the complete contract.
+
 ## EFD037 entity-over-fetch boundary
 
 EFD037 semantically identifies `ToList`, `ToArray`, and awaited `ToListAsync`/`ToArrayAsync` on a query traced to `DbSet<T>` or `DbContext.Set<TEntity>()` that returns the entity type without `Include`, when the materialized value initializes a local. It reports the materializer when every reference to that local in the method is a `foreach`, a one-parameter `Select`, an `Any`/`All`/`Count`/`Sum`/`Min`/`Max`/`Average` with a lambda, a count, or an index read, and every reference to an entity inside those is a read of a scalar property. The method must read at least one such property, at most half of them, and leave at least four unread. It reports with advisory confidence, `Info` severity, and the `Performance` category.

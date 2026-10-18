@@ -94,4 +94,10 @@ public static class TestProjectCases
         context.Entities.Where(entity => HasName(entity));
 
     private static bool HasName(TestEntity entity) => entity.Name.Length > 0;
+
+    public static IQueryable<TestEntity> QueryOutlivesContext()
+    {
+        using var context = new TestContext();
+        return context.Entities;
+    }
 }

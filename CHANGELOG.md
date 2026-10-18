@@ -8,6 +8,8 @@ All notable changes to EFDoctor are documented here. Versions follow [Semantic V
 
 - EFD028: a method of the application called inside a filter or ordering of an EF Core query (`Where`, `OrderBy`, `ThenBy`, or a predicate terminal such as `Any` or `CountAsync`), when the call reads the query's lambda parameter. EF Core can't translate it, and the query throws "could not be translated" when it runs. Reported at `Warning` severity with high confidence, under the `Correctness` category. A call that reads only captured values is evaluated once as a query parameter, and is not reported. Methods mapped as database functions (`[DbFunction]`, `HasDbFunction`, static methods on the `DbContext`, throw-only stubs) are not reported, nor are methods marked by EntityFrameworkCore.Projectables, NeinLinq, DelegateDecompiler, or LinqKit. Projections are not checked.
 
+- EFD030: a deferred EF Core query returned from inside the `using` scope that disposes its `DbContext`, or the service scope it was resolved from. The caller's enumeration throws `ObjectDisposedException`. Reported at `Warning` severity with high confidence, under the `Reliability` category. Materialized results, contexts that outlive the method, and iterator methods are not reported.
+
 ### Changed
 
 - EFD012 now also reports dynamically built SQL passed to EF Core 8's `Database.SqlQueryRaw<T>`, as it does for `FromSqlRaw` and `ExecuteSqlRaw`. `Database.SqlQuery<T>` with an interpolated string is safe, and is not reported.
