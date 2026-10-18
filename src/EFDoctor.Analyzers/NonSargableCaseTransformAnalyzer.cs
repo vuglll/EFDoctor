@@ -46,7 +46,7 @@ public sealed class NonSargableCaseTransformAnalyzer : DiagnosticAnalyzer
             return;
         }
 
-        var scan = EfPredicateScan.Create(context.Compilation);
+        var scan = EfPredicateScan.Create(context.Compilation, followComposedLocals: true);
         if (scan is null)
         {
             return;

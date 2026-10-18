@@ -7,6 +7,7 @@ public sealed class BulkUpdateDeleteAnalyzerTests
 {
     public static IEnumerable<object[]> PositiveCases()
     {
+        yield return Positive("IQueryable<Entity> query = context.Entities; if (flag) { query = query.Where(e => e.Id > 10); } var rows = query.ToList(); foreach (var entity in rows) { entity.Active = false; } context.SaveChanges();", parameters: ", bool flag");
         yield return Positive("var rows = context.Entities.Where(e => e.Id > 10).ToList(); foreach (var entity in rows) { entity.Active = false; } context.SaveChanges();");
         yield return Positive("foreach (var entity in context.Entities.Where(e => e.Id > 10).ToList()) { entity.Active = false; } context.SaveChanges();");
         yield return Positive("var rows = context.Entities.Where(e => e.Id > 10).ToArray(); foreach (var entity in rows) entity.Active = false; context.SaveChanges();");
@@ -29,6 +30,7 @@ public sealed class BulkUpdateDeleteAnalyzerTests
 
     public static IEnumerable<object[]> NegativeCases()
     {
+        yield return Negative("IQueryable<Entity> query = context.Entities; if (flag) { query = new List<Entity>().AsQueryable(); } var rows = query.ToList(); foreach (var entity in rows) { entity.Active = false; } context.SaveChanges();", parameters: ", bool flag");
         yield return Negative("var rows = context.Entities.ToList(); foreach (var entity in rows) { entity.Status = entity.Status + 1; } context.SaveChanges();");
         yield return Negative("var rows = context.Entities.ToList(); foreach (var entity in rows) { entity.Status = GetStatus(); } context.SaveChanges();", additionalMembers: "static int GetStatus() => 1;");
         yield return Negative("var rows = context.Entities.ToList(); foreach (var entity in rows) { if (entity.Id > 0) entity.Active = false; } context.SaveChanges();");

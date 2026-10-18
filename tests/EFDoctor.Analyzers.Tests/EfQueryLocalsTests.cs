@@ -137,7 +137,155 @@ public sealed class EfQueryLocalsTests
 
     private static string Chain(EfQueryChainAnalysis analysis) => string.Join(" -> ", analysis.Operations);
 
-    private static EfQueryChainAnalysis? Prove(string body)
+    [Fact]
+    [Trait("Spec", "query-chain-local-tracking/Conditionally composed query is traced to its origin")]
+    public void ConditionallyComposedQueryIsTracedToItsOrigin()
+    {
+        const string Body = """
+            var query = context.Items.AsNoTracking();
+            if (flag) query = query.Where(item => item.Active);
+            return Probe(query.ToList());
+            """;
+
+        Assert.Null(Prove(Body));
+        var analysis = Prove(Body, followComposedLocals: true);
+
+        Assert.NotNull(analysis);
+        Assert.Equal("context.Items", analysis.Origin.Syntax.ToString());
+        Assert.Equal("EF.AsNoTracking -> local 'query' (conditionally composed)", Chain(analysis));
+        Assert.Equal(RowBoundKind.None, analysis.RowBound.Kind);
+    }
+
+    [Fact]
+    [Trait("Spec", "query-chain-local-tracking/Read inside the conditional branch")]
+    public void ReadInsideTheConditionalBranchIsTracedToItsOrigin()
+    {
+        var analysis = Prove("""
+            IQueryable<Item> query = context.Items;
+            if (flag)
+            {
+                query = query.Where(item => item.Active);
+                return Probe(query.Take(1).ToList());
+            }
+
+            return query.ToList();
+            """, followComposedLocals: true);
+
+        Assert.NotNull(analysis);
+        Assert.Equal("local 'query' (conditionally composed) -> Queryable.Take", Chain(analysis));
+    }
+
+    [Theory]
+    [Trait("Spec", "query-chain-local-tracking/Composition in a loop or a conditional expression")]
+    [InlineData("foreach (var id in ids) query = query.Where(item => item.Id != id);")]
+    [InlineData("query = flag ? query.OrderBy(item => item.Id) : query;")]
+    [InlineData("switch (ids.Length) { case 0: break; default: query = query.Take(ids.Length).Distinct(); break; }")]
+    [InlineData("Action narrow = () => query = query.Where(item => item.Active); narrow();")]
+    public void CompositionInALoopOrAConditionalExpressionIsSelfComposed(string write)
+    {
+        var analysis = Prove($$"""
+            IQueryable<Item> query = context.Items.Where(item => item.Id > 0);
+            {{write}}
+            return Probe(query.ToList());
+            """, followComposedLocals: true);
+
+        Assert.NotNull(analysis);
+        Assert.Equal("Queryable.Where -> local 'query' (conditionally composed)", Chain(analysis));
+    }
+
+    [Theory]
+    [Trait("Spec", "query-chain-local-tracking/Replacement from another query is not followed")]
+    [InlineData("if (flag) query = context.Items.Where(item => item.Active);")]
+    [InlineData("if (flag) query = query.Select(item => new Item { Id = item.Id });")]
+    [InlineData("if (flag) query = query.Concat(context.Items);")]
+    [InlineData("if (flag) query = ids.Select(id => new Item { Id = id }).AsQueryable();")]
+    [InlineData("if (flag) query = flag ? query.Take(1) : context.Items;")]
+    public void ReplacementFromAnotherQueryIsNotFollowed(string write)
+    {
+        Assert.Null(Prove($$"""
+            IQueryable<Item> query = context.Items;
+            {{write}}
+            return Probe(query.ToList());
+            """, followComposedLocals: true));
+    }
+
+    [Theory]
+    [Trait("Spec", "query-chain-local-tracking/Local written through a reference is not followed by the origin proof")]
+    [InlineData("if (flag) Touch(ref query);")]
+    [InlineData("if (flag) Replace(out query);")]
+    [InlineData("var copy = flag ? (query = query.Take(1)) : query;")]
+    [InlineData("if (flag) (query, _) = (query.Take(1), 0);")]
+    [InlineData("if (flag) query ??= context.Items;")]
+    public void LocalWrittenThroughAReferenceIsNotFollowedByTheOriginProof(string write)
+    {
+        Assert.Null(Prove($$"""
+            IQueryable<Item> query = context.Items;
+            {{write}}
+            return Probe(query.ToList());
+            """, followComposedLocals: true));
+    }
+
+    [Fact]
+    public void InitializerThatIsNotAnEfQueryIsNotFollowed()
+    {
+        Assert.Null(Prove("""
+            var query = ids.Select(id => new Item { Id = id }).AsQueryable();
+            if (flag) query = query.Where(item => item.Active);
+            return Probe(query.ToList());
+            """, followComposedLocals: true));
+    }
+
+    [Fact]
+    public void ComposedLocalsChainThroughEachOther()
+    {
+        var analysis = Prove("""
+            IQueryable<Item> all = context.Items;
+            if (flag) all = all.Where(item => item.Active);
+            var page = all.OrderBy(item => item.Id);
+            IQueryable<Item> query = page;
+            if (ids.Length > 0) query = query.Take(ids.Length);
+            return Probe(query.ToList());
+            """, followComposedLocals: true);
+
+        Assert.NotNull(analysis);
+        Assert.Equal(
+            "local 'all' (conditionally composed) -> Queryable.OrderBy -> local 'page' -> local 'query' (conditionally composed)",
+            Chain(analysis));
+    }
+
+    [Fact]
+    public void StatementLevelWritesStillUseTheFullProof()
+    {
+        var analysis = Prove("""
+            var query = context.Items.Where(item => item.Active);
+            query = query.Take(5);
+            return Probe(query.ToList());
+            """, followComposedLocals: true);
+
+        Assert.NotNull(analysis);
+        Assert.Equal("Queryable.Where -> local 'query' -> Queryable.Take -> local 'query'", Chain(analysis));
+        Assert.Equal(RowBoundKind.Take, analysis.RowBound.Kind);
+    }
+
+    [Fact]
+    [Trait("Spec", "query-chain-local-tracking/Query started with DbSet AsQueryable")]
+    public void DbSetAsQueryableIsTheSet()
+    {
+        var inline = Prove("return Probe(context.Items.AsQueryable().Where(item => item.Active).ToList());");
+        var stored = Prove("""
+            var query = context.Items.AsQueryable();
+            return Probe(query.ToList());
+            """);
+
+        Assert.NotNull(inline);
+        Assert.Equal("context.Items", inline.Origin.Syntax.ToString());
+        Assert.Equal("DbSet.AsQueryable -> Queryable.Where", Chain(inline));
+        Assert.NotNull(stored);
+        Assert.Equal("context.Items", stored.Origin.Syntax.ToString());
+        Assert.Equal("DbSet.AsQueryable -> local 'query'", Chain(stored));
+    }
+
+    private static EfQueryChainAnalysis? Prove(string body, bool followComposedLocals = false)
     {
         var source = $$"""
             using System;
@@ -182,7 +330,8 @@ public sealed class EfQueryLocalsTests
             compilation.GetTypeByMetadataName("Microsoft.EntityFrameworkCore.DbSet`1")!,
             compilation.GetTypeByMetadataName("Microsoft.EntityFrameworkCore.DbContext")!,
             compilation.GetTypeByMetadataName("Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions")!,
-            out var analysis)
+            out var analysis,
+            followComposedLocals: followComposedLocals)
             ? analysis
             : null;
     }

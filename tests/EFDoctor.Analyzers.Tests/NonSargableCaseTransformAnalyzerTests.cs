@@ -30,6 +30,8 @@ public sealed class NonSargableCaseTransformAnalyzerTests
         yield return Case("static object Run(TestContext context) => context.Customers.Where(customer => customer.Email.ToLower() == Target);\nstatic string Target = \"ada@example.com\";");
         yield return Case("static object Run(TestContext context, string email) { IQueryable<Customer> query = context.Customers.AsNoTracking(); return query.Where(customer => customer.Email.ToLower() == email); }");
         yield return Case("static object Run(TestContext context, string value) { var customers = context.Customers; var active = customers.Where(customer => customer.Id > 0); return active.Where(customer => customer.Email.ToLower() == value); }");
+        yield return Case("static object Run(TestContext context, string email, bool untracked) { IQueryable<Customer> query = context.Customers; if (untracked) { query = query.AsNoTracking(); } return query.Where(customer => customer.Email.ToLower() == email); }");
+        yield return Case("static object Run(TestContext context, string email) { var query = context.Customers.AsQueryable(); if (email != null) { query = query.Where(customer => customer.Email.ToLower() == email); } return query.ToList(); }");
     }
 
     public static IEnumerable<object[]> NegativeCases()
@@ -45,7 +47,7 @@ public sealed class NonSargableCaseTransformAnalyzerTests
         yield return SourceCase("static object Run(TestContext context, string name) => context.Customers.Where(customer => customer.Tags.Any(tag => tag.Name.ToLower() == name));");
         yield return SourceCase("static object Run(TestContext context, string email) => context.Customers.Select(customer => new CustomerView { Email = customer.Email }).Where(view => view.Email.ToLower() == email);");
         yield return SourceCase("static object Run(IQueryable<Customer> query, string email) => query.Where(customer => customer.Email.ToLower() == email);");
-        yield return SourceCase("static object Run(TestContext context, string email, bool untracked) { IQueryable<Customer> query = context.Customers; if (untracked) { query = query.AsNoTracking(); } return query.Where(customer => customer.Email.ToLower() == email); }");
+        yield return SourceCase("static object Run(TestContext context, string email, bool archived) { IQueryable<Customer> query = context.Customers; if (archived) { query = context.Customers.Where(customer => customer.Id < 0); } return query.Where(customer => customer.Email.ToLower() == email); }");
         yield return SourceCase("static object Run(string email) => new[] { new Customer() }.AsQueryable().Where(customer => customer.Email.ToLower() == email);");
         yield return SourceCase("static object Run(TestContext context, string email) => context.Customers.AsEnumerable().Where(customer => customer.Email.ToLower() == email);");
         yield return SourceCase("static object Run(TestContext context) => context.Customers.Select(customer => customer.Email.ToLower());");

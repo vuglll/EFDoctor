@@ -9,6 +9,7 @@ public sealed class MaterializeThenReduceAnalyzerTests
 {
     public static IEnumerable<object[]> PositiveCases()
     {
+        yield return Case("static int Run(TestContext context, bool active) { var query = context.Orders.AsQueryable(); if (active) { query = query.Where(order => order.Active); } return query.ToList().Count(); }");
         yield return Case("static object Run(TestContext context) => context.Orders.ToList().First();");
         yield return Case("static object Run(TestContext context) => context.Orders.AsTracking().ToList().First();");
         yield return Case("static int Run(TestContext context) => context.Orders.IgnoreQueryFilters().ToList().Count;");
@@ -39,6 +40,7 @@ public sealed class MaterializeThenReduceAnalyzerTests
 
     public static IEnumerable<object[]> NegativeCases()
     {
+        yield return Negative("static int Run(TestContext context, bool active) { var query = context.Orders.AsQueryable(); if (active) { query = context.Orders.Where(order => order.Active).Take(1); } return query.ToList().Count(); }");
         yield return Negative("static object Run(TestContext context) => context.Orders.First();");
         yield return Negative("static int Run(TestContext context) => context.Orders.Count();");
         yield return Negative("static async Task<object> Run(TestContext context) => await context.Orders.FirstAsync();");
@@ -389,4 +391,13 @@ public sealed class MaterializeThenReduceAnalyzerTests
             static bool Compute(Order order) => order.Id % 2 == 0;
         }
         """;
+
+    [Fact]
+    [Trait("Spec", "query-chain-local-tracking/Conditional operations are not in the proven chain")]
+    public async Task ConditionalOrderingDoesNotOrderLast()
+    {
+        var source = Source("static object Run(TestContext context, bool ordered) { var query = context.Orders.AsQueryable(); if (ordered) { query = query.OrderBy(order => order.Id); } return query.ToList().Last(); }");
+
+        Assert.Empty(await AnalyzeAsync(source));
+    }
 }

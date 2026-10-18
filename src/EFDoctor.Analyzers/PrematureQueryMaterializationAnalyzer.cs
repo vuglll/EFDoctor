@@ -83,7 +83,8 @@ public sealed class PrematureQueryMaterializationAnalyzer : DiagnosticAnalyzer
                 dbSet,
                 dbContext,
                 efExtensions,
-                out var queryAnalysis))
+                out var queryAnalysis,
+                followComposedLocals: true))
         {
             return;
         }

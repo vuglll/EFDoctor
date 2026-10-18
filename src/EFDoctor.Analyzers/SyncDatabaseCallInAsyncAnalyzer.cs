@@ -88,7 +88,7 @@ public sealed class SyncDatabaseCallInAsyncAnalyzer : DiagnosticAnalyzer
                 || SymbolEqualityComparer.Default.Equals(containingType, enumerable))
             && EfQueryOperationAnalysis.GetInvocationSource(invocation) is { } source
             && EfQueryOperationAnalysis.TryAnalyzeSource(
-                EfQueryOperationAnalysis.Unwrap(source), queryable, dbSet, dbContext, efExtensions, out _))
+                EfQueryOperationAnalysis.Unwrap(source), queryable, dbSet, dbContext, efExtensions, out _, followComposedLocals: true))
         {
             suggestion = method.Name + "Async";
         }

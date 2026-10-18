@@ -29,6 +29,8 @@ public sealed class LeadingWildcardSearchAnalyzerTests
         yield return Case("static object Run(TestContext context, string term) => context.Customers.Where(customer => EF.Functions.Like(customer.Name, Wildcard + term));\nconst string Wildcard = \"%\";");
         yield return Case("static object Run(TestContext context, string term) { IQueryable<Customer> query = context.Customers.AsNoTracking(); return query.Where(customer => customer.Name.Contains(term)); }");
         yield return Case("static object Run(TestContext context, string value) { var customers = context.Customers; var active = customers.Where(customer => customer.Id > 0); return active.Where(customer => customer.Name.Contains(value)); }");
+        yield return Case("static object Run(TestContext context, string term, bool untracked) { IQueryable<Customer> query = context.Customers; if (untracked) { query = query.AsNoTracking(); } return query.Where(customer => customer.Name.Contains(term)); }");
+        yield return Case("static object Run(TestContext context, string term) { var query = context.Customers.AsQueryable(); if (term != null) { query = query.Where(customer => customer.Name.Contains(term)); } return query.ToList(); }");
     }
 
     public static IEnumerable<object[]> NegativeCases()
@@ -48,7 +50,7 @@ public sealed class LeadingWildcardSearchAnalyzerTests
         yield return SourceCase("static object Run(TestContext context, string term) => context.Customers.Where(customer => customer.DisplayName.Contains(term));");
         yield return SourceCase("static object Run(TestContext context, string term) => context.Customers.Select(customer => new CustomerView { Name = customer.Name }).Where(view => view.Name.Contains(term));");
         yield return SourceCase("static object Run(IQueryable<Customer> query, string term) => query.Where(customer => customer.Name.Contains(term));");
-        yield return SourceCase("static object Run(TestContext context, string term, bool untracked) { IQueryable<Customer> query = context.Customers; if (untracked) { query = query.AsNoTracking(); } return query.Where(customer => customer.Name.Contains(term)); }");
+        yield return SourceCase("static object Run(TestContext context, string term, bool archived) { IQueryable<Customer> query = context.Customers; if (archived) { query = context.Customers.Where(customer => customer.Id < 0); } return query.Where(customer => customer.Name.Contains(term)); }");
         yield return SourceCase("static object Run(string term) => new[] { new Customer() }.AsQueryable().Where(customer => customer.Name.Contains(term));");
         yield return SourceCase("static object Run(TestContext context, string term) => context.Customers.AsEnumerable().Where(customer => customer.Name.Contains(term));");
         yield return SourceCase("static object Run(TestContext context, string term) => context.Customers.Where(customer => customer.Code.Contains(term));");
@@ -80,6 +82,7 @@ public sealed class LeadingWildcardSearchAnalyzerTests
     [Trait("Spec", "efd023-leading-wildcard-search/Terminal predicate overload")]
     [Trait("Spec", "efd023-leading-wildcard-search/Predicate after supported composition")]
     [Trait("Spec", "efd023-leading-wildcard-search/Query stored in a followable local")]
+    [Trait("Spec", "efd023-leading-wildcard-search/Search in a conditional composition")]
     [Trait("Spec", "efd023-leading-wildcard-search/Curated validation suite")]
     [MemberData(nameof(PositiveCases))]
     public async Task ReportsLeadingWildcardSearches(string source, int expectedCount)

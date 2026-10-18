@@ -122,4 +122,13 @@ public sealed class UnorderedPaginationAnalyzerTests
             {{member}}
         }
         """;
+
+    [Fact]
+    [Trait("Spec", "query-chain-local-tracking/Rules that report an absence do not use the origin proof")]
+    public async Task ConditionallyOrderedLocalIsNotFollowed()
+    {
+        var source = QuerySource("static System.Collections.Generic.List<Entity> Run(TestContext context, bool ordered) { var query = context.Entities.AsQueryable(); if (ordered) { query = query.OrderBy(entity => entity.Id); } return query.Skip(10).ToList(); }");
+
+        Assert.Empty(await AnalyzeAsync(source));
+    }
 }

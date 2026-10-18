@@ -19,13 +19,29 @@ var query = context.Orders.Where(order => order.Active);
 query = query.OrderBy(order => order.CreatedUtc);
 var page = query.Skip(20).ToList();
 
-// Not followed at any read: the composition at ToList depends on the path taken.
+// Not followed by the full proof: the composition at ToList depends on the path taken.
 var recent = context.Orders.Where(order => order.Active);
 if (onlyRecent) recent = recent.Where(order => order.CreatedUtc > cutoff);
 var all = recent.ToList();
 ```
 
-A local reassigned inside an `if`, a loop, or any other nested block is not followed at any read. Queries stored in fields or properties, or passed through parameters, return values, or helpers, are not followed either. EFD006 and EFD025 report at an include, so when includes are split across a local, each finding is still reported once.
+A local reassigned inside an `if`, a loop, or any other nested block is not followed by this full proof at any read.
+
+### Conditionally composed locals
+
+Some rules need to know only where a query comes from, not its full composition: EFD004, EFD009, EFD010, EFD013, EFD019, EFD022, and EFD023. These rules also follow a **self-composed** local, such as `recent` above. A local is self-composed when it is declared from a proven EF Core query, and every later write recomposes the local itself: `query = query.Where(…)`, ordering, `Skip`, `Take`, `Distinct`, or EF composition such as `Include` or `AsNoTracking`, or a conditional expression of those. The writes may be anywhere: in branches, loops, `switch` sections, or lambdas. Each write keeps the query's origin and element type, so every read has the initializer's origin. The chain these rules prove holds only the initializer's operations, marked `local 'recent' (conditionally composed)` in evidence.
+
+```csharp
+var query = context.Products.AsQueryable();
+if (name != null) query = query.Where(p => p.Name.ToLower() == name); // EFD009 reports this predicate
+var products = query.ToList();                                         // EFD010 reports this in an async method
+```
+
+A local that a branch replaces with a different query, or recomposes with `Select`, `Concat`, `Union`, or a helper, is not followed. Rules that report a missing bound, ordering, or include, such as EFD005, EFD006, EFD014, and EFD037, never follow a conditionally composed local: a branch could add what they report as missing.
+
+Queries stored in fields or properties, or passed through parameters, return values, or helpers, are not followed by any rule. EFD006 and EFD025 report at an include, so when includes are split across a local, each finding is still reported once.
+
+`context.Products.AsQueryable()` is EF Core's own `DbSet<T>.AsQueryable()`, and every rule treats it as `context.Products`.
 
 ## EFD001 control-flow boundary
 

@@ -78,7 +78,6 @@ Value, static detectability, and false-positive risk are estimates. Rules marked
 
 These improve existing rules rather than adding new ones:
 
-- **Conditionally composed query locals.** Rules follow a query stored in a local only when its value is statically determined. The most common real-world shape, `if (x) query = query.Where(…)`, is not followed. Following it would raise recall for the rules that only need to know where a query comes from: EFD004, EFD009, EFD010, EFD013, EFD019, EFD022, and EFD023.
 - **Raw-SQL coverage.** EFD012 covers `FromSqlRaw`, `ExecuteSqlRaw`, and `ExecuteSqlRawAsync`, but not EF Core 8's `Database.SqlQueryRaw<T>`.
 - **Validation.** Keep growing the corpus, and triage every finding against the 90% precision bar.
 - **Platforms.** Add Windows to continuous integration.
