@@ -1,8 +1,9 @@
-## Purpose
+# efd032-untracked-change-lost Specification
 
+## Purpose
 Define high-confidence detection of a property change to an entity loaded with `AsNoTracking`, followed by `SaveChanges` on the same context, which saves nothing because the entity is not tracked.
 
-## ADDED Requirements
+## Requirements
 
 ### Requirement: Detect a change to an untracked entity before SaveChanges
 EFD032 SHALL report the first property assignment to an untracked entity when all of these hold:
@@ -10,7 +11,7 @@ EFD032 SHALL report the first property assignment to an untracked entity when al
 - **The query:** its proven chain contains `AsNoTracking` or `AsNoTrackingWithIdentityResolution`, and its `DbContext` instance has a symbol key, as for EFD038.
 - **The change:** a statement after the load assigns a property of the entity through a simple, compound, coalescing, increment, or decrement assignment. For a list, the assignment is inside that `foreach` body.
 - **The save:** a later statement of the same block calls `SaveChanges` or `SaveChangesAsync` on the same `DbContext` instance.
-- **Nothing attaches the entity:** between the load and the save, every reference to the entity local is the instance of a property read or write. Every reference to the list local is the `foreach` collection.
+- **Nothing attaches the entity:** between the load and the save, every reference to the entity local is either the instance of a property read or write, or a comparison with `null` (`==`, `!=`, `is null`, or `is not null`). Every reference to the list local is the `foreach` collection, or the instance of a property read such as `Count`.
 
 EFD032 SHALL report once per load, at the first assignment.
 

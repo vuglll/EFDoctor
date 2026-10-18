@@ -4,6 +4,10 @@ All notable changes to EFDoctor are documented here. Versions follow [Semantic V
 
 ## Unreleased
 
+### Added
+
+- EFD032: a change to an entity loaded with `AsNoTracking()` followed by `SaveChanges` on the same `DbContext`, with nothing in between attaching the entity. The context doesn't track the entity, so `SaveChanges` silently saves nothing. Reported at `Warning` severity with high confidence, under the `Correctness` category, for a single entity or the elements of a list changed in a `foreach`. Any other use of the entity between the load and the save, such as `Update`, `Attach`, or passing it to a helper, means it may be attached, and is not reported.
+
 ## 0.5.0
 
 Two new rules that catch runtime exceptions, for 26 in all, and wider coverage for the existing rules: queries composed in branches, queries that start with `AsQueryable()`, and `SqlQueryRaw`.

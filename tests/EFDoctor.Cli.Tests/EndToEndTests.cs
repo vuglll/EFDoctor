@@ -234,7 +234,7 @@ public sealed class EndToEndTests
 
         Assert.Equal(1, console.ExitCode);
         Assert.Empty(console.StandardError);
-        Assert.Contains("Found 16 findings.", console.StandardOutput);
+        Assert.Contains("Found 17 findings.", console.StandardOutput);
         Assert.Contains("EFD001", console.StandardOutput, StringComparison.Ordinal);
         Assert.Contains("EFD005", console.StandardOutput, StringComparison.Ordinal);
         Assert.Contains("EFD012", console.StandardOutput, StringComparison.Ordinal);
@@ -251,16 +251,17 @@ public sealed class EndToEndTests
         Assert.Contains("EFD038", console.StandardOutput, StringComparison.Ordinal);
         Assert.Contains("EFD028", console.StandardOutput, StringComparison.Ordinal);
         Assert.Contains("EFD030", console.StandardOutput, StringComparison.Ordinal);
-        Assert.Equal(16, CountOccurrences(console.StandardOutput, "Severity: Info"));
-        Assert.Equal(16, CountOccurrences(console.StandardOutput, "Confidence: Advisory"));
+        Assert.Contains("EFD032", console.StandardOutput, StringComparison.Ordinal);
+        Assert.Equal(17, CountOccurrences(console.StandardOutput, "Severity: Info"));
+        Assert.Equal(17, CountOccurrences(console.StandardOutput, "Confidence: Advisory"));
 
         Assert.Equal(1, json.ExitCode);
         Assert.Empty(json.StandardError);
         using var document = JsonDocument.Parse(json.StandardOutput);
         Assert.Equal(1, document.RootElement.GetProperty("schemaVersion").GetInt32());
         var findings = document.RootElement.GetProperty("findings").EnumerateArray().ToArray();
-        Assert.Equal(16, findings.Length);
-        Assert.Equal(new[] { "EFD005", "EFD001", "EFD012", "EFD013", "EFD017", "EFD018", "EFD019", "EFD025", "EFD009", "EFD023", "EFD029", "EFD027", "EFD037", "EFD038", "EFD028", "EFD030" }, findings.Select(static finding => finding.GetProperty("ruleId").GetString()));
+        Assert.Equal(17, findings.Length);
+        Assert.Equal(new[] { "EFD005", "EFD001", "EFD012", "EFD013", "EFD017", "EFD018", "EFD019", "EFD025", "EFD009", "EFD023", "EFD029", "EFD027", "EFD037", "EFD038", "EFD028", "EFD030", "EFD032" }, findings.Select(static finding => finding.GetProperty("ruleId").GetString()));
         Assert.All(findings, static finding =>
         {
             Assert.Equal("info", finding.GetProperty("severity").GetString());
@@ -891,6 +892,45 @@ public sealed class EndToEndTests
         Assert.Contains("'using' declaration", findings[0].GetProperty("evidence").GetString(), StringComparison.Ordinal);
         Assert.Equal((31, 20, 31, 56), Range(findings[1]));
         Assert.Contains("'using' statement", findings[1].GetProperty("evidence").GetString(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    [Trait("Spec", "efd032-untracked-change-lost/Console and JSON reporting")]
+    public async Task Efd032FixtureProducesOnlyUnsuppressedFindings()
+    {
+        var project = Path.Combine(RepositoryRoot(), "tests", "Fixtures", "EFD032.Sample", "EFD032.Sample.csproj");
+
+        var console = await RunCliAsync("analyze", project, "--no-color", "--quiet");
+        var json = await RunCliAsync("analyze", project, "--format", "json", "--quiet");
+
+        Assert.Equal(1, console.ExitCode);
+        Assert.Empty(console.StandardError);
+        Assert.Contains("Found 2 findings.", console.StandardOutput);
+        Assert.Equal(2, CountOccurrences(console.StandardOutput, "  EFD032:"));
+        Assert.Contains("Change to an untracked entity is never saved", console.StandardOutput);
+        Assert.Equal(2, CountOccurrences(console.StandardOutput, "Severity: Warning | Confidence: High"));
+        Assert.DoesNotContain("EditorConfigSuppressed.cs", console.StandardOutput);
+        Assert.DoesNotContain('\u001b', console.StandardOutput);
+
+        Assert.Equal(1, json.ExitCode);
+        Assert.Empty(json.StandardError);
+        using var document = JsonDocument.Parse(json.StandardOutput);
+        Assert.Equal(1, document.RootElement.GetProperty("schemaVersion").GetInt32());
+        var findings = document.RootElement.GetProperty("findings").EnumerateArray().ToArray();
+        Assert.Equal(2, findings.Length);
+        Assert.All(findings, static finding =>
+        {
+            Assert.Equal("EFD032", finding.GetProperty("ruleId").GetString());
+            Assert.Equal("warning", finding.GetProperty("severity").GetString());
+            Assert.Equal("high", finding.GetProperty("confidence").GetString());
+            Assert.EndsWith("tests/Fixtures/EFD032.Sample/UntrackedChangeCases.cs", finding.GetProperty("sourceFile").GetString(), StringComparison.Ordinal);
+            Assert.Contains("with AsNoTracking on context 'context'", finding.GetProperty("evidence").GetString(), StringComparison.Ordinal);
+            Assert.Equal("EFD032", finding.GetProperty("documentationReference").GetString());
+        });
+        Assert.Equal((24, 9, 24, 25), Range(findings[0]));
+        Assert.Equal("'order' was loaded with AsNoTracking, so SaveChanges does not save this change", findings[0].GetProperty("message").GetString());
+        Assert.Equal((36, 17, 36, 35), Range(findings[1]));
+        Assert.Equal("'order' was loaded with AsNoTracking, so SaveChanges does not save this change", findings[1].GetProperty("message").GetString());
     }
 
     [Fact]
