@@ -7,7 +7,7 @@ Defines high-confidence detection and reporting for dynamically constructed SQL 
 ## Requirements
 
 ### Requirement: Detect unsafe SQL passed to EF Core raw APIs
-EFD012 SHALL report a high-confidence finding when SQL passed to a semantically resolved EF Core `FromSqlRaw`, `ExecuteSqlRaw`, or `ExecuteSqlRawAsync` operation is directly constructed with string interpolation or non-constant string concatenation.
+EFD012 SHALL report a high-confidence finding when SQL passed to a semantically resolved EF Core `FromSqlRaw`, `ExecuteSqlRaw`, `ExecuteSqlRawAsync`, or `SqlQueryRaw` operation is directly constructed with string interpolation or non-constant string concatenation.
 
 #### Scenario: Direct interpolated raw query
 - **WHEN** an interpolated string is passed directly as the SQL argument of `FromSqlRaw`
@@ -15,6 +15,10 @@ EFD012 SHALL report a high-confidence finding when SQL passed to a semantically 
 
 #### Scenario: Direct concatenated raw command
 - **WHEN** a string concatenation containing a non-constant value is passed directly as the SQL argument of `ExecuteSqlRaw` or `ExecuteSqlRawAsync`
+- **THEN** EFD012 reports the SQL expression as unsafe raw-SQL construction
+
+#### Scenario: Interpolated SqlQueryRaw
+- **WHEN** an interpolated string, or a local initialized from one, is passed as the SQL argument of `context.Database.SqlQueryRaw<int>(...)`
 - **THEN** EFD012 reports the SQL expression as unsafe raw-SQL construction
 
 ### Requirement: Follow proven local SQL origins
@@ -32,7 +36,7 @@ EFD012 SHALL follow local-variable assignments and initializers within the conta
 EFD012 SHALL identify supported EF Core raw-SQL methods by resolved symbols rather than method-name text, including reduced extension and static invocation forms.
 
 #### Scenario: Unrelated same-named method
-- **WHEN** application code invokes a non-EF method named `FromSqlRaw`, `ExecuteSqlRaw`, or `ExecuteSqlRawAsync`
+- **WHEN** application code invokes a non-EF method named `FromSqlRaw`, `ExecuteSqlRaw`, `ExecuteSqlRawAsync`, or `SqlQueryRaw`
 - **THEN** EFD012 does not report it
 
 #### Scenario: Static extension invocation
@@ -40,7 +44,7 @@ EFD012 SHALL identify supported EF Core raw-SQL methods by resolved symbols rath
 - **THEN** EFD012 reports the same finding it would report for reduced extension syntax
 
 ### Requirement: Preserve safe SQL forms
-EFD012 SHALL NOT report constant SQL, raw SQL using placeholders with values supplied as separate arguments, or SQL passed to EF Core interpolated-safe APIs such as `FromSqlInterpolated`, `FromSql`, `ExecuteSqlInterpolated`, and `ExecuteSqlInterpolatedAsync`.
+EFD012 SHALL NOT report constant SQL, raw SQL using placeholders with values supplied as separate arguments, or SQL passed to EF Core interpolated-safe APIs such as `FromSqlInterpolated`, `FromSql`, `ExecuteSqlInterpolated`, `ExecuteSqlInterpolatedAsync`, and `SqlQuery`.
 
 #### Scenario: Raw SQL with separate parameters
 - **WHEN** constant SQL containing parameter placeholders is passed to a supported raw API and values are supplied through its parameter arguments

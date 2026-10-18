@@ -265,3 +265,7 @@ The corpus was re-run after the rules that need only a query's origin (EFD004, E
   - **1 `TP`:** the customer importer loads every customer number, from a table that grows with the shop, to check uniqueness.
   - **4 `acceptable`:** stores, affiliates, and permission records, all small lookup tables.
 - No existing finding changed or disappeared.
+
+## EFD012 extension: `SqlQueryRaw<T>` (2026-10-18)
+
+EFD012 now also checks the SQL passed to `Database.SqlQueryRaw<T>`. No project in the corpus calls `SqlQueryRaw`, so the extension can't change any corpus finding, and the corpus wasn't re-run for it. The analyzer tests cover the new positive and negative shapes.

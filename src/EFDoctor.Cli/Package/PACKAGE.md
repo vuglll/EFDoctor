@@ -48,7 +48,7 @@ Loading a project runs its MSBuild logic, so analyze only repositories you trust
 | EFD009 | `ToLower()`/`ToUpper()` on a column in a predicate, which prevents an index seek |
 | EFD010 | Synchronous EF Core database call (`ToList`, `Count`, `SaveChanges`, `Find`, …) inside an `async` method |
 | EFD011 | `.Result`, `.Wait()`, or `.GetAwaiter().GetResult()` on an EF Core async call |
-| EFD012 | Dynamically built SQL passed to `FromSqlRaw`/`ExecuteSqlRaw` |
+| EFD012 | Dynamically built SQL passed to `FromSqlRaw`/`ExecuteSqlRaw`/`SqlQueryRaw` |
 | EFD013 | Load/loop/save pattern that may suit `ExecuteUpdate`/`ExecuteDelete` |
 | EFD014 | `Skip` pagination with no preceding `OrderBy`, producing non-deterministic pages |
 | EFD017 | `Include` ignored by a later non-entity `Select` |
