@@ -177,6 +177,12 @@ EFD029 semantically identifies a `Queryable.OrderBy` or `OrderByDescending` whos
 
 `Skip`, `Take`, `Distinct`, projections, and every other operator between the two orderings end the search, because they can give the first ordering a purpose. The stretch between the two orderings must be inline: an earlier ordering held in a local is a default being overridden, and it is not followed, although the query before the first ordering may pass through a local. In-memory ordering, unproven sources, and look-alike methods are outside the rule. See [`docs/rules/EFD029.md`](EFD029.md) for the complete contract.
 
+## EFD028 client-method boundary
+
+EFD028 semantically identifies an invocation of a method declared in the analyzed source, including a local function, inside the lambda of a `Queryable` `Where`, `OrderBy`, `OrderByDescending`, `ThenBy`, `ThenByDescending`, or predicate terminal, or of an EF Core async predicate terminal, on a query traced to `DbSet<T>` or `DbContext.Set<TEntity>()`. The call must read a parameter of that lambda, or of a lambda nested in it. It reports each call once, with high confidence, `Warning` severity, and the `Correctness` category.
+
+A call that reads no lambda parameter is evaluated on the client as a query parameter, and is not reported. Methods marked `[DbFunction]`, `[Projectable]`, `[InjectLambda]`, `[Computed]`, or `[Expandable]` are excluded. So are methods named in a `HasDbFunction` call, static methods on a `DbContext`, and throw-only stubs. Projections, methods from referenced assemblies, unmapped properties, delegate invocations, in-memory queries, and unproven sources are outside the rule. See [`docs/rules/EFD028.md`](EFD028.md) for the complete contract.
+
 ## EFD037 entity-over-fetch boundary
 
 EFD037 semantically identifies `ToList`, `ToArray`, and awaited `ToListAsync`/`ToArrayAsync` on a query traced to `DbSet<T>` or `DbContext.Set<TEntity>()` that returns the entity type without `Include`, when the materialized value initializes a local. It reports the materializer when every reference to that local in the method is a `foreach`, a one-parameter `Select`, an `Any`/`All`/`Count`/`Sum`/`Min`/`Max`/`Average` with a lambda, a count, or an index read, and every reference to an entity inside those is a read of a scalar property. The method must read at least one such property, at most half of them, and leave at least four unread. It reports with advisory confidence, `Info` severity, and the `Performance` category.

@@ -234,7 +234,7 @@ public sealed class EndToEndTests
 
         Assert.Equal(1, console.ExitCode);
         Assert.Empty(console.StandardError);
-        Assert.Contains("Found 14 findings.", console.StandardOutput);
+        Assert.Contains("Found 15 findings.", console.StandardOutput);
         Assert.Contains("EFD001", console.StandardOutput, StringComparison.Ordinal);
         Assert.Contains("EFD005", console.StandardOutput, StringComparison.Ordinal);
         Assert.Contains("EFD012", console.StandardOutput, StringComparison.Ordinal);
@@ -249,16 +249,17 @@ public sealed class EndToEndTests
         Assert.Contains("EFD027", console.StandardOutput, StringComparison.Ordinal);
         Assert.Contains("EFD037", console.StandardOutput, StringComparison.Ordinal);
         Assert.Contains("EFD038", console.StandardOutput, StringComparison.Ordinal);
-        Assert.Equal(14, CountOccurrences(console.StandardOutput, "Severity: Info"));
-        Assert.Equal(14, CountOccurrences(console.StandardOutput, "Confidence: Advisory"));
+        Assert.Contains("EFD028", console.StandardOutput, StringComparison.Ordinal);
+        Assert.Equal(15, CountOccurrences(console.StandardOutput, "Severity: Info"));
+        Assert.Equal(15, CountOccurrences(console.StandardOutput, "Confidence: Advisory"));
 
         Assert.Equal(1, json.ExitCode);
         Assert.Empty(json.StandardError);
         using var document = JsonDocument.Parse(json.StandardOutput);
         Assert.Equal(1, document.RootElement.GetProperty("schemaVersion").GetInt32());
         var findings = document.RootElement.GetProperty("findings").EnumerateArray().ToArray();
-        Assert.Equal(14, findings.Length);
-        Assert.Equal(new[] { "EFD005", "EFD001", "EFD012", "EFD013", "EFD017", "EFD018", "EFD019", "EFD025", "EFD009", "EFD023", "EFD029", "EFD027", "EFD037", "EFD038" }, findings.Select(static finding => finding.GetProperty("ruleId").GetString()));
+        Assert.Equal(15, findings.Length);
+        Assert.Equal(new[] { "EFD005", "EFD001", "EFD012", "EFD013", "EFD017", "EFD018", "EFD019", "EFD025", "EFD009", "EFD023", "EFD029", "EFD027", "EFD037", "EFD038", "EFD028" }, findings.Select(static finding => finding.GetProperty("ruleId").GetString()));
         Assert.All(findings, static finding =>
         {
             Assert.Equal("info", finding.GetProperty("severity").GetString());
@@ -809,6 +810,46 @@ public sealed class EndToEndTests
         Assert.Equal((35, 9, 35, 84), Range(findings[1]));
         Assert.Equal("medium", findings[1].GetProperty("confidence").GetString());
         Assert.Contains("Nothing later in this method uses 'products'", findings[1].GetProperty("evidence").GetString(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    [Trait("Spec", "efd028-client-method-in-query/Console and JSON reporting")]
+    public async Task Efd028FixtureProducesOnlyUnsuppressedClientMethodFindings()
+    {
+        var project = Path.Combine(RepositoryRoot(), "tests", "Fixtures", "EFD028.Sample", "EFD028.Sample.csproj");
+
+        var console = await RunCliAsync("analyze", project, "--no-color", "--quiet");
+        var json = await RunCliAsync("analyze", project, "--format", "json", "--quiet");
+
+        Assert.Equal(1, console.ExitCode);
+        Assert.Empty(console.StandardError);
+        Assert.Contains("Found 2 findings.", console.StandardOutput);
+        Assert.Equal(2, CountOccurrences(console.StandardOutput, "  EFD028:"));
+        Assert.Contains("Client-only method in a SQL-translated query", console.StandardOutput);
+        Assert.Equal(2, CountOccurrences(console.StandardOutput, "Severity: Warning | Confidence: High"));
+        Assert.DoesNotContain("EditorConfigSuppressed.cs", console.StandardOutput);
+        Assert.DoesNotContain('\u001b', console.StandardOutput);
+
+        Assert.Equal(1, json.ExitCode);
+        Assert.Empty(json.StandardError);
+        using var document = JsonDocument.Parse(json.StandardOutput);
+        Assert.Equal(1, document.RootElement.GetProperty("schemaVersion").GetInt32());
+        var findings = document.RootElement.GetProperty("findings").EnumerateArray().ToArray();
+        Assert.Equal(2, findings.Length);
+        Assert.All(findings, static finding =>
+        {
+            Assert.Equal("EFD028", finding.GetProperty("ruleId").GetString());
+            Assert.Equal("warning", finding.GetProperty("severity").GetString());
+            Assert.Equal("high", finding.GetProperty("confidence").GetString());
+            Assert.EndsWith("tests/Fixtures/EFD028.Sample/ClientMethodCases.cs", finding.GetProperty("sourceFile").GetString(), StringComparison.Ordinal);
+            Assert.Contains("DbSet origin 'context.Orders'", finding.GetProperty("evidence").GetString(), StringComparison.Ordinal);
+            Assert.Contains("could not be translated", finding.GetProperty("likelyImpact").GetString(), StringComparison.Ordinal);
+            Assert.Equal("EFD028", finding.GetProperty("documentationReference").GetString());
+        });
+        Assert.Equal((31, 39, 31, 66), Range(findings[0]));
+        Assert.Equal("Method 'IsOverdue' cannot be translated to SQL inside this query's Where", findings[0].GetProperty("message").GetString());
+        Assert.Equal((35, 47, 35, 80), Range(findings[1]));
+        Assert.Equal("Method 'Priority' cannot be translated to SQL inside this query's OrderBy", findings[1].GetProperty("message").GetString());
     }
 
     [Fact]

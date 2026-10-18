@@ -266,6 +266,14 @@ The corpus was re-run after the rules that need only a query's origin (EFD004, E
   - **4 `acceptable`:** stores, affiliates, and permission records, all small lookup tables.
 - No existing finding changed or disappeared.
 
+## New rule: EFD028 (2026-10-18)
+
+The corpus was re-run after EFD028 was added. It reports a method of the application that reads a query's lambda parameter inside a translated filter or ordering.
+
+- **0 findings.** That is the expected result for released code. The shape throws "could not be translated" the first time the query runs, so it rarely survives into code that ships. The rule's value is catching the mistake during development, and in the IDE through `EFDoctor.Analyzers`.
+- No other finding changed.
+- The precision of the rule is therefore unmeasured on the corpus. The analyzer tests cover the exclusions that matter in practice: calls that read no lambda parameter, database-function mappings, and methods marked by query-rewriting libraries.
+
 ## EFD012 extension: `SqlQueryRaw<T>` (2026-10-18)
 
 EFD012 now also checks the SQL passed to `Database.SqlQueryRaw<T>`. No project in the corpus calls `SqlQueryRaw`, so the extension can't change any corpus finding, and the corpus wasn't re-run for it. The analyzer tests cover the new positive and negative shapes.
