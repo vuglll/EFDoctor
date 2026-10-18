@@ -46,7 +46,7 @@ EFD004, EFD009, EFD010, EFD013, EFD019, EFD022, and EFD023 SHALL use an origin p
 
 A local is self-composed when all of these hold:
 - The local is declared with an initializer and is not a `ref` local.
-- The initializer is proven to originate at a `DbSet<T>` property or `DbContext.Set<T>()`, through the full chain proof, including statically determined locals.
+- The initializer is proven to originate at a `DbSet<T>` property or `DbContext.Set<T>()`, through the chain proof, including other followed locals.
 - Every other write to the local is a simple assignment statement, `local = value;`, anywhere in the method, including inside branches, loops, lambdas, and local functions.
 - Every such value composes a read of the same local through resolved `Queryable` operators that keep the element type and through EF Core's bound-neutral composition methods, and through nothing else. The `Queryable` operators are `Where`, `OrderBy`, `OrderByDescending`, `ThenBy`, `ThenByDescending`, `Skip`, `Take`, and `Distinct`. A conditional expression whose arms each meet this condition, or are a read of the same local, also qualifies.
 - The local meets the reference conditions of the full chain proof: it is never written through `ref`, `out`, or `in`, never aliased, never has its address taken, and is never the target of a deconstruction, compound, null-coalescing, increment, or decrement assignment.
@@ -80,3 +80,11 @@ When the origin proof follows a read, it SHALL trace the read to the initializer
 #### Scenario: Conditional operations are not in the proven chain
 - **WHEN** a self-composed query local is ordered only inside a conditional branch and then materialized and reduced with `Last()`
 - **THEN** EFD019 does not report, because the proven operations contain no `OrderBy`
+
+### Requirement: Treat DbSet AsQueryable as the set
+The shared EF Core query-chain proof SHALL treat a call to EF Core's `DbSet<T>.AsQueryable()` instance method as the `DbSet<T>` it is called on. A chain that starts with `context.Items.AsQueryable()` SHALL be traced to the origin `context.Items`, and the proven operations SHALL begin with `DbSet.AsQueryable`.
+
+#### Scenario: Query started with DbSet AsQueryable
+- **WHEN** a method calls `context.Items.AsQueryable().Where(i => i.Active).ToList()`, or stores `context.Items.AsQueryable()` in a query local
+- **THEN** the proof traces the query to the `DbSet` origin `context.Items`, as it would for `context.Items.Where(i => i.Active).ToList()`
+

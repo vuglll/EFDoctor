@@ -98,7 +98,7 @@ public sealed class StringComparisonInPredicateAnalyzer : DiagnosticAnalyzer
             return;
         }
 
-        if (!EfQueryOperationAnalysis.TryAnalyzeSource(operatorInvocation, queryable, dbSet, dbContext, efExtensions, out _))
+        if (!EfQueryOperationAnalysis.TryAnalyzeSource(operatorInvocation, queryable, dbSet, dbContext, efExtensions, out _, followComposedLocals: true))
         {
             return;
         }

@@ -4,6 +4,22 @@ All notable changes to EFDoctor are documented here. Versions follow [Semantic V
 
 ## Unreleased
 
+### Changed
+
+- EFD004, EFD009, EFD010, EFD013, EFD019, EFD022, and EFD023 now follow a query local that is composed conditionally, the most common way queries are built from optional filters:
+
+  ```csharp
+  var query = db.Products.AsQueryable();
+  if (name != null) query = query.Where(p => p.Name.ToLower() == name);
+  return query.ToList();
+  ```
+
+  Such a local is followed when it is declared from a proven EF Core query, and every later write recomposes the local itself with element-preserving operators: `Where`, ordering, `Skip`, `Take`, `Distinct`, or EF composition such as `Include`. The writes may be in branches, loops, `switch` sections, or lambdas. These rules need only the query's origin, which such writes can't change. A predicate inside the branch is also analyzed now.
+  - Evidence names the hop as `local 'query' (conditionally composed)`.
+  - A branch that replaces the local with a different query, or recomposes it with `Select`, `Concat`, or `Union`, still ends the proof.
+  - Rules that report something missing, such as EFD005's bound, EFD014's ordering, or EFD037's include, don't follow these locals, because a branch could add what's missing.
+- `context.Products.AsQueryable()` is now analyzed like `context.Products` by every rule. It calls EF Core's own `DbSet<T>.AsQueryable()` method, which the query-chain proof didn't recognize, so queries that started with it were skipped.
+
 ## 0.4.0
 
 The rules now ship in two packages: the `EFDoctor` tool, and the new `EFDoctor.Analyzers` package for builds and the IDE. There are two new rules, for 24 in all, and EFD002 and EFD019 follow a result stored in a local.

@@ -255,3 +255,13 @@ The corpus was re-run after EFD002 learned to follow a count through a local, an
 - **1 new finding, no false positive.** Smartstore's `InvariantSeedData.Menus` stores `_db.Manufacturers.Count()` in `manufacturerCount` and only compares it with `> 0`, twice. The shape is right; it is installation seed code, so the verdict is `acceptable`.
 - **No null-checked `FirstOrDefault` in the corpus.** Where the corpus null-checks a `FirstOrDefault`, it goes on to use the entity, which the rule leaves alone. So the medium-confidence tier is unmeasured here. Its evidence is the proposal itself: the reporter found three such cases in production code, each with the result in a local.
 - **The proposal's test file is now an acceptance test.** Its twenty methods each get exactly one finding: fourteen from EFD002 and six from EFD019.
+
+## Conditionally composed query locals (2026-10-18)
+
+The corpus was re-run after the rules that need only a query's origin (EFD004, EFD009, EFD010, EFD013, EFD019, EFD022, and EFD023) learned to follow a query local that branches recompose with `query = query.Where(…)`, and after the chain proof learned that `DbSet<T>.AsQueryable()` is the set.
+
+- **No new finding from conditionally composed locals.** The recompositions in the corpus are mostly ID-list membership filters (`ids.Contains(x.Id)`), which none of these rules reports. Most of the rest are in `IQueryable` extension methods, whose source is a parameter that no rule can prove. The one text search among them (Smartstore's newsletter `Email.Contains`) runs over a joined projection, not an entity query. The added recall waits for code that has these rules' defects inside conditional composition.
+- **5 new EFD005 findings from `DbSet<T>.AsQueryable()`, no false positive.** All five are in Smartstore: `_db.X.AsQueryable().Select(x => x.Id).ToListAsync()`. EF Core's own `AsQueryable` method used to end the proof, so these queries were skipped.
+  - **1 `TP`:** the customer importer loads every customer number, from a table that grows with the shop, to check uniqueness.
+  - **4 `acceptable`:** stores, affiliates, and permission records, all small lookup tables.
+- No existing finding changed or disappeared.

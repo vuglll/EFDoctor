@@ -26,6 +26,7 @@ When `improve-query-chain-local-tracking` shipped, only 6 new corpus findings ap
   - EFD019 still requires an `OrderBy` on every path before it reports `Last` or `LastOrDefault`.
 - **Rules that don't opt in, unchanged:** EFD002, EFD005, EFD006, EFD014, EFD017, EFD020, EFD025, EFD027, EFD037, and EFD038. They report the absence of something (a bound, an ordering, an include, a projection) or count executions, so an unknown conditional composition could make their findings wrong.
 - A statically determined local is still followed by the full chain proof, exactly as before. The origin proof applies only where that fails.
+- The shared chain proof treats EF Core's own `DbSet<T>.AsQueryable()` instance method as the set it is called on. Until now, `context.Products.AsQueryable()` resolved to that method rather than `Queryable.AsQueryable`, so every rule failed to prove a query that started with it, inline or stored. It is also the usual initializer of a conditionally composed query.
 
 ## Capabilities
 
@@ -38,6 +39,7 @@ None.
 - `query-chain-local-tracking`:
   - Adds the origin proof for self-composed query locals, and lists the rules that use it.
   - Narrows the "Conditional recomposition is not followed" scenario to the full chain proof.
+  - Treats `DbSet<T>.AsQueryable()` as the set. This adds recall for every rule built on the proof.
 - `efd004-premature-query-materialization`: the query source may be traced through a self-composed local.
 - `efd009-non-sargable-case-transform` and `efd023-leading-wildcard-search`: a predicate over a self-composed local is evaluated, including a predicate inside the conditional composition. A local that isn't self-composed stays unproven.
 

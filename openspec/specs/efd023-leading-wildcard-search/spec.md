@@ -115,7 +115,7 @@ EFD023 SHALL NOT report in any of these cases:
 EFD023 SHALL identify the predicate operator, the search method, and the query origin by resolved symbols, not by method-name text. It SHALL support reduced extension syntax and the equivalent static extension call.
 
 #### Scenario: Unproven or in-memory source
-- **WHEN** the same predicate is applied to an arbitrary `IQueryable<T>` parameter, a stored `IQueryable` local whose value is not statically determined, an `AsQueryable()` in-memory source, or an `IEnumerable<T>`
+- **WHEN** the same predicate is applied to an arbitrary `IQueryable<T>` parameter, a stored `IQueryable` local that is neither statically determined nor self-composed, an `AsQueryable()` in-memory source, or an `IEnumerable<T>`
 - **THEN** EFD023 does not report
 
 #### Scenario: Unrelated same-named methods
@@ -128,6 +128,10 @@ EFD023 SHALL identify the predicate operator, the search method, and the query o
 
 #### Scenario: Query stored in a followable local
 - **WHEN** an eligible predicate is applied to a query local whose value is statically determined as defined by `query-chain-local-tracking`, and that value is a proven EF query
+- **THEN** EFD023 evaluates the predicate as it would for the equivalent inline query
+
+#### Scenario: Search in a conditional composition
+- **WHEN** an eligible predicate is applied to a self-composed query local as defined by `query-chain-local-tracking`, including inside the branch that reassigns it, as in `if (term != null) query = query.Where(p => p.Name.Contains(term));`
 - **THEN** EFD023 evaluates the predicate as it would for the equivalent inline query
 
 ### Requirement: Produce advisory and actionable findings
