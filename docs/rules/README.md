@@ -189,6 +189,12 @@ EFD030 semantically identifies a `return` whose value is a deferred EF Core quer
 
 Materialized results, contexts that outlive the method (fields, parameters, locals without `using`), returns after the `using` block or in a nested lambda or local function, and iterator methods are not reported. Neither are contexts disposed explicitly or created by a helper. See [`docs/rules/EFD030.md`](EFD030.md) for the complete contract.
 
+## EFD032 untracked-change boundary
+
+EFD032 semantically identifies `SaveChanges` or `SaveChangesAsync` on a `DbContext` with a symbol key, and an earlier statement, in a block that encloses it in the same function, that declares a local from a single-entity terminal or from `ToList`/`ToArray` (or the awaited async forms). The terminal must run over a query proven to originate on the same context whose chain contains `AsNoTracking` or `AsNoTrackingWithIdentityResolution`, and no later `AsTracking`. EFD032 reports the first property assignment to the entity, or to a `foreach` variable over the list, between the load and the save, with high confidence, `Warning` severity, and the `Correctness` category.
+
+Between the load and the save, the entity may only be accessed through its properties or compared with `null`, and the list may only be a `foreach` collection or have its properties read. Any other use, such as passing the entity to a method, returning it, capturing it, or reassigning the local, means the entity may be attached, so nothing is reported. Changes in helpers, changes to navigation properties, context-wide no-tracking defaults, and conditionally composed query locals are outside the rule. See [`docs/rules/EFD032.md`](EFD032.md) for the complete contract.
+
 ## EFD037 entity-over-fetch boundary
 
 EFD037 semantically identifies `ToList`, `ToArray`, and awaited `ToListAsync`/`ToArrayAsync` on a query traced to `DbSet<T>` or `DbContext.Set<TEntity>()` that returns the entity type without `Include`, when the materialized value initializes a local. It reports the materializer when every reference to that local in the method is a `foreach`, a one-parameter `Select`, an `Any`/`All`/`Count`/`Sum`/`Min`/`Max`/`Average` with a lambda, a count, or an index read, and every reference to an entity inside those is a read of a scalar property. The method must read at least one such property, at most half of them, and leave at least four unread. It reports with advisory confidence, `Info` severity, and the `Performance` category.

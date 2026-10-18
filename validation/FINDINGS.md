@@ -285,3 +285,10 @@ The corpus was re-run after EFD030 was added. It reports a deferred query return
 - **0 findings, which is correct.** Every corpus method that returns an `IQueryable`, such as Bitwarden's `IQuery<T>.Run(DatabaseContext)` classes, takes the context as a parameter, so the caller owns its lifetime. The one `IAsyncEnumerable` method that opens a scope is an async iterator, which keeps the scope open during enumeration.
 - No other finding changed.
 - Bitwarden's repositories resolve the context through a helper, `GetDatabaseContext(scope)`, which EFD030 doesn't follow. Those methods materialize before returning anyway.
+
+## New rule: EFD032 (2026-10-18)
+
+The corpus was re-run after EFD032 was added. It reports a change to an `AsNoTracking` entity before `SaveChanges`.
+
+- **0 findings.** The corpus uses `AsNoTracking` only for reads (Smartstore's measure lookups, Bitwarden's read paths), and loads with tracking when it updates. Like EFD028 and EFD030, the shape is a bug that tends to be fixed before release, so the rule's value is in development and in the IDE.
+- No other finding changed.

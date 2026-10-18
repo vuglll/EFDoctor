@@ -100,4 +100,11 @@ public static class TestProjectCases
         using var context = new TestContext();
         return context.Entities;
     }
+
+    public static void UntrackedChange(TestContext context, int id)
+    {
+        var entity = context.Entities.AsNoTracking().First(candidate => candidate.Id == id);
+        entity.Name = "renamed";
+        context.SaveChanges();
+    }
 }

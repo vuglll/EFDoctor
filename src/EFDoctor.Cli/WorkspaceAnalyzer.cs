@@ -39,7 +39,8 @@ public static class WorkspaceAnalyzer
             new EntityOverFetchAnalyzer(),
             new StaleTrackedEntitiesAnalyzer(),
             new ClientMethodInQueryAnalyzer(),
-            new QueryOutlivesContextAnalyzer());
+            new QueryOutlivesContextAnalyzer(),
+            new UntrackedChangeLostAnalyzer());
 
     private static readonly ImmutableHashSet<string> DiagnosticIds = Analyzers
         .SelectMany(static analyzer => analyzer.SupportedDiagnostics)

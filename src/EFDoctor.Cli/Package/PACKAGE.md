@@ -63,6 +63,7 @@ Loading a project runs its MSBuild logic, so analyze only repositories you trust
 | EFD028 | Method of the application inside a query filter or ordering that EF Core cannot translate |
 | EFD029 | Second `OrderBy` that discards an earlier ordering instead of `ThenBy` |
 | EFD030 | Query returned after its `DbContext` is disposed, which throws when the caller enumerates it |
+| EFD032 | Change to an entity loaded with `AsNoTracking`, which `SaveChanges` silently doesn't save |
 | EFD037 | Entities materialized into a local when only a few of their columns are read (advisory) |
 | EFD038 | `ExecuteUpdate`/`ExecuteDelete` that leaves already-tracked entities of the same type stale |
 
