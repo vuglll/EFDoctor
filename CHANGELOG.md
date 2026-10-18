@@ -4,6 +4,10 @@ All notable changes to EFDoctor are documented here. Versions follow [Semantic V
 
 ## Unreleased
 
+### Added
+
+- EFD028: a method of the application called inside a filter or ordering of an EF Core query (`Where`, `OrderBy`, `ThenBy`, or a predicate terminal such as `Any` or `CountAsync`), when the call reads the query's lambda parameter. EF Core can't translate it, and the query throws "could not be translated" when it runs. Reported at `Warning` severity with high confidence, under the `Correctness` category. A call that reads only captured values is evaluated once as a query parameter, and is not reported. Methods mapped as database functions (`[DbFunction]`, `HasDbFunction`, static methods on the `DbContext`, throw-only stubs) are not reported, nor are methods marked by EntityFrameworkCore.Projectables, NeinLinq, DelegateDecompiler, or LinqKit. Projections are not checked.
+
 ### Changed
 
 - EFD004, EFD009, EFD010, EFD013, EFD019, EFD022, and EFD023 now follow a query local that is composed conditionally, the most common way queries are built from optional filters:
