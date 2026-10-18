@@ -189,6 +189,17 @@ EFD030 semantically identifies a `return` whose value is a deferred EF Core quer
 
 Materialized results, contexts that outlive the method (fields, parameters, locals without `using`), returns after the `using` block or in a nested lambda or local function, and iterator methods are not reported. Neither are contexts disposed explicitly or created by a helper. See [`docs/rules/EFD030.md`](EFD030.md) for the complete contract.
 
+## EFD031 composed-procedure boundary
+
+EFD031 semantically identifies `RelationalQueryableExtensions.FromSqlRaw`, `FromSql`, and `FromSqlInterpolated` whose SQL text, a constant or the leading literal of an interpolated string, starts with `EXEC`, `EXECUTE`, or `CALL`. It reports the first operator EF Core would compose over it:
+- any `Queryable` operator except `AsQueryable`;
+- `Include`/`ThenInclude`;
+- an EF Core async terminal other than `ToListAsync`, `ToArrayAsync`, `ToDictionaryAsync`, `ToHashSetAsync`, `ForEachAsync`, `LoadAsync`, or `AsAsyncEnumerable`.
+
+The search looks through tracking, query-filter, and tag operators, and through statically determined query locals. It reports with high confidence, `Warning` severity, and the `Correctness` category.
+
+Direct materialization, composition after `AsEnumerable`/`ToList`, composable SQL, procedure names without `EXEC`, and SQL text that isn't a constant are not reported. See [`docs/rules/EFD031.md`](EFD031.md) for the complete contract.
+
 ## EFD032 untracked-change boundary
 
 EFD032 semantically identifies `SaveChanges` or `SaveChangesAsync` on a `DbContext` with a symbol key, and an earlier statement, in a block that encloses it in the same function, that declares a local from a single-entity terminal or from `ToList`/`ToArray` (or the awaited async forms). The terminal must run over a query proven to originate on the same context whose chain contains `AsNoTracking` or `AsNoTrackingWithIdentityResolution`, and no later `AsTracking`. EFD032 reports the first property assignment to the entity, or to a `foreach` variable over the list, between the load and the save, with high confidence, `Warning` severity, and the `Correctness` category.

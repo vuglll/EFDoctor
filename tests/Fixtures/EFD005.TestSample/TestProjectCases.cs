@@ -111,6 +111,9 @@ public static class TestProjectCases
     public static void SingletonContext(Microsoft.Extensions.DependencyInjection.IServiceCollection services) =>
         Microsoft.Extensions.DependencyInjection.ServiceCollectionServiceExtensions.AddSingleton<ContextHolder>(services);
 
+    public static TestEntity? ProcedureFirst(TestContext context) =>
+        context.Entities.FromSqlRaw("EXEC dbo.GetEntities").FirstOrDefault();
+
     public static void CreateAndMigrate(TestContext context)
     {
         context.Database.EnsureCreated();

@@ -136,7 +136,7 @@ A diagnostic's default severity follows the confidence of its finding:
 
 | Confidence | Default severity | Rules |
 |---|---|---|
-| High | `warning` | EFD001, EFD003, EFD004, EFD011, EFD012, EFD014, EFD017 through EFD019, EFD021, EFD022, EFD027 through EFD030, EFD032 through EFD034, and the high-confidence findings of EFD002, EFD005, and EFD038 |
+| High | `warning` | EFD001, EFD003, EFD004, EFD011, EFD012, EFD014, EFD017 through EFD019, EFD021, EFD022, EFD027 through EFD034, and the high-confidence findings of EFD002, EFD005, and EFD038 |
 | High, cleanup | `suggestion` | EFD025 |
 | Medium | `suggestion` | EFD006, EFD009, EFD010, EFD013, EFD020, and the medium-confidence findings of EFD002 (a null-checked `FirstOrDefault`), EFD005, and EFD038 |
 | Advisory | `suggestion` | EFD023, EFD037, and the advisory findings of EFD005 |

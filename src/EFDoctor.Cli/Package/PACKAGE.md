@@ -63,6 +63,7 @@ Loading a project runs its MSBuild logic, so analyze only repositories you trust
 | EFD028 | Method of the application inside a query filter or ordering that EF Core cannot translate |
 | EFD029 | Second `OrderBy` that discards an earlier ordering instead of `ThenBy` |
 | EFD030 | Query returned after its `DbContext` is disposed, which throws when the caller enumerates it |
+| EFD031 | LINQ composed over a stored-procedure call in `FromSqlRaw`/`FromSql` |
 | EFD032 | Change to an entity loaded with `AsNoTracking`, which `SaveChanges` silently doesn't save |
 | EFD033 | `DbContext` captured by a singleton or hosted service |
 | EFD034 | `EnsureCreated()` on a context that also uses migrations |
