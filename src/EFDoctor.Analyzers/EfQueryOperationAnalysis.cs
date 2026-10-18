@@ -120,7 +120,8 @@ internal static class EfQueryOperationAnalysis
         INamedTypeSymbol dbContext,
         INamedTypeSymbol efExtensions,
         out EfQueryChainAnalysis analysis,
-        EfModelKeys? modelKeys = null)
+        EfModelKeys? modelKeys = null,
+        bool followComposedLocals = false)
     {
         var operations = ImmutableArray.CreateBuilder<string>();
         if (TryAnalyzeSourceCore(
@@ -130,6 +131,7 @@ internal static class EfQueryOperationAnalysis
             dbContext,
             efExtensions,
             modelKeys,
+            followComposedLocals,
             operations,
             localHops: 0,
             out var origin,
@@ -331,6 +333,7 @@ internal static class EfQueryOperationAnalysis
         INamedTypeSymbol dbContext,
         INamedTypeSymbol efExtensions,
         EfModelKeys? modelKeys,
+        bool followComposedLocals,
         ImmutableArray<string>.Builder operations,
         int localHops,
         out IOperation origin,
@@ -345,15 +348,54 @@ internal static class EfQueryOperationAnalysis
         }
 
         // A query local continues the chain when its value at this read is statically determined.
+        // When that value isn't a proven query, the origin proof below may still follow the local.
+        var mark = operations.Count;
         if (EfQueryLocals.TryFollow(operation, localHops, out var local, out var localValue))
         {
-            if (!TryAnalyzeSourceCore(
+            if (TryAnalyzeSourceCore(
                 localValue,
                 queryable,
                 dbSet,
                 dbContext,
                 efExtensions,
                 modelKeys,
+                followComposedLocals,
+                operations,
+                localHops + 1,
+                out origin,
+                out rowBound))
+            {
+                operations.Add($"local '{local.Name}'");
+                return true;
+            }
+
+            operations.Count = mark;
+            if (!followComposedLocals)
+            {
+                origin = operation;
+                rowBound = RowBound.None;
+                return false;
+            }
+        }
+
+        // The origin proof: a local whose every later write recomposes the local itself keeps the
+        // initializer's origin at every read, though the composition at the read is unknown. Only
+        // operations that apply on every path, the initializer's, are recorded.
+        if (followComposedLocals
+            && localHops < EfQueryLocals.MaxHops
+            && operation is ILocalReferenceOperation composedRead
+            && EfQueryLocals.GetComposed(composedRead) is { } composed
+            && composed.IsSelfComposed(candidate => candidate.Writes.All(write =>
+                IsSelfComposition(write, composedRead.Local, queryable, efExtensions))))
+        {
+            if (!TryAnalyzeSourceCore(
+                composed.Initializer,
+                queryable,
+                dbSet,
+                dbContext,
+                efExtensions,
+                modelKeys,
+                followComposedLocals,
                 operations,
                 localHops + 1,
                 out origin,
@@ -364,7 +406,7 @@ internal static class EfQueryOperationAnalysis
                 return false;
             }
 
-            operations.Add($"local '{local.Name}'");
+            operations.Add($"local '{composedRead.Local.Name}' (conditionally composed)");
             return true;
         }
 
@@ -380,6 +422,18 @@ internal static class EfQueryOperationAnalysis
         {
             origin = invocation;
             rowBound = RowBound.None;
+            return true;
+        }
+
+        // EF Core's own `DbSet<T>.AsQueryable()` returns the set itself as an IQueryable<T>.
+        if (method.Name == "AsQueryable"
+            && method.Parameters.IsEmpty
+            && invocation.Instance is { } set
+            && IsOrDerivesFrom(method.ContainingType, dbSet))
+        {
+            origin = Unwrap(set);
+            rowBound = RowBound.None;
+            operations.Add("DbSet.AsQueryable");
             return true;
         }
 
@@ -404,6 +458,7 @@ internal static class EfQueryOperationAnalysis
                 dbContext,
                 efExtensions,
                 modelKeys,
+                followComposedLocals,
                 operations,
                 localHops,
                 out origin,
@@ -425,6 +480,35 @@ internal static class EfQueryOperationAnalysis
         }
 
         return true;
+    }
+
+    // A write that recomposes `local` itself through element-preserving query operators only, or a
+    // conditional expression whose arms each do, keeps the local's origin and element type.
+    private static bool IsSelfComposition(IOperation value, ILocalSymbol local, INamedTypeSymbol queryable, INamedTypeSymbol efExtensions)
+    {
+        value = Unwrap(value);
+        switch (value)
+        {
+            case ILocalReferenceOperation reference:
+                return SymbolEqualityComparer.Default.Equals(reference.Local, local);
+            case IConditionalOperation { WhenFalse: { } whenFalse } conditional:
+                return IsSelfComposition(conditional.WhenTrue, local, queryable, efExtensions)
+                    && IsSelfComposition(whenFalse, local, queryable, efExtensions);
+            case IInvocationOperation invocation:
+                var method = NormalizeMethod(invocation.TargetMethod);
+                var containingType = method.ContainingType.OriginalDefinition;
+                var preservesElement =
+                    (SymbolEqualityComparer.Default.Equals(containingType, queryable)
+                        && ElementPreservingQueryableMethods.Contains(method.Name))
+                    || (BoundNeutralEfMethods.Contains(method.Name)
+                        && (SymbolEqualityComparer.Default.Equals(containingType, efExtensions)
+                            || method.ContainingNamespace.ToDisplayString() == "Microsoft.EntityFrameworkCore"));
+                return preservesElement
+                    && GetInvocationSource(invocation) is { } source
+                    && IsSelfComposition(source, local, queryable, efExtensions);
+            default:
+                return false;
+        }
     }
 
     private static RowBound ClassifyWhereBound(IInvocationOperation where, EfModelKeys? modelKeys)

@@ -77,7 +77,7 @@ public sealed class MaterializeThenReduceAnalyzer : DiagnosticAnalyzer
 
         var source = EfQueryOperationAnalysis.GetInvocationSource(materializer);
         if (source is null
-            || !EfQueryOperationAnalysis.TryAnalyzeSource(source, queryable, dbSet, dbContext, efExtensions, out var queryAnalysis)
+            || !EfQueryOperationAnalysis.TryAnalyzeSource(source, queryable, dbSet, dbContext, efExtensions, out var queryAnalysis, followComposedLocals: true)
             || !TryGetEligibleReducer(materializer, asynchronous, enumerable, queryAnalysis, out var reduction))
         {
             return;

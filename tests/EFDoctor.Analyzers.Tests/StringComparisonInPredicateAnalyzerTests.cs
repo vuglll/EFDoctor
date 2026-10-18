@@ -8,6 +8,7 @@ public sealed class StringComparisonInPredicateAnalyzerTests
 {
     public static IEnumerable<object[]> PositiveCases()
     {
+        yield return Case("static System.Collections.Generic.List<Entity> Run(TestContext context, string value) { var query = context.Entities.AsQueryable(); if (value != null) { query = query.Where(entity => entity.Name.Equals(value, System.StringComparison.OrdinalIgnoreCase)); } return query.ToList(); }", 1);
         yield return Case("static System.Collections.Generic.List<Entity> Run(TestContext context, string value) => context.Entities.Where(entity => entity.Name.Equals(value, System.StringComparison.OrdinalIgnoreCase)).ToList();", 1);
         yield return Case("static System.Collections.Generic.List<Entity> Run(TestContext context, string value) => context.Entities.Where(entity => entity.Name.StartsWith(value, System.StringComparison.OrdinalIgnoreCase)).ToList();", 1);
         yield return Case("static System.Collections.Generic.List<Entity> Run(TestContext context, string value) => context.Entities.Where(entity => entity.Name.EndsWith(value, System.StringComparison.Ordinal)).ToList();", 1);
@@ -19,6 +20,7 @@ public sealed class StringComparisonInPredicateAnalyzerTests
 
     public static IEnumerable<object[]> NegativeCases()
     {
+        yield return Case("static System.Collections.Generic.List<Entity> Run(string value) { var query = new Entity[0].AsQueryable(); if (value != null) { query = query.Where(entity => entity.Name.Equals(value, System.StringComparison.OrdinalIgnoreCase)); } return query.ToList(); }");
         yield return Case("static System.Collections.Generic.List<Entity> Run(TestContext context, string value) => context.Entities.Where(entity => entity.Name == value).ToList();");
         yield return Case("static System.Collections.Generic.List<Entity> Run(TestContext context, string value) => context.Entities.Where(entity => entity.Name.StartsWith(value)).ToList();");
         yield return Case("static System.Collections.Generic.List<Entity> Run(TestContext context, string value) => context.Entities.ToList().Where(entity => entity.Name.Equals(value, System.StringComparison.Ordinal)).ToList();");

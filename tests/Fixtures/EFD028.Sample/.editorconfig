@@ -1,0 +1,3 @@
+[EditorConfigSuppressed.cs]
+# Reviewed: a query-rewriting plugin translates this method.
+dotnet_diagnostic.EFD028.severity = none

@@ -23,6 +23,7 @@ public sealed class PrematureQueryMaterializationAnalyzerTests
         yield return Case("return context.Set<Entity>().ToList().Where(entity => entity.Active && (entity.Id > 0 || entity.Name == null));");
         yield return Case("return context.Entities.ToList().Where(entity => entity.Id > 0).Select(entity => entity.Id);");
         yield return Case("var query = context.Entities.Where(entity => entity.Active); return query.ToList().Where(entity => entity.Id > 10);");
+        yield return Case("var query = context.Entities.AsQueryable(); if (offset > 0) { query = query.Where(entity => entity.Active); } return query.ToList().Where(entity => entity.Id > 10);");
     }
 
     public static IEnumerable<object[]> NegativeCases()
@@ -33,6 +34,7 @@ public sealed class PrematureQueryMaterializationAnalyzerTests
         yield return SourceCase("static IEnumerable<Entity> Run(IQueryable<Entity> query) => query.ToList().Where(entity => entity.Id > 0);");
         yield return SourceCase("static IEnumerable<Entity> Run(TestContext context) => context.Entities.AsEnumerable().ToList().Where(entity => entity.Id > 0);");
         yield return SourceCase("static IEnumerable<Entity> Run(TestContext context) { var rows = context.Entities.ToList(); return rows.Where(entity => entity.Id > 0); }");
+        yield return SourceCase("static IEnumerable<Entity> Run(TestContext context, bool all) { IQueryable<Entity> query = context.Entities; if (!all) { query = new[] { new Entity() }.AsQueryable(); } return query.ToList().Where(entity => entity.Id > 0); }");
         yield return SourceCase("static IEnumerable<Entity> Run(TestContext context) => context.Entities.ToList().Distinct().Where(entity => entity.Id > 0);");
         yield return SourceCase("static IEnumerable<Entity> Run(TestContext context) => context.Entities.ToList().Where((entity, index) => entity.Id > index);");
         yield return SourceCase("static IEnumerable<Entity> Run(TestContext context) => context.Entities.ToList().Where(entity => IsGood(entity)); static bool IsGood(Entity entity) => true;");

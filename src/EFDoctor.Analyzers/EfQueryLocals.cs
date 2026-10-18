@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Operations;
@@ -11,6 +12,10 @@ namespace EFDoctor.Analyzers;
 // - the read sits in a later statement of that block, outside any lambda or local function.
 // The value is then the latest write before the read's statement, whatever path reached it, so a
 // chain proof can continue through it. Any other local ends the proof, as an unknown source does.
+//
+// For the weaker origin proof, it also exposes a local's initializer and every plain
+// `local = value;` statement anywhere in the body, so the caller can check that each write
+// recomposes the local itself and therefore keeps the initializer's origin.
 internal static class EfQueryLocals
 {
     public const int MaxHops = 8;
@@ -58,6 +63,11 @@ internal static class EfQueryLocals
 
         return true;
     }
+
+    // The initializer and plain assignment statements of a local that is never written in any
+    // other way, wherever those statements are. Null when the local has another kind of write.
+    public static ComposedLocal? GetComposed(ILocalReferenceOperation read) =>
+        Cache.GetValue(Root(read), Collect).TryGetValue(read.Local, out var writes) ? writes.Composed : null;
 
     private static IOperation Root(IOperation operation)
     {
@@ -126,19 +136,20 @@ internal static class EfQueryLocals
 
     private static void RecordDeclaration(LocalWrites writes, IVariableDeclaratorOperation declarator)
     {
-        if (writes.Block is not null
+        if (writes.Initializer is not null
             || declarator.Symbol.IsRef
-            || declarator.Initializer?.Value is not { } initializer
-            || declarator.Parent is not IVariableDeclarationOperation { Parent: IVariableDeclarationGroupOperation group }
-            || group.Parent is not IBlockOperation block)
+            || declarator.Initializer?.Value is not { } initializer)
         {
             writes.Disqualify();
             return;
         }
 
-        writes.Block = block;
-        writes.DeclarationIndex = block.Operations.IndexOf(group);
         writes.Initializer = initializer;
+        if (declarator.Parent is IVariableDeclarationOperation { Parent: IVariableDeclarationGroupOperation { Parent: IBlockOperation block } group })
+        {
+            writes.Block = block;
+            writes.DeclarationIndex = block.Operations.IndexOf(group);
+        }
     }
 
     private static void RecordReference(LocalWrites writes, ILocalReferenceOperation reference)
@@ -152,10 +163,12 @@ internal static class EfQueryLocals
         switch (reference.Parent)
         {
             case ISimpleAssignmentOperation assignment when ReferenceEquals(assignment.Target, reference):
-                if (!assignment.IsRef
-                    && assignment.Parent is IExpressionStatementOperation { Parent: IBlockOperation block } statement)
+                if (!assignment.IsRef && assignment.Parent is IExpressionStatementOperation statement)
                 {
-                    writes.AddAssignment(block, block.Operations.IndexOf(statement), assignment.Value);
+                    writes.AddAssignment(
+                        statement.Parent as IBlockOperation,
+                        statement.Parent is IBlockOperation block ? block.Operations.IndexOf(statement) : -1,
+                        assignment.Value);
                 }
                 else
                 {
@@ -195,7 +208,7 @@ internal static class EfQueryLocals
 
     private sealed class LocalWrites
     {
-        private readonly List<(IBlockOperation Block, int Index, IOperation Value)> _pending = new();
+        private readonly List<(IBlockOperation? Block, int Index, IOperation Value)> _pending = new();
         private bool _disqualified;
 
         public IBlockOperation? Block { get; set; }
@@ -208,13 +221,20 @@ internal static class EfQueryLocals
 
         public bool IsFollowable { get; private set; }
 
+        public ComposedLocal? Composed { get; private set; }
+
         public void Disqualify() => _disqualified = true;
 
-        public void AddAssignment(IBlockOperation block, int index, IOperation value) =>
+        public void AddAssignment(IBlockOperation? block, int index, IOperation value) =>
             _pending.Add((block, index, value));
 
         public void Complete()
         {
+            if (!_disqualified && Initializer is not null)
+            {
+                Composed = new ComposedLocal(Initializer, _pending.Select(static pending => pending.Value).ToImmutableArray());
+            }
+
             IsFollowable = !_disqualified
                 && Block is not null
                 && DeclarationIndex >= 0
@@ -225,6 +245,34 @@ internal static class EfQueryLocals
                     .Select(static pending => (pending.Index, pending.Value))
                     .OrderBy(static assignment => assignment.Index));
             }
+        }
+    }
+
+    internal sealed class ComposedLocal
+    {
+        private int _selfComposed;
+
+        public ComposedLocal(IOperation initializer, ImmutableArray<IOperation> writes)
+        {
+            Initializer = initializer;
+            Writes = writes;
+        }
+
+        public IOperation Initializer { get; }
+
+        public ImmutableArray<IOperation> Writes { get; }
+
+        // Caches a check that depends only on this local, so concurrent callers at worst repeat it.
+        public bool IsSelfComposed(Func<ComposedLocal, bool> check)
+        {
+            var state = Volatile.Read(ref _selfComposed);
+            if (state == 0)
+            {
+                state = check(this) ? 1 : 2;
+                Volatile.Write(ref _selfComposed, state);
+            }
+
+            return state == 1;
         }
     }
 }

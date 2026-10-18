@@ -19,13 +19,29 @@ var query = context.Orders.Where(order => order.Active);
 query = query.OrderBy(order => order.CreatedUtc);
 var page = query.Skip(20).ToList();
 
-// Not followed at any read: the composition at ToList depends on the path taken.
+// Not followed by the full proof: the composition at ToList depends on the path taken.
 var recent = context.Orders.Where(order => order.Active);
 if (onlyRecent) recent = recent.Where(order => order.CreatedUtc > cutoff);
 var all = recent.ToList();
 ```
 
-A local reassigned inside an `if`, a loop, or any other nested block is not followed at any read. Queries stored in fields or properties, or passed through parameters, return values, or helpers, are not followed either. EFD006 and EFD025 report at an include, so when includes are split across a local, each finding is still reported once.
+A local reassigned inside an `if`, a loop, or any other nested block is not followed by this full proof at any read.
+
+### Conditionally composed locals
+
+Some rules need to know only where a query comes from, not its full composition: EFD004, EFD009, EFD010, EFD013, EFD019, EFD022, and EFD023. These rules also follow a **self-composed** local, such as `recent` above. A local is self-composed when it is declared from a proven EF Core query, and every later write recomposes the local itself: `query = query.Where(…)`, ordering, `Skip`, `Take`, `Distinct`, or EF composition such as `Include` or `AsNoTracking`, or a conditional expression of those. The writes may be anywhere: in branches, loops, `switch` sections, or lambdas. Each write keeps the query's origin and element type, so every read has the initializer's origin. The chain these rules prove holds only the initializer's operations, marked `local 'recent' (conditionally composed)` in evidence.
+
+```csharp
+var query = context.Products.AsQueryable();
+if (name != null) query = query.Where(p => p.Name.ToLower() == name); // EFD009 reports this predicate
+var products = query.ToList();                                         // EFD010 reports this in an async method
+```
+
+A local that a branch replaces with a different query, or recomposes with `Select`, `Concat`, `Union`, or a helper, is not followed. Rules that report a missing bound, ordering, or include, such as EFD005, EFD006, EFD014, and EFD037, never follow a conditionally composed local: a branch could add what they report as missing.
+
+Queries stored in fields or properties, or passed through parameters, return values, or helpers, are not followed by any rule. EFD006 and EFD025 report at an include, so when includes are split across a local, each finding is still reported once.
+
+`context.Products.AsQueryable()` is EF Core's own `DbSet<T>.AsQueryable()`, and every rule treats it as `context.Products`.
 
 ## EFD001 control-flow boundary
 
@@ -85,9 +101,9 @@ The first version does not follow tasks through locals or general data flow, rep
 
 ## EFD012 raw-SQL boundary
 
-EFD012 semantically identifies interpolated strings and non-constant concatenation passed as the SQL argument of EF Core `FromSqlRaw`, `ExecuteSqlRaw`, or `ExecuteSqlRawAsync`, including through a local assigned exactly once in the same straight-line block. It reports high confidence because the dynamic SQL shape is proven; it does not claim that an input is attacker-controlled.
+EFD012 semantically identifies interpolated strings and non-constant concatenation passed as the SQL argument of EF Core `FromSqlRaw`, `ExecuteSqlRaw`, `ExecuteSqlRawAsync`, or `SqlQueryRaw<T>`, including through a local assigned exactly once in the same straight-line block. It reports high confidence because the dynamic SQL shape is proven; it does not claim that an input is attacker-controlled.
 
-Constant SQL, placeholder arguments, and interpolated-safe APIs such as `FromSqlInterpolated` and `ExecuteSqlInterpolatedAsync` are not reported, and the rule does not follow fields, parameters, helpers, or cross-method flow. Pass values as parameters; when SQL structure such as a column name must vary, select it from a fixed allow-list. See [`docs/rules/EFD012.md`](EFD012.md) for the complete contract.
+Constant SQL, placeholder arguments, and interpolated-safe APIs such as `FromSqlInterpolated`, `ExecuteSqlInterpolatedAsync`, and `SqlQuery<T>` are not reported, and the rule does not follow fields, parameters, helpers, or cross-method flow. Pass values as parameters; when SQL structure such as a column name must vary, select it from a fixed allow-list. See [`docs/rules/EFD012.md`](EFD012.md) for the complete contract.
 
 ## EFD013 bulk-operation boundary
 
@@ -160,6 +176,18 @@ Sequential awaits, separate context instances, contexts that can't be compared b
 EFD029 semantically identifies a `Queryable.OrderBy` or `OrderByDescending` whose inline source reaches an earlier `OrderBy` or `OrderByDescending`, through any `ThenBy`/`ThenByDescending` plus only `Where`, EF Core include, tracking, query-filter, tag, and split-query operators, on a query traced to `DbSet<T>` or `DbContext.Set<TEntity>()`. It reports each replacing call once, with high confidence, `Warning` severity, and the `Correctness` category.
 
 `Skip`, `Take`, `Distinct`, projections, and every other operator between the two orderings end the search, because they can give the first ordering a purpose. The stretch between the two orderings must be inline: an earlier ordering held in a local is a default being overridden, and it is not followed, although the query before the first ordering may pass through a local. In-memory ordering, unproven sources, and look-alike methods are outside the rule. See [`docs/rules/EFD029.md`](EFD029.md) for the complete contract.
+
+## EFD028 client-method boundary
+
+EFD028 semantically identifies an invocation of a method declared in the analyzed source, including a local function, inside the lambda of a `Queryable` `Where`, `OrderBy`, `OrderByDescending`, `ThenBy`, `ThenByDescending`, or predicate terminal, or of an EF Core async predicate terminal, on a query traced to `DbSet<T>` or `DbContext.Set<TEntity>()`. The call must read a parameter of that lambda, or of a lambda nested in it. It reports each call once, with high confidence, `Warning` severity, and the `Correctness` category.
+
+A call that reads no lambda parameter is evaluated on the client as a query parameter, and is not reported. Methods marked `[DbFunction]`, `[Projectable]`, `[InjectLambda]`, `[Computed]`, or `[Expandable]` are excluded. So are methods named in a `HasDbFunction` call, static methods on a `DbContext`, and throw-only stubs. Projections, methods from referenced assemblies, unmapped properties, delegate invocations, in-memory queries, and unproven sources are outside the rule. See [`docs/rules/EFD028.md`](EFD028.md) for the complete contract.
+
+## EFD030 context-lifetime boundary
+
+EFD030 semantically identifies a `return` whose value is a deferred EF Core query: a value of a type that implements `IQueryable`, or `AsEnumerable()`/`AsAsyncEnumerable()` over one, proven to originate at `DbSet<T>` or `DbContext.Set<TEntity>()`. It reports when the query's context is a local declared by a `using` declaration or `using` statement, synchronous or `await using`, whose scope contains the `return` in the same function. It also reports when the context is resolved with `GetRequiredService`/`GetService` from the `ServiceProvider` of a service scope declared that way. It reports with high confidence, `Warning` severity, and the `Reliability` category.
+
+Materialized results, contexts that outlive the method (fields, parameters, locals without `using`), returns after the `using` block or in a nested lambda or local function, and iterator methods are not reported. Neither are contexts disposed explicitly or created by a helper. See [`docs/rules/EFD030.md`](EFD030.md) for the complete contract.
 
 ## EFD037 entity-over-fetch boundary
 

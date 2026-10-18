@@ -47,20 +47,23 @@ internal sealed class EfPredicateScan
     private readonly INamedTypeSymbol _dbSet;
     private readonly INamedTypeSymbol _dbContext;
     private readonly INamedTypeSymbol _efExtensions;
+    private readonly bool _followComposedLocals;
 
     private EfPredicateScan(
         INamedTypeSymbol queryable,
         INamedTypeSymbol dbSet,
         INamedTypeSymbol dbContext,
-        INamedTypeSymbol efExtensions)
+        INamedTypeSymbol efExtensions,
+        bool followComposedLocals)
     {
+        _followComposedLocals = followComposedLocals;
         _queryable = queryable;
         _dbSet = dbSet;
         _dbContext = dbContext;
         _efExtensions = efExtensions;
     }
 
-    public static EfPredicateScan? Create(Compilation compilation)
+    public static EfPredicateScan? Create(Compilation compilation, bool followComposedLocals = false)
     {
         var queryable = compilation.GetTypeByMetadataName(QueryableMetadataName);
         var dbSet = compilation.GetTypeByMetadataName(DbSetMetadataName);
@@ -68,7 +71,7 @@ internal sealed class EfPredicateScan
         var efExtensions = compilation.GetTypeByMetadataName(EfExtensionsMetadataName);
         return queryable is null || dbSet is null || dbContext is null || efExtensions is null
             ? null
-            : new EfPredicateScan(queryable, dbSet, dbContext, efExtensions);
+            : new EfPredicateScan(queryable, dbSet, dbContext, efExtensions, followComposedLocals);
     }
 
     public bool TryGetPredicate(IInvocationOperation invocation, out SqlPredicate predicate)
@@ -90,7 +93,7 @@ internal sealed class EfPredicateScan
             || source is null
             || !EfQueryOperationAnalysis.TryGetLambda(predicateArgument, out var lambda)
             || lambda.Symbol.Parameters.Length != 1
-            || !EfQueryOperationAnalysis.TryAnalyzeSource(source, _queryable, _dbSet, _dbContext, _efExtensions, out var analysis))
+            || !EfQueryOperationAnalysis.TryAnalyzeSource(source, _queryable, _dbSet, _dbContext, _efExtensions, out var analysis, followComposedLocals: _followComposedLocals))
         {
             return false;
         }

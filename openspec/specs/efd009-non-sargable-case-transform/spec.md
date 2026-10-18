@@ -92,7 +92,7 @@ EFD009 SHALL identify the predicate operator, the transformation method, and the
 - **THEN** EFD009 evaluates the predicate
 
 #### Scenario: Unproven or in-memory source
-- **WHEN** the same predicate is applied to an arbitrary `IQueryable<T>` parameter, a stored query local whose value is not statically determined, an `AsQueryable()` in-memory source, or an `IEnumerable<T>`
+- **WHEN** the same predicate is applied to an arbitrary `IQueryable<T>` parameter, a stored query local that is neither statically determined nor self-composed, an `AsQueryable()` in-memory source, or an `IEnumerable<T>`
 - **THEN** EFD009 does not report
 
 #### Scenario: Unrelated same-named methods
@@ -105,6 +105,10 @@ EFD009 SHALL identify the predicate operator, the transformation method, and the
 
 #### Scenario: Query stored in a followable local
 - **WHEN** an eligible predicate is applied to a query local whose value is statically determined as defined by `query-chain-local-tracking`, and that value is a proven EF query
+- **THEN** EFD009 evaluates the predicate as it would for the equivalent inline query
+
+#### Scenario: Predicate in a conditional composition
+- **WHEN** an eligible predicate is applied to a self-composed query local as defined by `query-chain-local-tracking`, including inside the branch that reassigns it, as in `if (name != null) query = query.Where(p => p.Name.ToLower() == name);`
 - **THEN** EFD009 evaluates the predicate as it would for the equivalent inline query
 
 ### Requirement: Produce actionable and qualified findings

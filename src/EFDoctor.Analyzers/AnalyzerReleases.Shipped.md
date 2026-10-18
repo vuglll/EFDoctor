@@ -62,3 +62,12 @@ EFD009 | Performance | Info | Performance | Warning | Medium-confidence findings
 EFD010 | Performance | Info | Performance | Warning | Medium-confidence findings are suggestions in a build.
 EFD013 | Performance | Info | Performance | Warning | Medium-confidence findings are suggestions in a build.
 EFD020 | Performance | Info | Performance | Warning | Medium-confidence findings are suggestions in a build.
+
+## Release 0.5.0
+
+### New Rules
+
+Rule ID | Category | Severity | Notes
+--------|----------|----------|-------
+EFD028 | Correctness | Warning | Detect a method declared in the analyzed source that reads the query lambda parameter inside a proven EF Core query predicate or ordering.
+EFD030 | Reliability | Warning | Detect a deferred EF Core query returned from inside the using scope that disposes its DbContext.

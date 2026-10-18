@@ -255,3 +255,33 @@ The corpus was re-run after EFD002 learned to follow a count through a local, an
 - **1 new finding, no false positive.** Smartstore's `InvariantSeedData.Menus` stores `_db.Manufacturers.Count()` in `manufacturerCount` and only compares it with `> 0`, twice. The shape is right; it is installation seed code, so the verdict is `acceptable`.
 - **No null-checked `FirstOrDefault` in the corpus.** Where the corpus null-checks a `FirstOrDefault`, it goes on to use the entity, which the rule leaves alone. So the medium-confidence tier is unmeasured here. Its evidence is the proposal itself: the reporter found three such cases in production code, each with the result in a local.
 - **The proposal's test file is now an acceptance test.** Its twenty methods each get exactly one finding: fourteen from EFD002 and six from EFD019.
+
+## Conditionally composed query locals (2026-10-18)
+
+The corpus was re-run after the rules that need only a query's origin (EFD004, EFD009, EFD010, EFD013, EFD019, EFD022, and EFD023) learned to follow a query local that branches recompose with `query = query.Where(…)`, and after the chain proof learned that `DbSet<T>.AsQueryable()` is the set.
+
+- **No new finding from conditionally composed locals.** The recompositions in the corpus are mostly ID-list membership filters (`ids.Contains(x.Id)`), which none of these rules reports. Most of the rest are in `IQueryable` extension methods, whose source is a parameter that no rule can prove. The one text search among them (Smartstore's newsletter `Email.Contains`) runs over a joined projection, not an entity query. The added recall waits for code that has these rules' defects inside conditional composition.
+- **5 new EFD005 findings from `DbSet<T>.AsQueryable()`, no false positive.** All five are in Smartstore: `_db.X.AsQueryable().Select(x => x.Id).ToListAsync()`. EF Core's own `AsQueryable` method used to end the proof, so these queries were skipped.
+  - **1 `TP`:** the customer importer loads every customer number, from a table that grows with the shop, to check uniqueness.
+  - **4 `acceptable`:** stores, affiliates, and permission records, all small lookup tables.
+- No existing finding changed or disappeared.
+
+## New rule: EFD028 (2026-10-18)
+
+The corpus was re-run after EFD028 was added. It reports a method of the application that reads a query's lambda parameter inside a translated filter or ordering.
+
+- **0 findings.** That is the expected result for released code. The shape throws "could not be translated" the first time the query runs, so it rarely survives into code that ships. The rule's value is catching the mistake during development, and in the IDE through `EFDoctor.Analyzers`.
+- No other finding changed.
+- The precision of the rule is therefore unmeasured on the corpus. The analyzer tests cover the exclusions that matter in practice: calls that read no lambda parameter, database-function mappings, and methods marked by query-rewriting libraries.
+
+## EFD012 extension: `SqlQueryRaw<T>` (2026-10-18)
+
+EFD012 now also checks the SQL passed to `Database.SqlQueryRaw<T>`. No project in the corpus calls `SqlQueryRaw`, so the extension can't change any corpus finding, and the corpus wasn't re-run for it. The analyzer tests cover the new positive and negative shapes.
+
+## New rule: EFD030 (2026-10-18)
+
+The corpus was re-run after EFD030 was added. It reports a deferred query returned from inside the `using` scope of its `DbContext`.
+
+- **0 findings, which is correct.** Every corpus method that returns an `IQueryable`, such as Bitwarden's `IQuery<T>.Run(DatabaseContext)` classes, takes the context as a parameter, so the caller owns its lifetime. The one `IAsyncEnumerable` method that opens a scope is an async iterator, which keeps the scope open during enumeration.
+- No other finding changed.
+- Bitwarden's repositories resolve the context through a helper, `GetDatabaseContext(scope)`, which EFD030 doesn't follow. Those methods materialize before returning anyway.

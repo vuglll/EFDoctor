@@ -257,7 +257,8 @@ public sealed class BulkUpdateDeleteAnalyzer : DiagnosticAnalyzer
                 dbSet,
                 dbContext,
                 efExtensions,
-                out var analysis)
+                out var analysis,
+                followComposedLocals: true)
             || !TryGetQueryIdentities(analysis.Origin, dbContext, out var contextIdentity, out var setIdentity))
         {
             query = null!;

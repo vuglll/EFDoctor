@@ -92,7 +92,7 @@ A supported `Where` predicate SHALL be limited to direct entity member access, c
 - **THEN** EFD004 does not report
 
 ### Requirement: Preserve intentional client-evaluation boundaries and expression-local scope
-EFD004 SHALL NOT report when `AsEnumerable` or `AsAsyncEnumerable` establishes an explicit client-evaluation boundary before materialization. EFD004 SHALL analyze the materializer's containing fluent expression. It MAY trace the materializer's query source through a query local whose value is statically determined, as defined by `query-chain-local-tracking`. It SHALL NOT follow a materialized result through a local, field, property, return value, argument, helper method, or general data flow.
+EFD004 SHALL NOT report when `AsEnumerable` or `AsAsyncEnumerable` establishes an explicit client-evaluation boundary before materialization. EFD004 SHALL analyze the materializer's containing fluent expression. It MAY trace the materializer's query source through a query local whose value is statically determined, or that is self-composed, as defined by `query-chain-local-tracking`. It SHALL NOT follow a materialized result through a local, field, property, return value, argument, helper method, or general data flow.
 
 #### Scenario: Explicit AsEnumerable boundary
 - **WHEN** an EF query explicitly crosses `AsEnumerable` before materialization and later applies a LINQ operator
@@ -124,6 +124,10 @@ EFD004 SHALL NOT report when `AsEnumerable` or `AsAsyncEnumerable` establishes a
 
 #### Scenario: Query source stored in a local
 - **WHEN** an EF query is stored in a local whose value is statically determined, and a later statement materializes that local and immediately filters, projects, orders, or pages the result
+- **THEN** EFD004 reports as it would for the equivalent inline query
+
+#### Scenario: Query source composed conditionally
+- **WHEN** an EF query is stored in a self-composed local that a branch recomposes with `query = query.Where(...)`, and a later statement materializes that local and immediately filters, projects, orders, or pages the result
 - **THEN** EFD004 reports as it would for the equivalent inline query
 
 ### Requirement: Emit one actionable EFD004 finding per materialization

@@ -1,0 +1,3 @@
+[EditorConfigSuppressed.cs]
+# Reviewed: the only caller enumerates the query before this returns.
+dotnet_diagnostic.EFD030.severity = none

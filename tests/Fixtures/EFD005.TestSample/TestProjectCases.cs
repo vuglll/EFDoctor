@@ -89,4 +89,15 @@ public static class TestProjectCases
         var entity = context.Entities.Find(id);
         context.Entities.Where(candidate => candidate.Id == id).ExecuteDelete();
     }
+
+    public static IQueryable<TestEntity> ClientMethodFilter(TestContext context) =>
+        context.Entities.Where(entity => HasName(entity));
+
+    private static bool HasName(TestEntity entity) => entity.Name.Length > 0;
+
+    public static IQueryable<TestEntity> QueryOutlivesContext()
+    {
+        using var context = new TestContext();
+        return context.Entities;
+    }
 }

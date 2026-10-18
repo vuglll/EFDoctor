@@ -8,6 +8,7 @@ public sealed class SyncDatabaseCallInAsyncAnalyzerTests
 {
     public static IEnumerable<object[]> PositiveCases()
     {
+        yield return Case("static async Task Run(TestContext context, bool active) { var query = context.Entities.AsQueryable(); if (active) { query = query.Where(entity => entity.Id > 0); } var list = query.ToList(); await Task.CompletedTask; }", 1);
         yield return Case("static async Task Run(TestContext context) { var list = context.Entities.Where(entity => entity.Id > 0).ToList(); await Task.CompletedTask; }", 1);
         yield return Case("static async Task Run(TestContext context) { context.SaveChanges(); await Task.CompletedTask; }", 1);
         yield return Case("static async Task Run(TestContext context, int id) { var entity = context.Entities.Find(id); await Task.CompletedTask; }", 1);
@@ -21,6 +22,7 @@ public sealed class SyncDatabaseCallInAsyncAnalyzerTests
 
     public static IEnumerable<object[]> NegativeCases()
     {
+        yield return Case("static async Task Run(TestContext context, bool cached) { IQueryable<Entity> query = context.Entities; if (cached) { query = new List<Entity>().AsQueryable(); } var list = query.ToList(); await Task.CompletedTask; }");
         yield return Case("static void Run(TestContext context) { var list = context.Entities.ToList(); }");
         yield return Case("static async Task Run(TestContext context) { var list = await context.Entities.ToListAsync(); }");
         yield return Case("static async Task Run() { var list = new System.Collections.Generic.List<Entity>().Where(entity => entity.Id > 0).ToList(); await Task.CompletedTask; }");

@@ -613,4 +613,26 @@ public sealed class UnboundedQueryMaterializationAnalyzerTests
             {{member}}
         }
         """;
+
+    [Theory]
+    [Trait("Spec", "query-chain-local-tracking/Rules that report an absence do not use the origin proof")]
+    [InlineData("query = query.Take(10);")]
+    [InlineData("query = query.Where(entity => entity.Id == id);")]
+    public async Task ConditionallyComposedLocalIsNotFollowed(string write)
+    {
+        var source = QuerySource($$"""
+            static List<Entity> Run(TestContext context, int id)
+            {
+                var query = context.Entities.AsQueryable();
+                if (id > 0)
+                {
+                    {{write}}
+                }
+
+                return query.ToList();
+            }
+            """);
+
+        Assert.Empty(await AnalyzeAsync(source));
+    }
 }
