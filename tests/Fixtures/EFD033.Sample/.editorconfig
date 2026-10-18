@@ -1,0 +1,3 @@
+[EditorConfigSuppressed.cs]
+# Reviewed: single-threaded console tool; the context is never shared across threads.
+dotnet_diagnostic.EFD033.severity = none

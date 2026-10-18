@@ -107,4 +107,12 @@ public static class TestProjectCases
         entity.Name = "renamed";
         context.SaveChanges();
     }
+
+    public static void SingletonContext(Microsoft.Extensions.DependencyInjection.IServiceCollection services) =>
+        Microsoft.Extensions.DependencyInjection.ServiceCollectionServiceExtensions.AddSingleton<ContextHolder>(services);
+}
+
+public sealed class ContextHolder(TestContext context)
+{
+    public TestContext Context { get; } = context;
 }

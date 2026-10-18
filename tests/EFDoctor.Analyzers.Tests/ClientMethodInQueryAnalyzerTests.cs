@@ -79,6 +79,7 @@ public sealed class ClientMethodInQueryAnalyzerTests
     [MemberData(nameof(NegativeCases))]
     public async Task DoesNotReportTranslatableOrClientSideShapes(string source)
     {
+        Assert.DoesNotContain(AnalyzerTestHarness.GetCompilationDiagnostics(source, includeRelational: true), static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error);
         Assert.Empty(await AnalyzeAsync(source));
     }
 

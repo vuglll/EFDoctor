@@ -195,6 +195,12 @@ EFD032 semantically identifies `SaveChanges` or `SaveChangesAsync` on a `DbConte
 
 Between the load and the save, the entity may only be accessed through its properties or compared with `null`, and the list may only be a `foreach` collection or have its properties read. Any other use, such as passing the entity to a method, returning it, capturing it, or reassigning the local, means the entity may be attached, so nothing is reported. Changes in helpers, changes to navigation properties, context-wide no-tracking defaults, and conditionally composed query locals are outside the rule. See [`docs/rules/EFD032.md`](EFD032.md) for the complete contract.
 
+## EFD033 singleton-context boundary
+
+EFD033 matches `AddSingleton`, `TryAddSingleton`, and `AddHostedService` by name on an `IServiceCollection` receiver, in generic or `typeof` form. It reports when every public constructor of the implementation, a type declared in the analyzed source, takes a `DbContext`-derived parameter. It also reports when the registration's factory lambda resolves a `DbContext`-derived type from its own provider parameter. It reports with high confidence, `Warning` severity, and the `Reliability` category.
+
+Constructors that take `IDbContextFactory<T>`, `IServiceScopeFactory`, or `IServiceProvider`, factories that resolve through a scope they create, scoped and transient registrations, and types with a constructor that takes no context are not reported. Neither are contexts the same project registers as singletons, types from referenced assemblies, and transitive captures. See [`docs/rules/EFD033.md`](EFD033.md) for the complete contract.
+
 ## EFD037 entity-over-fetch boundary
 
 EFD037 semantically identifies `ToList`, `ToArray`, and awaited `ToListAsync`/`ToArrayAsync` on a query traced to `DbSet<T>` or `DbContext.Set<TEntity>()` that returns the entity type without `Include`, when the materialized value initializes a local. It reports the materializer when every reference to that local in the method is a `foreach`, a one-parameter `Select`, an `Any`/`All`/`Count`/`Sum`/`Min`/`Max`/`Average` with a lambda, a count, or an index read, and every reference to an entity inside those is a read of a scalar property. The method must read at least one such property, at most half of them, and leave at least four unread. It reports with advisory confidence, `Info` severity, and the `Performance` category.

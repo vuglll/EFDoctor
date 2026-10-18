@@ -29,7 +29,7 @@ Registrations are invocations on `IServiceCollection`. The implementation's cons
 
 ### Context lifetime exclusion is compilation-wide and lazy
 
-**Decision:** Scan the compilation lazily, once, for `AddDbContext`, `AddDbContextPool`, or `AddSingleton` calls whose context type is a `DbContext` and whose arguments include `ServiceLifetime.Singleton`, or whose method is `AddSingleton`. Collect the context types they register.
+**Decision:** Scan the syntax trees of the compilation lazily, once, for generic `AddDbContext<T>` or `AddDbContextPool<T>` calls with a `ServiceLifetime.Singleton` argument, and for `AddSingleton<T>`/`TryAddSingleton<T>` calls. Collect the simple names of the types they register, and compare a captured context by name. The scan is syntactic, because an analyzer may not request semantic models of other trees (RS1030). That is safe here, because the exclusion only ever removes findings.
 
 **Why:** A context deliberately registered as a singleton makes the singleton consumer consistent. That configuration is a different problem, and outside this rule.
 
