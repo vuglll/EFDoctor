@@ -80,6 +80,7 @@ public sealed class UntrackedChangeLostAnalyzerTests
     [MemberData(nameof(NegativeCases))]
     public async Task DoesNotReportTrackedOrAttachedEntities(string source)
     {
+        Assert.DoesNotContain(AnalyzerTestHarness.GetCompilationDiagnostics(source, includeRelational: true), static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error);
         Assert.Empty(await AnalyzeAsync(source));
     }
 

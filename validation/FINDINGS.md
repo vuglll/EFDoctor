@@ -292,3 +292,11 @@ The corpus was re-run after EFD032 was added. It reports a change to an `AsNoTra
 
 - **0 findings.** The corpus uses `AsNoTracking` only for reads (Smartstore's measure lookups, Bitwarden's read paths), and loads with tracking when it updates. Like EFD028 and EFD030, the shape is a bug that tends to be fixed before release, so the rule's value is in development and in the IDE.
 - No other finding changed.
+
+## New rule: EFD033 (2026-10-18)
+
+The corpus was re-run after EFD033 was added. It reports a singleton or hosted service that captures a scoped `DbContext`.
+
+- **0 findings.** The corpus's singletons and hosted services use the correct patterns. Bitwarden's singleton repositories take `IServiceScopeFactory` and open a scope per call. Jellyfin's hosted services take managers and providers, not a context.
+- **One transitive shape is outside the rule.** eShop's `GracePeriodManagerService`, a hosted service, takes `IGracePeriodOrdersRepository`, which could depend on the context. Following registrations transitively is a non-goal of the first version.
+- No other finding changed.
