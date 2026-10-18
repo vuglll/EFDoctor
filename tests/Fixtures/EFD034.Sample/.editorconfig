@@ -1,0 +1,3 @@
+[EditorConfigSuppressed.cs]
+# Reviewed: throwaway demo database, recreated on every run.
+dotnet_diagnostic.EFD034.severity = none

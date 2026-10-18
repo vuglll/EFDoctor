@@ -234,7 +234,7 @@ public sealed class EndToEndTests
 
         Assert.Equal(1, console.ExitCode);
         Assert.Empty(console.StandardError);
-        Assert.Contains("Found 18 findings.", console.StandardOutput);
+        Assert.Contains("Found 19 findings.", console.StandardOutput);
         Assert.Contains("EFD001", console.StandardOutput, StringComparison.Ordinal);
         Assert.Contains("EFD005", console.StandardOutput, StringComparison.Ordinal);
         Assert.Contains("EFD012", console.StandardOutput, StringComparison.Ordinal);
@@ -253,16 +253,17 @@ public sealed class EndToEndTests
         Assert.Contains("EFD030", console.StandardOutput, StringComparison.Ordinal);
         Assert.Contains("EFD032", console.StandardOutput, StringComparison.Ordinal);
         Assert.Contains("EFD033", console.StandardOutput, StringComparison.Ordinal);
-        Assert.Equal(18, CountOccurrences(console.StandardOutput, "Severity: Info"));
-        Assert.Equal(18, CountOccurrences(console.StandardOutput, "Confidence: Advisory"));
+        Assert.Contains("EFD034", console.StandardOutput, StringComparison.Ordinal);
+        Assert.Equal(19, CountOccurrences(console.StandardOutput, "Severity: Info"));
+        Assert.Equal(19, CountOccurrences(console.StandardOutput, "Confidence: Advisory"));
 
         Assert.Equal(1, json.ExitCode);
         Assert.Empty(json.StandardError);
         using var document = JsonDocument.Parse(json.StandardOutput);
         Assert.Equal(1, document.RootElement.GetProperty("schemaVersion").GetInt32());
         var findings = document.RootElement.GetProperty("findings").EnumerateArray().ToArray();
-        Assert.Equal(18, findings.Length);
-        Assert.Equal(new[] { "EFD005", "EFD001", "EFD012", "EFD013", "EFD017", "EFD018", "EFD019", "EFD025", "EFD009", "EFD023", "EFD029", "EFD027", "EFD037", "EFD038", "EFD028", "EFD030", "EFD032", "EFD033" }, findings.Select(static finding => finding.GetProperty("ruleId").GetString()));
+        Assert.Equal(19, findings.Length);
+        Assert.Equal(new[] { "EFD005", "EFD001", "EFD012", "EFD013", "EFD017", "EFD018", "EFD019", "EFD025", "EFD009", "EFD023", "EFD029", "EFD027", "EFD037", "EFD038", "EFD028", "EFD030", "EFD032", "EFD033", "EFD034" }, findings.Select(static finding => finding.GetProperty("ruleId").GetString()));
         Assert.All(findings, static finding =>
         {
             Assert.Equal("info", finding.GetProperty("severity").GetString());
@@ -971,6 +972,45 @@ public sealed class EndToEndTests
         Assert.Equal("Singleton 'PriceCache' captures DbContext 'SampleContext' for the application's lifetime", findings[0].GetProperty("message").GetString());
         Assert.Equal((35, 9, 35, 117), Range(findings[1]));
         Assert.Equal("Singleton 'IPriceCache' captures DbContext 'SampleContext' for the application's lifetime", findings[1].GetProperty("message").GetString());
+    }
+
+    [Fact]
+    [Trait("Spec", "efd034-ensurecreated-with-migrations/Console and JSON reporting")]
+    public async Task Efd034FixtureProducesOnlyUnsuppressedFindings()
+    {
+        var project = Path.Combine(RepositoryRoot(), "tests", "Fixtures", "EFD034.Sample", "EFD034.Sample.csproj");
+
+        var console = await RunCliAsync("analyze", project, "--no-color", "--quiet");
+        var json = await RunCliAsync("analyze", project, "--format", "json", "--quiet");
+
+        Assert.Equal(1, console.ExitCode);
+        Assert.Empty(console.StandardError);
+        Assert.Contains("Found 2 findings.", console.StandardOutput);
+        Assert.Equal(2, CountOccurrences(console.StandardOutput, "  EFD034:"));
+        Assert.Contains("EnsureCreated on a context that uses migrations", console.StandardOutput);
+        Assert.Equal(2, CountOccurrences(console.StandardOutput, "Severity: Warning | Confidence: High"));
+        Assert.DoesNotContain("EditorConfigSuppressed.cs", console.StandardOutput);
+        Assert.DoesNotContain('\u001b', console.StandardOutput);
+
+        Assert.Equal(1, json.ExitCode);
+        Assert.Empty(json.StandardError);
+        using var document = JsonDocument.Parse(json.StandardOutput);
+        Assert.Equal(1, document.RootElement.GetProperty("schemaVersion").GetInt32());
+        var findings = document.RootElement.GetProperty("findings").EnumerateArray().ToArray();
+        Assert.Equal(2, findings.Length);
+        Assert.All(findings, static finding =>
+        {
+            Assert.Equal("EFD034", finding.GetProperty("ruleId").GetString());
+            Assert.Equal("warning", finding.GetProperty("severity").GetString());
+            Assert.Equal("high", finding.GetProperty("confidence").GetString());
+            Assert.EndsWith("tests/Fixtures/EFD034.Sample/DatabaseSetupCases.cs", finding.GetProperty("sourceFile").GetString(), StringComparison.Ordinal);
+            Assert.Contains("the migration class 'Initial'", finding.GetProperty("evidence").GetString(), StringComparison.Ordinal);
+            Assert.Equal("EFD034", finding.GetProperty("documentationReference").GetString());
+        });
+        Assert.Equal((28, 64, 28, 96), Range(findings[0]));
+        Assert.Equal("EnsureCreated bypasses the migrations of 'ShopContext'", findings[0].GetProperty("message").GetString());
+        Assert.Equal((31, 81, 31, 118), Range(findings[1]));
+        Assert.Equal("EnsureCreated bypasses the migrations of 'ShopContext'", findings[1].GetProperty("message").GetString());
     }
 
     [Fact]

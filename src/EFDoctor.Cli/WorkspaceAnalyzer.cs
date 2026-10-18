@@ -41,7 +41,8 @@ public static class WorkspaceAnalyzer
             new ClientMethodInQueryAnalyzer(),
             new QueryOutlivesContextAnalyzer(),
             new UntrackedChangeLostAnalyzer(),
-            new SingletonCapturesContextAnalyzer());
+            new SingletonCapturesContextAnalyzer(),
+            new EnsureCreatedWithMigrationsAnalyzer());
 
     private static readonly ImmutableHashSet<string> DiagnosticIds = Analyzers
         .SelectMany(static analyzer => analyzer.SupportedDiagnostics)
