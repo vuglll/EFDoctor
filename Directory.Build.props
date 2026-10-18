@@ -17,7 +17,7 @@
   <!-- One version and one set of release notes for both packages: the EFDoctor tool and
        EFDoctor.Analyzers. -->
   <PropertyGroup Label="Release">
-    <Version>0.4.0</Version>
-    <PackageReleaseNotes>0.4.0: the rules now also ship as the EFDoctor.Analyzers package, which runs them in every build and in the IDE. Two new rules, for 24 in all: EFD037 reports entities loaded when only a few columns are read, and EFD038 reports ExecuteUpdate or ExecuteDelete that leaves tracked entities stale. EFD002 and EFD019 now follow a result stored in a local, and EFD002 is renamed. See CHANGELOG.md in the package.</PackageReleaseNotes>
+    <Version>0.5.0</Version>
+    <PackageReleaseNotes>0.5.0: two new rules, for 26 in all. EFD028 reports a method of the application inside a query filter or ordering, which EF Core cannot translate, and EFD030 reports a query returned after its DbContext is disposed. Rules that need only a query's origin now follow query locals composed in branches, every rule now understands DbSet.AsQueryable(), and EFD012 covers SqlQueryRaw. See CHANGELOG.md in the package.</PackageReleaseNotes>
   </PropertyGroup>
 </Project>
