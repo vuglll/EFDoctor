@@ -165,6 +165,12 @@ EFD023 semantically identifies `string.Contains(string)` or `string.EndsWith(str
 
 Prefix searches, `Like` patterns of unknown shape, `StringComparison` overloads (EFD022) and `char` overloads, collection `Contains(column)`, column-to-column searches, computed properties, nested lambdas, projections, and unproven sources are not reported. A case transformation compared with `==`, `Equals`, or `StartsWith` belongs to EFD009, so each shape gets exactly one finding. The remediation leads with SQL Server full-text search or a PostgreSQL `pg_trgm` trigram index, and suggests `StartsWith` or a reversed column where the semantics allow. See [`docs/rules/EFD023.md`](EFD023.md) for the complete contract.
 
+## EFD024 include-filtered boundary
+
+EFD024 semantically identifies a plain `Include(x => x.Nav)` of a collection navigation in a proven EF Core query that is materialized into a local by a single-entity terminal or by `ToList`/`ToArray` (or the awaited async forms). It reports when every read of the navigation, on the local or on a `foreach` variable or `Enumerable` lambda parameter over the list, is the source of an `Enumerable` predicate operator, with at least one such read, and the entities don't otherwise escape the method. It reports with advisory confidence, `Info` severity, and the `Performance` category.
+
+Navigations also used in full, entities that are returned, passed, or stored, filtered includes, and reference navigations are not reported. See [`docs/rules/EFD024.md`](EFD024.md) for the complete contract.
+
 ## EFD025 redundant-include boundary
 
 EFD025 semantically identifies resolved EF Core `Include`/`ThenInclude` chains in one inline query traced to `DbSet<T>` or `DbContext.Set<TEntity>()`. It reports a chain whose full navigation path duplicates an earlier chain, or is a strict prefix of a longer chain anywhere in the same query. Paths are compared by resolved property symbol. Constant string paths are compared only with other string paths. Findings use `Info` severity and high confidence, and the earliest occurrence of every longest path is never reported, so deleting every reported chain keeps the loaded navigations unchanged.

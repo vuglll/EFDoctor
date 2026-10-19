@@ -342,3 +342,12 @@ The corpus was re-run after EFD015 was added. It reports a key list materialized
 
 - **0 findings.** The corpus's materialized ID lists are used for more than one filter. Smartstore's `CustomerController` loads `allCustomerRoleIds` and passes it to a validator, then iterates it. Lists like that have to be materialized, and the rule leaves them alone by design. The corpus's `Contains` filters over composed queries (eShop's catalog filters, Smartstore's ACL subqueries) are already subqueries.
 - No other finding changed.
+
+## New rule: EFD024 (2026-10-18)
+
+The corpus was re-run after EFD024 was added. It reports an `Include`d collection that is only used filtered in memory.
+
+- **2 findings, both `TP`.**
+  - **Bitwarden `UserRepository.GetPremiumAccessByIdsAsync`** includes every `OrganizationUser`, with its `Organization`, for each user, and only evaluates `OrganizationUsers.Any(enabled organization that grants premium)`. A filtered `Include`, or a projection that runs the `Any` in SQL, loads only what matters.
+  - **Smartstore `TargetGroupEvaluatorTask`** includes every `RuleSet`, with its `Rules`, of each active role, and iterates only `role.RuleSets.Where(x => x.IsActive)`. A filtered `Include` would skip the inactive rule sets and their rules.
+- No other finding changed.

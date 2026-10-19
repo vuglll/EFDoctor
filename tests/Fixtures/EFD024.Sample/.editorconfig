@@ -1,0 +1,3 @@
+[EditorConfigSuppressed.cs]
+# Reviewed: a blog has a handful of posts.
+dotnet_diagnostic.EFD024.severity = none

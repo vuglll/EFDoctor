@@ -79,6 +79,8 @@ For EFD022, use diagnostic ID `EFD022` only when the query is deliberately mater
 
 For EFD023, use diagnostic ID `EFD023` and record why a scan is acceptable—for example, because the table is small or a trigram or full-text index already backs the search. To turn the advisory rule off entirely, set `dotnet_diagnostic.EFD023.severity = none` in `.editorconfig`. See [`docs/rules/EFD023.md`](rules/EFD023.md) for suppression examples.
 
+For EFD024, use diagnostic ID `EFD024` and record why loading the whole collection is fine, for example because it is small. To turn the advisory rule off entirely, set `dotnet_diagnostic.EFD024.severity = none` in `.editorconfig`. See [`docs/rules/EFD024.md`](rules/EFD024.md) for suppression examples.
+
 For EFD025, use diagnostic ID `EFD025` and record why the redundant include is kept—for example, to mirror a generated query template. To turn the cleanup rule off entirely, set `dotnet_diagnostic.EFD025.severity = none` in `.editorconfig`. See [`docs/rules/EFD025.md`](rules/EFD025.md) for suppression examples.
 
 For EFD027, use diagnostic ID `EFD027` only when the operations provably can't overlap, for example because the context is a thread-safe test double. Otherwise, await the operations in turn or give each its own context. See [`docs/rules/EFD027.md`](rules/EFD027.md) for suppression examples.
