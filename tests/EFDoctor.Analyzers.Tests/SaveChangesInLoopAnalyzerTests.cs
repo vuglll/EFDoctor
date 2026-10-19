@@ -225,6 +225,47 @@ public sealed class SaveChangesInLoopAnalyzerTests
         Assert.Contains("generated-key", SaveChangesInLoopAnalyzer.Remediation, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [Trait("Spec", "efd001-detection/Loop over an option value")]
+    [Trait("Spec", "efd001-detection/Option loop inside a per-item loop")]
+    [InlineData("foreach (var item in Lookups.Find(context)) { item.Name = \"x\"; context.SaveChanges(); }", 0)]
+    [InlineData("foreach (var item in Lookups.FindMaybe(context)) { context.SaveChanges(); }", 0)]
+    [InlineData("foreach (var item in Lookups.FindOptional(context)) { context.SaveChanges(); }", 0)]
+    [InlineData("foreach (var item in Lookups.Find(context)) { foreach (var i in new[] { 1 }) { } context.SaveChanges(); }", 0)]
+    [InlineData("foreach (var name in new[] { \"a\" }) { foreach (var item in Lookups.Find(context)) { context.SaveChanges(); } }", 1)]
+    [InlineData("foreach (var item in Lookups.Find(context)) { foreach (var i in new[] { 1 }) { context.SaveChanges(); } }", 1)]
+    public async Task TreatsALoopOverAnOptionValueAsAtMostOnce(string statement, int expected)
+    {
+        var source = AnalyzerTestHarness.ContextSource($"static void Run(TestContext context) {{ {statement} }}", OptionTypes);
+
+        Assert.Equal(expected, (await AnalyzerTestHarness.AnalyzeAsync(source)).Length);
+    }
+
+    // Option types as LanguageExt and CSharpFunctionalExtensions declare them: enumerable, with zero or one element.
+    private const string OptionTypes = """
+        sealed class Item { public string Name { get; set; } = ""; }
+        readonly struct Option<T> : IEnumerable<T>
+        {
+            public IEnumerator<T> GetEnumerator() { yield break; }
+            System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
+        }
+        sealed class Maybe<T> : IEnumerable<T>
+        {
+            public IEnumerator<T> GetEnumerator() { yield break; }
+            System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
+        }
+        readonly struct Optional<T>
+        {
+            public IEnumerator<T> GetEnumerator() { yield break; }
+        }
+        static class Lookups
+        {
+            public static Option<Item> Find(TestContext context) => default;
+            public static Maybe<Item> FindMaybe(TestContext context) => new();
+            public static Optional<Item> FindOptional(TestContext context) => default;
+        }
+        """;
+
     private static object[] Case(string statement) =>
     [
         AnalyzerTestHarness.ContextSource($"static void Run(TestContext context) {{ {statement} }}"),
