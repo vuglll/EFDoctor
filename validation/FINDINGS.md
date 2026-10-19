@@ -404,10 +404,10 @@ The new projects found two CLI bugs, both now fixed:
 2. **EFD001 treats a `foreach` over a LanguageExt `Option<T>` as a loop (23 FP, all ErsatzTV; fixed).** `foreach (var x in maybeX)` runs zero or one time, and ErsatzTV writes every "if found" branch this way. One more FP is a three-attempt retry loop around `SaveChangesAsync`.
    - **Proposed fix:** don't treat a loop over an option type as repetition. The candidates are LanguageExt's `Option<T>`, and other single-element enumerables recognized by name.
    - A `while` retry loop, bounded by an attempts counter and exited on success, is a second, smaller shape.
-3. **EFD036 judges each predicate alone (1 FP).** In `Where(s => s.SeriesId == id).AnyAsync(s => s.ValidUntilUtc >= now)`, the indexed `SeriesId` filter is in a different call from the reported predicate.
+3. **EFD036 judges each predicate alone (1 FP, fixed).** In `Where(s => s.SeriesId == id).AnyAsync(s => s.ValidUntilUtc >= now)`, the indexed `SeriesId` filter is in a different call from the reported predicate.
    - **Proposed fix:** combine the top-level `&&` terms of every filter in the chain.
    - The same issue also reports two `Where` calls on one query as two findings.
-4. **EFD024 doesn't recognize complementary filters (1 FP).** Kavita filters `ExternalRecommendations` in memory twice, with `SeriesId == null` and with `SeriesId != null`, so every row is needed.
+4. **EFD024 doesn't recognize complementary filters (1 FP, fixed).** Kavita filters `ExternalRecommendations` in memory twice, with `SeriesId == null` and with `SeriesId != null`, so every row is needed.
    - **Proposed fix:** report only when every use applies the same predicate, or when there is a single use.
 
 ### Recall gap: AutoMapper `ProjectTo`
@@ -430,14 +430,17 @@ Treating `ProjectTo` as a shape-preserving projection would recover them.
 
 ### Fixes after round 2
 
-The corpus was re-run after two fixes, and nothing else changed:
+The corpus was re-run after each of four fixes, and nothing else changed:
 
 - **`improve-efd006-global-split-query`.** EFD006 honors a split-query default configured in the same project. The CLI also honors one configured in any project it scans, and so does the new `efdoctor.split_query_by_default` global option. EFD006 falls from 68 findings to 3: Skoruba's 2 `acceptable` and Bitwarden's 1 `debatable`. It now has 0 FP.
 - **`improve-efd001-single-element-loop`.** EFD001 doesn't treat a `foreach` over `Option<T>`, `Maybe<T>`, or `Optional<T>` as a loop. ErsatzTV's EFD001 findings fall from 24 to 1, the retry loop. EFD001 is now 1 TP, 16 `acceptable`, and 1 FP.
+- **`improve-efd036-chain-filters`.** EFD036 judges a query on the filters of all its predicates, and reports it once. Kavita's EFD036 findings fall from 27 to 21:
+  - one duplicate (`GetAllCollectionsForSyncing`) is gone;
+  - five queries with an indexed filter in another `Where` are gone. These are `SeriesId` in `ExternalSeriesMetadataRepository`, and `LibraryId` in four `SeriesRepository` lookups.
+  - Round 2 had triaged those four as 1 `TP` (`LowestFolderPath`) and 3 `acceptable` (`Format`), without noticing the earlier `LibraryId` filter. They were the same false-positive class.
+- **`improve-efd024-complementary-filters`.** EFD024 skips a navigation filtered with complementary predicates (`e` and `!e`, `==` and `!=`, `<` and `>=`). Kavita's `GetSeriesDetailPlusDto` FP is gone, and the Bitwarden and Smartstore TPs remain. The round-2 proposal, which reported only identical predicates, was not used: it would also drop real findings such as `Any(p => p.Published)` together with `FirstOrDefault(p => p.Pinned)`.
 
 ### Next steps
 
-1. Fix EFD036 so it combines a chain's filters.
-2. Fix EFD024's complementary filters.
-3. Follow AutoMapper `ProjectTo` in the chain proof.
-4. Consider EFD001's bounded retry loop.
+1. Follow AutoMapper `ProjectTo` in the chain proof.
+2. Consider EFD001's bounded retry loop.
