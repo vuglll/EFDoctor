@@ -218,6 +218,12 @@ EFD034 semantically identifies `DatabaseFacade.EnsureCreated` and `EnsureCreated
 
 Provider switches, where the other arm of the same `if`/`else` or conditional expression calls `Migrate` on the same context type, are not reported. Neither are contexts without migrations in the compilation, projects whose migrations live in another assembly with no `Migrate` call here, other `DatabaseFacade` methods, or look-alike methods. See [`docs/rules/EFD034.md`](EFD034.md) for the complete contract.
 
+## EFD036 unindexed-filter boundary
+
+EFD036 reads the indexes and keys of every entity a model snapshot's `BuildModel` maps in the compilation, through the collector EFD003 uses. It also reads the filter columns of every predicate EFD009 and EFD023 analyze: the top-level `&&` terms that compare, range-filter, prefix-search, or test membership of a mapped, non-`bool` property read directly from the entity parameter. At compilation end, it reports a predicate none of whose filter columns leads an index, primary key, or alternate key of the entity or its base types. It reports with advisory confidence, `Info` severity, and the `Performance` category.
+
+Entities without a snapshot in the compilation, inconclusive snapshot coverage, terms inside `||`, column-to-column comparisons, navigation paths, transformed columns, orderings, and projections are not reported. See [`docs/rules/EFD036.md`](EFD036.md) for the complete contract.
+
 ## EFD037 entity-over-fetch boundary
 
 EFD037 semantically identifies `ToList`, `ToArray`, and awaited `ToListAsync`/`ToArrayAsync` on a query traced to `DbSet<T>` or `DbContext.Set<TEntity>()` that returns the entity type without `Include`, when the materialized value initializes a local. It reports the materializer when every reference to that local in the method is a `foreach`, a one-parameter `Select`, an `Any`/`All`/`Count`/`Sum`/`Min`/`Max`/`Average` with a lambda, a count, or an index read, and every reference to an entity inside those is a read of a scalar property. The method must read at least one such property, at most half of them, and leave at least four unread. It reports with advisory confidence, `Info` severity, and the `Performance` category.

@@ -315,3 +315,11 @@ The corpus was re-run after EFD031 was added. It reports LINQ composed over a st
 
 - **0 findings, which is correct.** The corpus has one stored-procedure query: Bitwarden's `OrganizationMemberBaseDetailRepository` calls `FromSqlRaw("EXEC [dbo].[MemberAccessReport_…] @OrganizationId", …)` and materializes it directly with `ToListAsync()`, which EF Core supports. The rule leaves it alone, as designed. The corpus's other four `FromSql` calls use composable `SELECT` text.
 - No other finding changed.
+
+## New rule: EFD036 (2026-10-18)
+
+The corpus was re-run after EFD036 was added. It reports a query filter on columns that no snapshot index leads.
+
+- **0 findings, measured on two services.** eShop's Catalog.API and Webhooks.API keep their model snapshot in the same project as their queries, so EFD036 joins them. Every filter they apply is led by an index or key: `Name` (`StartsWith`), `CatalogTypeId` and `CatalogBrandId` (`Contains`), `UserId`, `Type`, and `Id`. `Embedding != null` isn't a seekable shape. These are correct true negatives.
+- **Elsewhere the layout is outside the rule.** Bitwarden, Jellyfin, eShop's Ordering service, and ardalis-cleanarch keep their snapshot in a separate migrations or infrastructure project from most of their queries. Smartstore and OpenIddict have no EF snapshot. A snapshot in another assembly can't be read, which is a documented boundary.
+- No other finding changed.
