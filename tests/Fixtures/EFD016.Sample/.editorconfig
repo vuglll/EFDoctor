@@ -1,0 +1,3 @@
+[EditorConfigSuppressed.cs]
+# Reviewed: the audit write must complete even if the request is aborted.
+dotnet_diagnostic.EFD016.severity = none

@@ -234,7 +234,7 @@ public sealed class EndToEndTests
 
         Assert.Equal(1, console.ExitCode);
         Assert.Empty(console.StandardError);
-        Assert.Contains("Found 24 findings.", console.StandardOutput);
+        Assert.Contains("Found 25 findings.", console.StandardOutput);
         Assert.Contains("EFD001", console.StandardOutput, StringComparison.Ordinal);
         Assert.Contains("EFD005", console.StandardOutput, StringComparison.Ordinal);
         Assert.Contains("EFD012", console.StandardOutput, StringComparison.Ordinal);
@@ -258,16 +258,17 @@ public sealed class EndToEndTests
         Assert.Contains("EFD015", console.StandardOutput, StringComparison.Ordinal);
         Assert.Contains("EFD024", console.StandardOutput, StringComparison.Ordinal);
         Assert.Contains("EFD026", console.StandardOutput, StringComparison.Ordinal);
-        Assert.Equal(24, CountOccurrences(console.StandardOutput, "Severity: Info"));
-        Assert.Equal(24, CountOccurrences(console.StandardOutput, "Confidence: Advisory"));
+        Assert.Contains("EFD016", console.StandardOutput, StringComparison.Ordinal);
+        Assert.Equal(25, CountOccurrences(console.StandardOutput, "Severity: Info"));
+        Assert.Equal(25, CountOccurrences(console.StandardOutput, "Confidence: Advisory"));
 
         Assert.Equal(1, json.ExitCode);
         Assert.Empty(json.StandardError);
         using var document = JsonDocument.Parse(json.StandardOutput);
         Assert.Equal(1, document.RootElement.GetProperty("schemaVersion").GetInt32());
         var findings = document.RootElement.GetProperty("findings").EnumerateArray().ToArray();
-        Assert.Equal(24, findings.Length);
-        Assert.Equal(new[] { "EFD005", "EFD001", "EFD012", "EFD013", "EFD017", "EFD018", "EFD019", "EFD025", "EFD009", "EFD023", "EFD029", "EFD027", "EFD037", "EFD038", "EFD028", "EFD030", "EFD032", "EFD033", "EFD031", "EFD005", "EFD015", "EFD024", "EFD026", "EFD034" }, findings.Select(static finding => finding.GetProperty("ruleId").GetString()));
+        Assert.Equal(25, findings.Length);
+        Assert.Equal(new[] { "EFD005", "EFD001", "EFD012", "EFD013", "EFD017", "EFD018", "EFD019", "EFD025", "EFD009", "EFD023", "EFD029", "EFD027", "EFD037", "EFD038", "EFD028", "EFD030", "EFD032", "EFD033", "EFD031", "EFD005", "EFD015", "EFD024", "EFD026", "EFD016", "EFD034" }, findings.Select(static finding => finding.GetProperty("ruleId").GetString()));
         Assert.All(findings, static finding =>
         {
             Assert.Equal("info", finding.GetProperty("severity").GetString());
@@ -1246,6 +1247,45 @@ public sealed class EndToEndTests
         });
         Assert.Equal((24, 9, 24, 37), Range(findings[0]));
         Assert.Equal("'order' is already tracked, so Update is unnecessary and marks every column modified", findings[0].GetProperty("message").GetString());
+    }
+
+    [Fact]
+    [Trait("Spec", "efd016-cancellation-token-not-passed/Console and JSON reporting")]
+    public async Task Efd016FixtureProducesOnlyUnsuppressedFindings()
+    {
+        var project = Path.Combine(RepositoryRoot(), "tests", "Fixtures", "EFD016.Sample", "EFD016.Sample.csproj");
+
+        var console = await RunCliAsync("analyze", project, "--no-color", "--quiet");
+        var json = await RunCliAsync("analyze", project, "--format", "json", "--quiet");
+
+        Assert.Equal(1, console.ExitCode);
+        Assert.Empty(console.StandardError);
+        Assert.Contains("Found 2 findings.", console.StandardOutput);
+        Assert.Equal(2, CountOccurrences(console.StandardOutput, "  EFD016:"));
+        Assert.Contains("CancellationToken not passed to an EF Core async call", console.StandardOutput);
+        Assert.Equal(2, CountOccurrences(console.StandardOutput, "Severity: Info | Confidence: Advisory"));
+        Assert.DoesNotContain("EditorConfigSuppressed.cs", console.StandardOutput);
+        Assert.DoesNotContain('\u001b', console.StandardOutput);
+
+        Assert.Equal(1, json.ExitCode);
+        Assert.Empty(json.StandardError);
+        using var document = JsonDocument.Parse(json.StandardOutput);
+        Assert.Equal(1, document.RootElement.GetProperty("schemaVersion").GetInt32());
+        var findings = document.RootElement.GetProperty("findings").EnumerateArray().ToArray();
+        Assert.Equal(2, findings.Length);
+        Assert.All(findings, static finding =>
+        {
+            Assert.Equal("EFD016", finding.GetProperty("ruleId").GetString());
+            Assert.Equal("info", finding.GetProperty("severity").GetString());
+            Assert.Equal("advisory", finding.GetProperty("confidence").GetString());
+            Assert.EndsWith("tests/Fixtures/EFD016.Sample/TokenCases.cs", finding.GetProperty("sourceFile").GetString(), StringComparison.Ordinal);
+            Assert.Contains("parameter 'cancellationToken' of type CancellationToken is in scope", finding.GetProperty("evidence").GetString(), StringComparison.Ordinal);
+            Assert.Equal("EFD016", finding.GetProperty("documentationReference").GetString());
+        });
+        Assert.Equal((21, 9, 21, 73), Range(findings[0]));
+        Assert.Equal("'ToListAsync' doesn't pass the CancellationToken 'cancellationToken' that is in scope", findings[0].GetProperty("message").GetString());
+        Assert.Equal((25, 9, 25, 35), Range(findings[1]));
+        Assert.Equal("'SaveChangesAsync' doesn't pass the CancellationToken 'cancellationToken' that is in scope", findings[1].GetProperty("message").GetString());
     }
 
     [Fact]

@@ -133,6 +133,9 @@ public static class TestProjectCases
         context.Update(entity);
     }
 
+    public static Task<int> TokenNotPassed(TestContext context, CancellationToken cancellationToken) =>
+        context.Entities.CountAsync();
+
     public static void CreateAndMigrate(TestContext context)
     {
         context.Database.EnsureCreated();
