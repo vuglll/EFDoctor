@@ -18,6 +18,10 @@ All notable changes to EFDoctor are documented here. Versions follow [Semantic V
 - EFD035: two SQL Server column types in the model snapshot. An `nvarchar(max)` or `varchar(max)` column used in an index or key is reported with high confidence, because SQL Server can't index it and the migration fails. A `decimal` left at the default `decimal(18,2)`, with no `HasPrecision`, `[Precision]`, or `[Column(TypeName)]`, is reported with advisory confidence, because values beyond two decimal places are silently rounded. Category `Correctness`.
 - EFD036: a query filter whose columns lead no index or key in the model snapshot of the same project, for example `Where(o => o.Email == email)` when no index starts with `Email`. The database may have to scan the table. Reported with advisory confidence at `Info` severity, under the `Performance` category, for equality, range, `StartsWith`, and `Contains` filters in the predicate's top-level `&&` terms. A predicate with any indexed filter column is not reported, and neither is an entity without a snapshot in the project.
 
+### Fixed
+
+- Test-project detection keys on a test framework's core assembly (`xunit.core`, `xunit.v3.core`, `nunit.framework`, the Visual Studio test framework, or `Microsoft.NET.Test.Sdk`). A production project that references only an assertion library such as `xunit.assert`, directly or through another project, was classified as a test project and silently skipped.
+
 ## 0.5.0
 
 Two new rules that catch runtime exceptions, for 26 in all, and wider coverage for the existing rules: queries composed in branches, queries that start with `AsQueryable()`, and `SqlQueryRaw`.

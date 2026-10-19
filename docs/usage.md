@@ -156,7 +156,7 @@ dotnet_diagnostic.EFD023.severity = none      # turn a rule off
 
 ### Test projects
 
-The analyzers skip test projects, as the CLI does by default. A test project is one with the MSBuild property `IsTestProject` set to `true`, or one that references xunit, NUnit, the Visual Studio test platform, or `Microsoft.NET.Test.Sdk`. To analyze a test project anyway, set this in its project file:
+The analyzers skip test projects, as the CLI does by default. A test project is one with the MSBuild property `IsTestProject` set to `true`, or one that references a test framework's core assembly: xunit, NUnit, the Visual Studio test framework, or `Microsoft.NET.Test.Sdk`. An assertion library alone, such as `xunit.assert`, doesn't make a project a test project. To analyze a test project anyway, set this in its project file:
 
 ```xml
 <PropertyGroup>
