@@ -28,8 +28,12 @@ public static class EfTestProjectDetection
         return false;
     }
 
+    // A framework's core assembly, not a library that only ships alongside one: production code
+    // can reference `xunit.assert` or `xunit.abstractions` without being a test project.
     private static bool IsTestFrameworkAssembly(string name) =>
-        name.StartsWith("xunit", StringComparison.OrdinalIgnoreCase)
+        string.Equals(name, "xunit", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(name, "xunit.core", StringComparison.OrdinalIgnoreCase)
+        || name.StartsWith("xunit.v3.core", StringComparison.OrdinalIgnoreCase)
         || string.Equals(name, "nunit.framework", StringComparison.OrdinalIgnoreCase)
         || name.StartsWith("Microsoft.VisualStudio.TestPlatform", StringComparison.OrdinalIgnoreCase)
         || string.Equals(name, "Microsoft.NET.Test.Sdk", StringComparison.OrdinalIgnoreCase);
