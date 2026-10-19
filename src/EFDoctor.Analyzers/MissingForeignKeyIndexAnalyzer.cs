@@ -98,7 +98,7 @@ public sealed class MissingForeignKeyIndexAnalyzer : DiagnosticAnalyzer
         }
     }
 
-    private static bool IsSnapshotBuildModel(IMethodSymbol method, INamedTypeSymbol modelSnapshot)
+    internal static bool IsSnapshotBuildModel(IMethodSymbol method, INamedTypeSymbol modelSnapshot)
     {
         if (method.Name != "BuildModel" || !method.IsOverride)
         {
@@ -161,7 +161,7 @@ public sealed class MissingForeignKeyIndexAnalyzer : DiagnosticAnalyzer
         return true;
     }
 
-    private sealed class SnapshotCollector : OperationWalker
+    internal sealed class SnapshotCollector : OperationWalker
     {
         private readonly Dictionary<string, EntityRecord> _entities = new(StringComparer.Ordinal);
         private readonly List<ForeignKeyRecord> _foreignKeys = new();
@@ -431,7 +431,7 @@ public sealed class MissingForeignKeyIndexAnalyzer : DiagnosticAnalyzer
         }
     }
 
-    private sealed class EntityRecord
+    internal sealed class EntityRecord
     {
         public List<ImmutableArray<string>> CoveringPropertySets { get; } = new();
 
@@ -440,7 +440,7 @@ public sealed class MissingForeignKeyIndexAnalyzer : DiagnosticAnalyzer
         public bool IsCoverageInconclusive { get; set; }
     }
 
-    private sealed class ForeignKeyRecord
+    internal sealed class ForeignKeyRecord
     {
         public ForeignKeyRecord(
             string entityName,

@@ -91,6 +91,8 @@ For EFD033, use diagnostic ID `EFD033` only when the singleton provably runs on 
 
 For EFD034, use diagnostic ID `EFD034` only for a throwaway database that is recreated every time, and record why. Otherwise call `Migrate` or apply migrations at deployment. See [`docs/rules/EFD034.md`](rules/EFD034.md) for suppression examples.
 
+For EFD036, use diagnostic ID `EFD036` and record why the filter doesn't need an index: a small table, a low-selectivity column, or an index managed outside EF migrations. To turn the advisory rule off entirely, set `dotnet_diagnostic.EFD036.severity = none` in `.editorconfig`. See [`docs/rules/EFD036.md`](rules/EFD036.md) for suppression examples.
+
 For EFD037, use diagnostic ID `EFD037` and record why loading the whole entity is fine—for example, because the table is narrow. To turn the advisory rule off entirely, set `dotnet_diagnostic.EFD037.severity = none` in `.editorconfig`. See [`docs/rules/EFD037.md`](rules/EFD037.md) for suppression examples.
 
 For EFD038, use diagnostic ID `EFD038` only when the bulk operation's filter can't match the entities that were loaded, and record why. Otherwise clear the tracker, reload the entities, or load them without tracking. See [`docs/rules/EFD038.md`](rules/EFD038.md) for suppression examples.

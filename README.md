@@ -13,7 +13,7 @@ EFDoctor reads your code with Roslyn and reports EF Core anti-patterns: `SaveCha
 
 <sub>Real output of `efdoctor` 0.2.0 on [Microsoft's eShop](https://github.com/dotnet/eShop) at commit `b4a4087`, trimmed to two of its 15 findings. Paths are shown relative to the checkout.</sub>
 
-> **Project status:** 0.x. EFD001 through EFD006, EFD009 through EFD014, EFD017 through EFD023, EFD025, EFD027 through EFD034, EFD037, and EFD038 ship in the `efdoctor` tool and the `EFDoctor.Analyzers` package. Rules, options, and output may still change before 1.0; see the [roadmap](docs/roadmap.md).
+> **Project status:** 0.x. EFD001 through EFD006, EFD009 through EFD014, EFD017 through EFD023, EFD025, EFD027 through EFD034, and EFD036 through EFD038 ship in the `efdoctor` tool and the `EFDoctor.Analyzers` package. Rules, options, and output may still change before 1.0; see the [roadmap](docs/roadmap.md).
 
 ## Quick start
 
@@ -103,6 +103,7 @@ Precision matters more than rule count, so every finding on the corpus gets a ve
 | **EFD032** | Change to an entity loaded with `AsNoTracking`, then `SaveChanges`, which silently saves nothing | High |
 | **EFD033** | `DbContext` taken by a singleton or hosted service, which shares one context across requests | High |
 | **EFD034** | `Database.EnsureCreated()` on a context that has migrations, which bypasses the migration history | High |
+| **EFD036** | Query filter whose columns lead no index in the model snapshot, which may scan the table | Advisory |
 | **EFD037** | Entities materialized into a local when the method reads only a few of their columns | Advisory |
 | **EFD038** | `ExecuteUpdate` or `ExecuteDelete` after entities of the same type were loaded with tracking, which leaves them stale | High / Medium |
 

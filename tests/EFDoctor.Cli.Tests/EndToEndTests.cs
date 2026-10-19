@@ -1054,6 +1054,45 @@ public sealed class EndToEndTests
     }
 
     [Fact]
+    [Trait("Spec", "efd036-unindexed-predicate-column/Console and JSON reporting")]
+    public async Task Efd036FixtureProducesOnlyUnsuppressedFindings()
+    {
+        var project = Path.Combine(RepositoryRoot(), "tests", "Fixtures", "EFD036.Sample", "EFD036.Sample.csproj");
+
+        var console = await RunCliAsync("analyze", project, "--no-color", "--quiet");
+        var json = await RunCliAsync("analyze", project, "--format", "json", "--quiet");
+
+        Assert.Equal(1, console.ExitCode);
+        Assert.Empty(console.StandardError);
+        Assert.Contains("Found 2 findings.", console.StandardOutput);
+        Assert.Equal(2, CountOccurrences(console.StandardOutput, "  EFD036:"));
+        Assert.Contains("Query filter on a column without an index", console.StandardOutput);
+        Assert.Equal(2, CountOccurrences(console.StandardOutput, "Severity: Info | Confidence: Advisory"));
+        Assert.DoesNotContain("EditorConfigSuppressed.cs", console.StandardOutput);
+        Assert.DoesNotContain('\u001b', console.StandardOutput);
+
+        Assert.Equal(1, json.ExitCode);
+        Assert.Empty(json.StandardError);
+        using var document = JsonDocument.Parse(json.StandardOutput);
+        Assert.Equal(1, document.RootElement.GetProperty("schemaVersion").GetInt32());
+        var findings = document.RootElement.GetProperty("findings").EnumerateArray().ToArray();
+        Assert.Equal(2, findings.Length);
+        Assert.All(findings, static finding =>
+        {
+            Assert.Equal("EFD036", finding.GetProperty("ruleId").GetString());
+            Assert.Equal("info", finding.GetProperty("severity").GetString());
+            Assert.Equal("advisory", finding.GetProperty("confidence").GetString());
+            Assert.EndsWith("tests/Fixtures/EFD036.Sample/FilterCases.cs", finding.GetProperty("sourceFile").GetString(), StringComparison.Ordinal);
+            Assert.Contains("Model snapshot 'SampleContextModelSnapshot'", finding.GetProperty("evidence").GetString(), StringComparison.Ordinal);
+            Assert.Equal("EFD036", finding.GetProperty("documentationReference").GetString());
+        });
+        Assert.Equal((39, 39, 39, 50), Range(findings[0]));
+        Assert.Equal("No index in the model snapshot leads with 'Order.Email', which this query filters on", findings[0].GetProperty("message").GetString());
+        Assert.Equal((43, 44, 43, 60), Range(findings[1]));
+        Assert.Equal("No index in the model snapshot leads with 'Order.CreatedUtc', which this query filters on", findings[1].GetProperty("message").GetString());
+    }
+
+    [Fact]
     [Trait("Spec", "efd037-entity-over-fetch/Complete structured finding")]
     [Trait("Spec", "efd037-entity-over-fetch/Diagnostic location")]
     [Trait("Spec", "efd037-entity-over-fetch/Standard suppression")]
