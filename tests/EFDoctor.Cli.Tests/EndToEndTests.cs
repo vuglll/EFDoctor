@@ -1749,6 +1749,22 @@ public sealed class EndToEndTests
     }
 
     [Fact]
+    [Trait("Spec", "efd006-multiple-collection-include/Split query configured in another project")]
+    public async Task SplitQueryConfiguredInAnotherProjectPreventsEfd006()
+    {
+        var fixtures = Path.Combine(RepositoryRoot(), "tests", "Fixtures");
+        var dataOnly = Path.Combine(fixtures, "Workspace.SplitQueryData", "Workspace.SplitQueryData.csproj");
+        var withHost = Path.Combine(fixtures, "Workspace.SplitQueryHost", "Workspace.SplitQueryHost.csproj");
+
+        var alone = await RunCliAsync("analyze", dataOnly, "--format", "json", "--quiet");
+        var together = await RunCliAsync("analyze", withHost, "--format", "json", "--quiet");
+
+        Assert.Contains("\"EFD006\"", alone.StandardOutput, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"EFD006\"", together.StandardOutput, StringComparison.Ordinal);
+        Assert.Empty(together.StandardError);
+    }
+
+    [Fact]
     [Trait("Spec", "cli-ef-resolution-check/Skipped test project is not checked")]
     public async Task SkippedUnrestoredTestProjectIsNotChecked()
     {
