@@ -108,5 +108,6 @@ Each rule was delivered as its own OpenSpec change, archived under `openspec/cha
 35. `add-efd026-update-on-tracked-entity` added EFD026, which reports `Update` on an entity the method loaded with tracking from the same context.
 36. `add-efd016-cancellation-token-not-passed` added EFD016, which reports an EF Core async call that doesn't pass the `CancellationToken` parameter in scope.
 37. `add-code-fixes-efd029` added the `EFDoctor.CodeFixes` assembly, packed beside the analyzers, the `CodeFixTestHarness`, and the first fix: EFD029's `OrderBy` to `ThenBy`.
+38. `add-code-fix-efd002` added EFD002's fix, which replaces an inline count comparison with `Any` or `!Any`.
 
 The current behavior contract for every rule and for the CLI lives in `openspec/specs/`. The remaining candidate rules and their priorities are in the [roadmap](roadmap.md).

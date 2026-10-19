@@ -9,7 +9,7 @@ EFD002 reports `Count()` used only to test existence, as in `db.Orders.Count(o =
 - Add the **EFD002 code fix**, "Use Any". It rewrites an inline existence comparison of a reported `Count` or `CountAsync` call:
   - **Existence tests:** `> 0`, `!= 0`, and `>= 1`, either way round, become `Any(...)`/`AnyAsync(...)`.
   - **Emptiness tests:** `== 0`, `<= 0`, and `< 1` become `!Any(...)`/`!AnyAsync(...)`.
-  - **Preserved:** the predicate, the cancellation token, `await`, `ConfigureAwait`, and the reduced or static call form.
+  - **Preserved:** the predicate, the cancellation token, `await`, and the reduced or static call form.
 - The fix isn't offered for EFD002's other shapes: a count stored in a local, and a `FirstOrDefault` checked for `null`. Those span several statements.
 
 ## Capabilities
