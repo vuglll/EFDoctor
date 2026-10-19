@@ -62,7 +62,7 @@ Value, static detectability, and false-positive risk are estimates. Rules marked
 
 These improve existing rules rather than adding new ones:
 
-- **Code fixes.** `EFDoctor.Analyzers` ships quick-action fixes, for EFD029 and EFD002. EFD019 and EFD010 are next.
+- **Code fixes.** `EFDoctor.Analyzers` ships quick-action fixes, for EFD029, EFD002, and EFD019. EFD010 is next.
 - **Validation.** Keep growing the corpus, and triage every finding against the 90% precision bar.
 
 ## Possibly later
