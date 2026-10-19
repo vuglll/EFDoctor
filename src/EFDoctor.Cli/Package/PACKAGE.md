@@ -61,6 +61,7 @@ Loading a project runs its MSBuild logic, so analyze only repositories you trust
 | EFD023 | `Contains`, `EndsWith`, or leading-wildcard `Like` on a column (advisory) |
 | EFD024 | `Include`d collection only used filtered in memory, where a filtered `Include` would do (advisory) |
 | EFD025 | Duplicate or already-covered `Include` path in the same query (Info) |
+| EFD026 | `Update` on an entity the context already tracks, which marks every column modified (advisory) |
 | EFD027 | Concurrent EF Core operations on the same `DbContext`, such as `Task.WhenAll` over two queries |
 | EFD028 | Method of the application inside a query filter or ordering that EF Core cannot translate |
 | EFD029 | Second `OrderBy` that discards an earlier ordering instead of `ThenBy` |

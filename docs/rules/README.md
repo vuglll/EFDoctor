@@ -177,6 +177,12 @@ EFD025 semantically identifies resolved EF Core `Include`/`ThenInclude` chains i
 
 A repeated leading `Include` that branches into a different `ThenInclude` is required syntax and is not reported. Filtered includes, casts, non-constant strings, string-versus-expression pairs, includes split across helpers or conditionally reassigned locals, element-type-changing operators, and model `AutoInclude()` configuration are outside the rule. See [`docs/rules/EFD025.md`](EFD025.md) for the complete contract.
 
+## EFD026 update-on-tracked boundary
+
+EFD026 semantically identifies `DbContext.Update`, `Update<TEntity>`, and `DbSet<TEntity>.Update` with a local argument. It reports when the local is declared in an earlier statement of an enclosing block, in the same function, by a tracked load on the same context (symbol key): `Find`/`FindAsync`, or a single-entity terminal over a proven query with no projection and no `AsNoTracking`. Nothing between the load and the update may clear the tracker, assign an entry state, or reassign the local. It reports with advisory confidence, `Info` severity, and the `Performance` category.
+
+Detached entities from parameters or DTOs, untracked or projected loads, other contexts, `UpdateRange`, and calls in lambdas are not reported. See [`docs/rules/EFD026.md`](EFD026.md) for the complete contract.
+
 ## EFD027 concurrent-context boundary
 
 EFD027 semantically identifies EF Core asynchronous query terminals and bulk operations, `SaveChangesAsync`, and `FindAsync`, and resolves the `DbContext` each runs on. The context comes from the receiver, or from the query's proven `DbSet`/`Set<T>()` origin. It is compared only when it is a never-written local or parameter, a field or auto-property of `this` or a static one, or `this`. It reports an operation that starts while another operation on the same context is pending, with high confidence, `Warning` severity, and the `Reliability` category. That covers a later argument of `Task.WhenAll`/`Task.WhenAny`, an operation started before an earlier task local is referenced again, and an operation inside an `Enumerable.Select` selector, over a captured context, that reaches a task combinator.
