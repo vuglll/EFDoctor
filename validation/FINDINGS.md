@@ -359,3 +359,13 @@ The corpus was re-run after EFD026 was added. It reports `Update` on an entity t
 - **0 findings.** Most `Update` calls in the corpus are on detached entities, `Update`'s real use.
 - **One shape is just outside the first version.** Bitwarden's collection-access repository methods load `existingCollectionUsers` with tracking, pick an element in memory with `FirstOrDefault(…)`, change it, and call `dbContext.CollectionUsers.Update(existingCollectionUser)`. That `Update` is unnecessary too. EFD026 follows only direct EF loads, so in-memory lookups over a tracked list are a candidate extension.
 - No other finding changed.
+
+## New rule: EFD016 (2026-10-18)
+
+The corpus was re-run after EFD016 was added. It reports an EF Core async call that leaves out the `CancellationToken` in scope.
+
+- **3 findings, all in Smartstore, no false positive.** 1 `TP` and 2 `acceptable`.
+  - **TP:** `SearchQueryAliasHook`'s duplicate check passes `(all, e) => all.AnyAsync(…)` without the hook's `cancelToken`, which the lambda could capture. The hook runs on every save of those entities.
+  - **Acceptable:** the `InternationalDiallingCodes` migration's data method takes a token, and ignores it in `ToListAsync` and `SaveChangesAsync`. The shape is correct, but a one-time migration barely benefits from cancellation.
+- The corpus otherwise passes its tokens consistently, which is why the count is low.
+- No other finding changed.

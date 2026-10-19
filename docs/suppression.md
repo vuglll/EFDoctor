@@ -39,7 +39,7 @@ void SaveIndependently(DbContext context, IEnumerable<Item> items)
 
 EFDoctor has no proprietary suppression file. The same mechanisms work for the CLI and for the `EFDoctor.Analyzers` package. With the package, `.editorconfig` can also raise or lower a rule's severity; see [Default severities](usage.md#default-severities).
 
-`SuppressMessage` matches on the rule's category as well as its ID. Most rules use `Performance`; EFD012 uses `Security`, EFD014, EFD017, EFD018, EFD022, EFD028, EFD029, EFD031, EFD032, EFD034, EFD035, and EFD038 use `Correctness`, EFD021, EFD027, EFD030, and EFD033 use `Reliability`, and EFD025 uses `Maintainability`. Each rule page shows the exact attribute.
+`SuppressMessage` matches on the rule's category as well as its ID. Most rules use `Performance`; EFD012 uses `Security`, EFD014, EFD017, EFD018, EFD022, EFD028, EFD029, EFD031, EFD032, EFD034, EFD035, and EFD038 use `Correctness`, EFD016, EFD021, EFD027, EFD030, and EFD033 use `Reliability`, and EFD025 uses `Maintainability`. Each rule page shows the exact attribute.
 
 For EFD002, use the same mechanisms with diagnostic ID `EFD002`. Examples and guidance for positive, empty-set, synchronous, and asynchronous existence checks are in [`docs/rules/EFD002.md`](rules/EFD002.md).
 
@@ -74,6 +74,8 @@ For EFD020, use diagnostic ID `EFD020` and record why re-executing the query is 
 For EFD021, use diagnostic ID `EFD021` and record why static state is acceptable—for example, a single-threaded console tool that disposes the context on exit. See [`docs/rules/EFD021.md`](rules/EFD021.md) for suppression examples.
 
 For EFD015, use diagnostic ID `EFD015` and record why the list stays small. To turn the advisory rule off entirely, set `dotnet_diagnostic.EFD015.severity = none` in `.editorconfig`. See [`docs/rules/EFD015.md`](rules/EFD015.md) for suppression examples.
+
+For EFD016, use diagnostic ID `EFD016` only when the operation must complete even if the caller cancels, and record why. Passing `CancellationToken.None` explicitly records the same choice in code. To turn the advisory rule off entirely, set `dotnet_diagnostic.EFD016.severity = none` in `.editorconfig`. See [`docs/rules/EFD016.md`](rules/EFD016.md) for suppression examples.
 
 For EFD022, use diagnostic ID `EFD022` only when the query is deliberately materialized and the comparison runs on the client. See [`docs/rules/EFD022.md`](rules/EFD022.md) for suppression examples.
 

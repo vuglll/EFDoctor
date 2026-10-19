@@ -6,6 +6,7 @@
 Rule ID | Category | Severity | Notes
 --------|----------|----------|-------
 EFD015 | Performance | Info | Detect a Contains in an EF Core query over a key list materialized from another unbounded query on the same DbContext.
+EFD016 | Reliability | Info | Detect an EF Core async operation called without the CancellationToken parameter that is in scope.
 EFD024 | Performance | Info | Detect an Include of a collection navigation whose every use in the method is filtered in memory.
 EFD026 | Performance | Info | Detect Update on an entity the same method loaded with tracking from the same DbContext.
 EFD031 | Correctness | Warning | Detect a LINQ operator composed over a FromSqlRaw, FromSql, or FromSqlInterpolated stored-procedure call.

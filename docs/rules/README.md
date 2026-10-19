@@ -123,6 +123,12 @@ EFD015 semantically identifies a `Contains` call, instance or `Enumerable.Contai
 
 Bounded inner queries, lists also used elsewhere, in-memory or passed-in lists, and lists from another context are not reported. See [`docs/rules/EFD015.md`](EFD015.md) for the complete contract.
 
+## EFD016 cancellation-token boundary
+
+EFD016 semantically identifies EF Core async operations: the `Async` methods on `EntityFrameworkQueryableExtensions` and `RelationalQueryableExtensions`, `SaveChangesAsync` including overrides, and `DbSet<T>.FindAsync`. It reports one whose `CancellationToken` parameter takes its default value implicitly, or a `FindAsync` bound to the overload without a token, while a `CancellationToken` parameter of the containing method or of an enclosing lambda or local function is in scope. It reports with advisory confidence, `Info` severity, and the `Reliability` category.
+
+Calls that pass a token, including an explicit `CancellationToken.None` or `default`, methods without a token parameter in scope, and tokens held in fields or locals are not reported. See [`docs/rules/EFD016.md`](EFD016.md) for the complete contract.
+
 ## EFD017 projection boundary
 
 EFD017 semantically identifies resolved EF Core `Include` and `ThenInclude` calls in an inline chain traced to `DbSet<T>` or `DbContext.Set<TEntity>()` and followed by a resolved `Queryable.Select`. It reports once, at the `Select`, when every projected leaf is definitely non-entity: scalar, enum, nullable value, or `string` values, and anonymous objects, tuples, or object constructions built only from them. The evidence lists every include path.
