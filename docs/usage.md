@@ -166,6 +166,15 @@ The analyzers skip test projects, as the CLI does by default. A test project is 
 
 Its findings then have the same severities as anywhere else.
 
+EFD006 doesn't report when the project configures split queries by default with `UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)`. The analyzers see one project at a time. When the context is configured in another project, such as the web host, tell them in a `.globalconfig` file in the data project:
+
+```ini
+is_global = true
+efdoctor.split_query_by_default = true
+```
+
+The `efdoctor` CLI sees every project it scans, so it doesn't need this.
+
 ### Build and reference from source
 
 ```bash

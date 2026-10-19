@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Immutable;
+using System.Threading;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Operations;
@@ -68,9 +70,22 @@ public sealed class MultipleCollectionIncludeAnalyzer : DiagnosticAnalyzer
             return;
         }
 
+        // EF Core splits every query when the context is configured to, so a finding needs a
+        // single-query default. The configuration scan runs only once a finding is ready.
+        if (EfSplitQueryConfiguration.IsSetByOption(context.Options.AnalyzerConfigOptionsProvider.GlobalOptions))
+        {
+            return;
+        }
+
+        var compilation = context.Compilation;
+        var splitQueryByDefault = new Lazy<bool>(
+            () => EfSplitQueryConfiguration.IsConfiguredIn(compilation, CancellationToken.None),
+            LazyThreadSafetyMode.ExecutionAndPublication);
+
         context.RegisterOperationAction(
             operationContext => AnalyzeInvocation(
                 operationContext,
+                splitQueryByDefault,
                 queryable,
                 enumerable,
                 genericEnumerable,
@@ -83,6 +98,7 @@ public sealed class MultipleCollectionIncludeAnalyzer : DiagnosticAnalyzer
 
     private static void AnalyzeInvocation(
         OperationAnalysisContext context,
+        Lazy<bool> splitQueryByDefault,
         INamedTypeSymbol queryable,
         INamedTypeSymbol enumerable,
         INamedTypeSymbol genericEnumerable,
@@ -134,8 +150,13 @@ public sealed class MultipleCollectionIncludeAnalyzer : DiagnosticAnalyzer
             return;
         }
 
+        if (splitQueryByDefault.Value)
+        {
+            return;
+        }
+
         var paths = string.Join(", ", distinctIncludes.Select(static include => include.Path));
-        var evidence = $"The query is traced to DbSet origin '{origin.Syntax}' and resolved EF Core Include calls select distinct sibling collection paths: {paths}. No explicit AsSplitQuery or AsSingleQuery occurs in the inline chain.";
+        var evidence = $"The query is traced to DbSet origin '{origin.Syntax}' and resolved EF Core Include calls select distinct sibling collection paths: {paths}. No explicit AsSplitQuery or AsSingleQuery occurs in the inline chain, and no UseQuerySplittingBehavior(SplitQuery) configuration was found.";
         var properties = ImmutableDictionary<string, string?>.Empty
             .Add(DiagnosticPropertyNames.Confidence, Confidence)
             .Add(DiagnosticPropertyNames.Evidence, evidence)

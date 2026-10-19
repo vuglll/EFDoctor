@@ -79,7 +79,7 @@ Confidence reflects the recognized bound and best-effort call-site context: clea
 
 EFD006 semantically identifies inline EF Core query chains with at least two distinct root-level collection `Include` properties. It reports once at the second collection include, recognizes filtered selectors and static syntax, and suppresses the finding when the same inline chain explicitly uses `AsSplitQuery` or `AsSingleQuery`, the two choices EF Core itself treats as acknowledging the trade-off.
 
-The first version does not count reference navigations, duplicate paths, or collection paths found only beneath one `ThenInclude` branch, and it follows stored query values only through [query locals](#query-locals). It does not inspect global query-splitting configuration. Review generated SQL and expected cardinalities before choosing `AsSplitQuery`, projection, or separate queries because additional queries introduce round-trip and consistency trade-offs. See [`docs/rules/EFD006.md`](EFD006.md) for the complete contract.
+The first version does not count reference navigations, duplicate paths, or collection paths found only beneath one `ThenInclude` branch, and it follows stored query values only through [query locals](#query-locals). It honors a split-query default set with `UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)` in the project, in any project the CLI scans, or through the `efdoctor.split_query_by_default` global option. Review generated SQL and expected cardinalities before choosing `AsSplitQuery`, projection, or separate queries because additional queries introduce round-trip and consistency trade-offs. See [`docs/rules/EFD006.md`](EFD006.md) for the complete contract.
 
 ## EFD009 case-transform boundary
 
