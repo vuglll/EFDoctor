@@ -127,6 +127,12 @@ public static class TestProjectCases
         return entity.Children.Where(child => child.Active).ToList();
     }
 
+    public static void UpdateTracked(TestContext context, int id)
+    {
+        var entity = context.Entities.First(candidate => candidate.Id == id);
+        context.Update(entity);
+    }
+
     public static void CreateAndMigrate(TestContext context)
     {
         context.Database.EnsureCreated();

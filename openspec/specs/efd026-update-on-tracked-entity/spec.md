@@ -1,15 +1,16 @@
-## Purpose
+# efd026-update-on-tracked-entity Specification
 
+## Purpose
 Define advisory detection of `Update` called on an entity that the same `DbContext` already tracks because the method loaded it with tracking, which marks every column modified for no benefit.
 
-## ADDED Requirements
+## Requirements
 
 ### Requirement: Detect Update on an entity the context already tracks
 EFD026 SHALL report a resolved `DbContext.Update`, `DbContext.Update<TEntity>`, or `DbSet<TEntity>.Update` invocation when all of these hold:
 - **The argument:** a read of a local that is declared, with an initializer, by a statement directly in a block that encloses the invocation, in the same method, lambda, or local function, before the statement that contains the invocation.
 - **The tracked load:** the initializer is one of these:
   - a resolved `DbSet<TEntity>.Find` or `FindAsync`, awaited when asynchronous;
-  - a resolved `First`, `FirstOrDefault`, `Single`, `SingleOrDefault`, `Last`, or `LastOrDefault`, or its awaited EF Core async form, over a proven EF Core query whose chain has no `AsNoTracking` or `AsNoTrackingWithIdentityResolution` after the last `AsTracking`.
+  - a resolved `First`, `FirstOrDefault`, `Single`, `SingleOrDefault`, `Last`, or `LastOrDefault`, or its awaited EF Core async form, over a proven EF Core query whose chain has no projection (`Select`, `SelectMany`, `GroupBy`, `Join`, or `GroupJoin`), and no `AsNoTracking` or `AsNoTrackingWithIdentityResolution` after the last `AsTracking`.
 - **The context:** the load's context and the `Update` receiver's context have the same symbol key.
 - **No tracker changes:** no statement between the load and the `Update` calls `ChangeTracker.Clear()` on that context, assigns `Entry(…).State`, or writes the local.
 
@@ -24,7 +25,7 @@ EFD026 SHALL anchor the finding on the `Update` invocation.
 - **THEN** EFD026 reports the `Update` invocation
 
 #### Scenario: Untracked or external entity
-- **WHEN** the entity is a parameter, built from a DTO, or loaded with `AsNoTracking()`
+- **WHEN** the entity is a parameter, built from a DTO, projected with `Select(o => new Order { … })`, or loaded with `AsNoTracking()`
 - **THEN** EFD026 does not report
 
 #### Scenario: Tracker cleared or entity detached

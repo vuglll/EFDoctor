@@ -1,0 +1,3 @@
+[EditorConfigSuppressed.cs]
+# Reviewed: an audit trigger needs every column written.
+dotnet_diagnostic.EFD026.severity = none

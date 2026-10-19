@@ -13,7 +13,7 @@ EFDoctor reads your code with Roslyn and reports EF Core anti-patterns: `SaveCha
 
 <sub>Real output of `efdoctor` 0.2.0 on [Microsoft's eShop](https://github.com/dotnet/eShop) at commit `b4a4087`, trimmed to two of its 15 findings. Paths are shown relative to the checkout.</sub>
 
-> **Project status:** 0.x. EFD001 through EFD006, EFD009 through EFD015, EFD017 through EFD025, and EFD027 through EFD038 ship in the `efdoctor` tool and the `EFDoctor.Analyzers` package. Rules, options, and output may still change before 1.0; see the [roadmap](docs/roadmap.md).
+> **Project status:** 0.x. EFD001 through EFD006, EFD009 through EFD015, and EFD017 through EFD038 ship in the `efdoctor` tool and the `EFDoctor.Analyzers` package. Rules, options, and output may still change before 1.0; see the [roadmap](docs/roadmap.md).
 
 ## Quick start
 
@@ -97,6 +97,7 @@ Precision matters more than rule count, so every finding on the corpus gets a ve
 | **EFD023** | `Contains`, `EndsWith`, or a leading-wildcard `Like` on a column, which can't seek an index | Advisory |
 | **EFD024** | Collection loaded in full by `Include` but only used filtered in memory, where a filtered `Include` filters in SQL | Advisory |
 | **EFD025** | `Include` path that duplicates, or is covered by, another `Include` in the same query | High |
+| **EFD026** | `Update(entity)` on an entity the method loaded with tracking, which writes every column | Advisory |
 | **EFD027** | Two EF Core operations running at once on the same `DbContext`, which throws at run time | High |
 | **EFD028** | Method of the application inside a query filter or ordering, which EF Core can't translate and throws at runtime | High |
 | **EFD029** | Second `OrderBy` that discards an earlier ordering where `ThenBy` was meant | High |

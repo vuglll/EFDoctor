@@ -234,7 +234,7 @@ public sealed class EndToEndTests
 
         Assert.Equal(1, console.ExitCode);
         Assert.Empty(console.StandardError);
-        Assert.Contains("Found 23 findings.", console.StandardOutput);
+        Assert.Contains("Found 24 findings.", console.StandardOutput);
         Assert.Contains("EFD001", console.StandardOutput, StringComparison.Ordinal);
         Assert.Contains("EFD005", console.StandardOutput, StringComparison.Ordinal);
         Assert.Contains("EFD012", console.StandardOutput, StringComparison.Ordinal);
@@ -257,16 +257,17 @@ public sealed class EndToEndTests
         Assert.Contains("EFD031", console.StandardOutput, StringComparison.Ordinal);
         Assert.Contains("EFD015", console.StandardOutput, StringComparison.Ordinal);
         Assert.Contains("EFD024", console.StandardOutput, StringComparison.Ordinal);
-        Assert.Equal(23, CountOccurrences(console.StandardOutput, "Severity: Info"));
-        Assert.Equal(23, CountOccurrences(console.StandardOutput, "Confidence: Advisory"));
+        Assert.Contains("EFD026", console.StandardOutput, StringComparison.Ordinal);
+        Assert.Equal(24, CountOccurrences(console.StandardOutput, "Severity: Info"));
+        Assert.Equal(24, CountOccurrences(console.StandardOutput, "Confidence: Advisory"));
 
         Assert.Equal(1, json.ExitCode);
         Assert.Empty(json.StandardError);
         using var document = JsonDocument.Parse(json.StandardOutput);
         Assert.Equal(1, document.RootElement.GetProperty("schemaVersion").GetInt32());
         var findings = document.RootElement.GetProperty("findings").EnumerateArray().ToArray();
-        Assert.Equal(23, findings.Length);
-        Assert.Equal(new[] { "EFD005", "EFD001", "EFD012", "EFD013", "EFD017", "EFD018", "EFD019", "EFD025", "EFD009", "EFD023", "EFD029", "EFD027", "EFD037", "EFD038", "EFD028", "EFD030", "EFD032", "EFD033", "EFD031", "EFD005", "EFD015", "EFD024", "EFD034" }, findings.Select(static finding => finding.GetProperty("ruleId").GetString()));
+        Assert.Equal(24, findings.Length);
+        Assert.Equal(new[] { "EFD005", "EFD001", "EFD012", "EFD013", "EFD017", "EFD018", "EFD019", "EFD025", "EFD009", "EFD023", "EFD029", "EFD027", "EFD037", "EFD038", "EFD028", "EFD030", "EFD032", "EFD033", "EFD031", "EFD005", "EFD015", "EFD024", "EFD026", "EFD034" }, findings.Select(static finding => finding.GetProperty("ruleId").GetString()));
         Assert.All(findings, static finding =>
         {
             Assert.Equal("info", finding.GetProperty("severity").GetString());
@@ -1208,6 +1209,43 @@ public sealed class EndToEndTests
         });
         Assert.Equal((30, 26, 30, 77), Range(findings[0]));
         Assert.Equal("'Posts' is loaded in full by Include, but this method only uses it filtered; use a filtered Include", findings[0].GetProperty("message").GetString());
+    }
+
+    [Fact]
+    [Trait("Spec", "efd026-update-on-tracked-entity/Console and JSON reporting")]
+    public async Task Efd026FixtureProducesOnlyUnsuppressedFindings()
+    {
+        var project = Path.Combine(RepositoryRoot(), "tests", "Fixtures", "EFD026.Sample", "EFD026.Sample.csproj");
+
+        var console = await RunCliAsync("analyze", project, "--no-color", "--quiet");
+        var json = await RunCliAsync("analyze", project, "--format", "json", "--quiet");
+
+        Assert.Equal(1, console.ExitCode);
+        Assert.Empty(console.StandardError);
+        Assert.Contains("Found 1 finding.", console.StandardOutput);
+        Assert.Equal(1, CountOccurrences(console.StandardOutput, "  EFD026:"));
+        Assert.Contains("Update on an entity the context already tracks", console.StandardOutput);
+        Assert.Equal(1, CountOccurrences(console.StandardOutput, "Severity: Info | Confidence: Advisory"));
+        Assert.DoesNotContain("EditorConfigSuppressed.cs", console.StandardOutput);
+        Assert.DoesNotContain('\u001b', console.StandardOutput);
+
+        Assert.Equal(1, json.ExitCode);
+        Assert.Empty(json.StandardError);
+        using var document = JsonDocument.Parse(json.StandardOutput);
+        Assert.Equal(1, document.RootElement.GetProperty("schemaVersion").GetInt32());
+        var findings = document.RootElement.GetProperty("findings").EnumerateArray().ToArray();
+        Assert.Single(findings);
+        Assert.All(findings, static finding =>
+        {
+            Assert.Equal("EFD026", finding.GetProperty("ruleId").GetString());
+            Assert.Equal("info", finding.GetProperty("severity").GetString());
+            Assert.Equal("advisory", finding.GetProperty("confidence").GetString());
+            Assert.EndsWith("tests/Fixtures/EFD026.Sample/UpdateCases.cs", finding.GetProperty("sourceFile").GetString(), StringComparison.Ordinal);
+            Assert.Contains("is loaded with tracking by", finding.GetProperty("evidence").GetString(), StringComparison.Ordinal);
+            Assert.Equal("EFD026", finding.GetProperty("documentationReference").GetString());
+        });
+        Assert.Equal((24, 9, 24, 37), Range(findings[0]));
+        Assert.Equal("'order' is already tracked, so Update is unnecessary and marks every column modified", findings[0].GetProperty("message").GetString());
     }
 
     [Fact]

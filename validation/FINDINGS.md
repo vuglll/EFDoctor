@@ -351,3 +351,11 @@ The corpus was re-run after EFD024 was added. It reports an `Include`d collectio
   - **Bitwarden `UserRepository.GetPremiumAccessByIdsAsync`** includes every `OrganizationUser`, with its `Organization`, for each user, and only evaluates `OrganizationUsers.Any(enabled organization that grants premium)`. A filtered `Include`, or a projection that runs the `Any` in SQL, loads only what matters.
   - **Smartstore `TargetGroupEvaluatorTask`** includes every `RuleSet`, with its `Rules`, of each active role, and iterates only `role.RuleSets.Where(x => x.IsActive)`. A filtered `Include` would skip the inactive rule sets and their rules.
 - No other finding changed.
+
+## New rule: EFD026 (2026-10-18)
+
+The corpus was re-run after EFD026 was added. It reports `Update` on an entity the method loaded with tracking.
+
+- **0 findings.** Most `Update` calls in the corpus are on detached entities, `Update`'s real use.
+- **One shape is just outside the first version.** Bitwarden's collection-access repository methods load `existingCollectionUsers` with tracking, pick an element in memory with `FirstOrDefault(…)`, change it, and call `dbContext.CollectionUsers.Update(existingCollectionUser)`. That `Update` is unnecessary too. EFD026 follows only direct EF loads, so in-memory lookups over a tracked list are a candidate extension.
+- No other finding changed.

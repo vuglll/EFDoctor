@@ -83,6 +83,8 @@ For EFD024, use diagnostic ID `EFD024` and record why loading the whole collecti
 
 For EFD025, use diagnostic ID `EFD025` and record why the redundant include is kept—for example, to mirror a generated query template. To turn the cleanup rule off entirely, set `dotnet_diagnostic.EFD025.severity = none` in `.editorconfig`. See [`docs/rules/EFD025.md`](rules/EFD025.md) for suppression examples.
 
+For EFD026, use diagnostic ID `EFD026` only when every column must be written on purpose, for example for an audit trigger, and record why. Otherwise remove the `Update` call. See [`docs/rules/EFD026.md`](rules/EFD026.md) for suppression examples.
+
 For EFD027, use diagnostic ID `EFD027` only when the operations provably can't overlap, for example because the context is a thread-safe test double. Otherwise, await the operations in turn or give each its own context. See [`docs/rules/EFD027.md`](rules/EFD027.md) for suppression examples.
 
 For EFD030, use diagnostic ID `EFD030` only when every caller provably enumerates the query before the method's scope ends, and record why. Otherwise materialize before returning, or let the caller own the context. See [`docs/rules/EFD030.md`](rules/EFD030.md) for suppression examples.

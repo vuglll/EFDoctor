@@ -47,7 +47,8 @@ public static class WorkspaceAnalyzer
             new UnindexedPredicateColumnAnalyzer(),
             new UnsizedSnapshotColumnAnalyzer(),
             new MaterializedContainsListAnalyzer(),
-            new IncludeFilteredInMemoryAnalyzer());
+            new IncludeFilteredInMemoryAnalyzer(),
+            new UpdateOnTrackedEntityAnalyzer());
 
     private static readonly ImmutableHashSet<string> DiagnosticIds = Analyzers
         .SelectMany(static analyzer => analyzer.SupportedDiagnostics)
