@@ -60,6 +60,14 @@ Test projects are skipped: a project with `IsTestProject` set to `true`, or one 
 
 The rules are listed with their confidence in the [project README](https://github.com/vuglll/EFDoctor#rules). Every diagnostic links to its [rule page](https://github.com/vuglll/EFDoctor/tree/main/docs/rules), which describes what triggers the rule, what deliberately doesn't, and the fix. Suppress an intentional finding with standard Roslyn mechanisms (`#pragma warning disable EFD001`, `.editorconfig`, or `[SuppressMessage]`), and record why.
 
+## Code fixes
+
+For the mechanical remediations, the IDE offers a quick action that applies the fix. One is available so far:
+
+- EFD029: replace the discarding `OrderBy` with `ThenBy`.
+
+The fixes ship in this package, in `EFDoctor.CodeFixes.dll`, which only IDEs load. The command-line build ignores it.
+
 ## License
 
 Apache-2.0. See the `NOTICE` file included in the package.

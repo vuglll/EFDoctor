@@ -33,7 +33,7 @@ The same rules ship in two packages. Use either, or both.
 | | `EFDoctor` (.NET tool) | `EFDoctor.Analyzers` (analyzer package) |
 |---|---|---|
 | Runs | When you run `efdoctor analyze`, locally or in CI | In every build and in the IDE, as you type |
-| Shows | A report: evidence, likely impact, and remediation for each finding; console or JSON | Compiler diagnostics, each linked to its rule page |
+| Shows | A report: evidence, likely impact, and remediation for each finding; console or JSON | Compiler diagnostics, each linked to its rule page, with quick-action code fixes for the mechanical remediations |
 | Setup | Nothing in the repository | One package reference, for example through central package management |
 | Good for | Auditing a codebase, CI gates, and reviewing every finding with its context | Catching a problem while the code is being written |
 

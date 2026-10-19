@@ -62,6 +62,7 @@ Value, static detectability, and false-positive risk are estimates. Rules marked
 
 These improve existing rules rather than adding new ones:
 
+- **Code fixes.** `EFDoctor.Analyzers` ships quick-action fixes, starting with EFD029. EFD002, EFD019, and EFD010 are next.
 - **Validation.** Keep growing the corpus, and triage every finding against the 90% precision bar.
 
 ## Possibly later
@@ -73,7 +74,6 @@ These improve existing rules rather than adding new ones:
   - repeated high-cost queries.
 
   DMV suggestions would be presented as evidence, not automatic recommendations.
-- **Code fixes** for the mechanical remediations, such as `Count() > 0` to `Any()`, now that the rules also ship as the `EFDoctor.Analyzers` package.
 
 ## Out of scope
 
