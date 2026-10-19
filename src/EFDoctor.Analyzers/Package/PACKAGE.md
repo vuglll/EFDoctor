@@ -62,9 +62,10 @@ The rules are listed with their confidence in the [project README](https://githu
 
 ## Code fixes
 
-For the mechanical remediations, the IDE offers a quick action that applies the fix. Three are available so far:
+For the mechanical remediations, the IDE offers a quick action that applies the fix. Four are available so far:
 
 - EFD002: replace a count compared for existence with `Any`, or its negation.
+- EFD010: await the async counterpart of the synchronous call, passing a `CancellationToken` in scope.
 - EFD019: drop the materialization and reduce in the query, in async form when it was awaited.
 - EFD029: replace the discarding `OrderBy` with `ThenBy`.
 

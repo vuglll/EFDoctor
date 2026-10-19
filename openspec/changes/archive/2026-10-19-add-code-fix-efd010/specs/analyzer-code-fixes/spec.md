@@ -26,5 +26,5 @@ The fix SHALL be offered only when all of these hold:
 - **THEN** the fix produces `(await db.Orders.ToListAsync()).Count`
 
 #### Scenario: Await not possible
-- **WHEN** the reported call is in a non-async lambda inside an async method, inside a `lock` statement, or in static form
+- **WHEN** the reported call is inside a `lock` statement, or in static form such as `Queryable.Count(db.Orders)`
 - **THEN** the fix is not offered
