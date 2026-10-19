@@ -44,6 +44,17 @@ internal static class AnalyzerTestHarness
             .GetAnalyzerDiagnosticsAsync();
     }
 
+    // Separates the sources of several syntax trees in one fixture string.
+    internal const string TreeSeparator = "\n//---- next tree ----\n";
+
+    // Analyzes several source files as one compilation, for rules that join information across files.
+    public static Task<ImmutableArray<Diagnostic>> AnalyzeTreesAsync(
+        IEnumerable<string> sources,
+        bool includeRelational = false,
+        DiagnosticAnalyzer? analyzer = null,
+        string diagnosticId = SaveChangesInLoopAnalyzer.DiagnosticId) =>
+        AnalyzeAsync(string.Join(TreeSeparator, sources), includeRelational: includeRelational, analyzer: analyzer, diagnosticId: diagnosticId);
+
     public static ImmutableArray<Diagnostic> GetCompilationDiagnostics(
         string source,
         bool includeEntityFramework = true,
@@ -152,10 +163,12 @@ internal static class AnalyzerTestHarness
         string diagnosticId,
         bool includeTestFramework = false)
     {
-        var syntaxTree = CSharpSyntaxTree.ParseText(
-            source,
-            new CSharpParseOptions(LanguageVersion.Preview),
-            path: "/tests/Fixture.cs");
+        var syntaxTrees = source.Split(TreeSeparator)
+            .Select(static (text, index) => CSharpSyntaxTree.ParseText(
+                text,
+                new CSharpParseOptions(LanguageVersion.Preview),
+                path: index == 0 ? "/tests/Fixture.cs" : $"/tests/Fixture{index}.cs"))
+            .ToArray();
         var options = new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
             .WithNullableContextOptions(NullableContextOptions.Enable);
         if (configuredSeverity is not null)
@@ -196,7 +209,7 @@ internal static class AnalyzerTestHarness
 
         return CSharpCompilation.Create(
             "AnalyzerFixture",
-            [syntaxTree],
+            syntaxTrees,
             references,
             options);
     }

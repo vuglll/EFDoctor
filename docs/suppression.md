@@ -39,7 +39,7 @@ void SaveIndependently(DbContext context, IEnumerable<Item> items)
 
 EFDoctor has no proprietary suppression file. The same mechanisms work for the CLI and for the `EFDoctor.Analyzers` package. With the package, `.editorconfig` can also raise or lower a rule's severity; see [Default severities](usage.md#default-severities).
 
-`SuppressMessage` matches on the rule's category as well as its ID. Most rules use `Performance`; EFD012 uses `Security`, EFD014, EFD017, EFD018, EFD022, EFD028, EFD029, EFD031, EFD032, EFD034, and EFD038 use `Correctness`, EFD021, EFD027, EFD030, and EFD033 use `Reliability`, and EFD025 uses `Maintainability`. Each rule page shows the exact attribute.
+`SuppressMessage` matches on the rule's category as well as its ID. Most rules use `Performance`; EFD012 uses `Security`, EFD014, EFD017, EFD018, EFD022, EFD028, EFD029, EFD031, EFD032, EFD034, EFD035, and EFD038 use `Correctness`, EFD021, EFD027, EFD030, and EFD033 use `Reliability`, and EFD025 uses `Maintainability`. Each rule page shows the exact attribute.
 
 For EFD002, use the same mechanisms with diagnostic ID `EFD002`. Examples and guidance for positive, empty-set, synchronous, and asynchronous existence checks are in [`docs/rules/EFD002.md`](rules/EFD002.md).
 
@@ -90,6 +90,8 @@ For EFD032, use diagnostic ID `EFD032` only when something EFDoctor can't see, s
 For EFD033, use diagnostic ID `EFD033` only when the singleton provably runs on one thread and uses the context briefly, and record why. Otherwise take `IDbContextFactory<T>` or `IServiceScopeFactory`, or register the service as scoped. See [`docs/rules/EFD033.md`](rules/EFD033.md) for suppression examples.
 
 For EFD034, use diagnostic ID `EFD034` only for a throwaway database that is recreated every time, and record why. Otherwise call `Migrate` or apply migrations at deployment. See [`docs/rules/EFD034.md`](rules/EFD034.md) for suppression examples.
+
+For EFD035, findings are in the generated model snapshot, so suppress with `dotnet_diagnostic.EFD035.severity = none` in an `.editorconfig` section for the snapshot file, and record why, for example that `decimal(18,2)` is configured with `HasColumnType`. Otherwise fix the model with `HasMaxLength` or `HasPrecision`, and regenerate the snapshot. See [`docs/rules/EFD035.md`](rules/EFD035.md).
 
 For EFD036, use diagnostic ID `EFD036` and record why the filter doesn't need an index: a small table, a low-selectivity column, or an index managed outside EF migrations. To turn the advisory rule off entirely, set `dotnet_diagnostic.EFD036.severity = none` in `.editorconfig`. See [`docs/rules/EFD036.md`](rules/EFD036.md) for suppression examples.
 

@@ -218,6 +218,12 @@ EFD034 semantically identifies `DatabaseFacade.EnsureCreated` and `EnsureCreated
 
 Provider switches, where the other arm of the same `if`/`else` or conditional expression calls `Migrate` on the same context type, are not reported. Neither are contexts without migrations in the compilation, projects whose migrations live in another assembly with no `Migrate` call here, other `DatabaseFacade` methods, or look-alike methods. See [`docs/rules/EFD034.md`](EFD034.md) for the complete contract.
 
+## EFD035 snapshot-column boundary
+
+EFD035 reads each `Property(…)` chain in a model snapshot's `BuildModel`. It reports, with high confidence, a property whose `HasColumnType` is `nvarchar(max)` or `varchar(max)` and that is a column of a `HasIndex`, `HasKey`, or `HasAlternateKey` of the same entity. It reports, with advisory confidence, a `decimal` property whose `HasColumnType` is `decimal(18,2)` with no `HasPrecision`, unless the CLR property in the compilation has `[Precision]` or `[Column(TypeName = …)]`. The category is `Correctness`.
+
+Unindexed unbounded strings, other providers' store types, decimals with other types or configured precision, and snapshots in other assemblies are not reported. See [`docs/rules/EFD035.md`](EFD035.md) for the complete contract.
+
 ## EFD036 unindexed-filter boundary
 
 EFD036 reads the indexes and keys of every entity a model snapshot's `BuildModel` maps in the compilation, through the collector EFD003 uses. It also reads the filter columns of every predicate EFD009 and EFD023 analyze: the top-level `&&` terms that compare, range-filter, prefix-search, or test membership of a mapped, non-`bool` property read directly from the entity parameter. At compilation end, it reports a predicate none of whose filter columns leads an index, primary key, or alternate key of the entity or its base types. It reports with advisory confidence, `Info` severity, and the `Performance` category.

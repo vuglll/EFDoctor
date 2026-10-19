@@ -255,7 +255,7 @@ public sealed class MissingForeignKeyIndexAnalyzer : DiagnosticAnalyzer
             && candidate.ContainingAssembly.Name == "Microsoft.EntityFrameworkCore";
     }
 
-    private static bool TryGetContainingEntity(IOperation operation, out string entityName)
+    internal static bool TryGetContainingEntity(IOperation operation, out string entityName)
     {
         for (var current = operation.Parent; current is not null; current = current.Parent)
         {

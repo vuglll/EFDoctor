@@ -1086,10 +1086,52 @@ public sealed class EndToEndTests
             Assert.Contains("Model snapshot 'SampleContextModelSnapshot'", finding.GetProperty("evidence").GetString(), StringComparison.Ordinal);
             Assert.Equal("EFD036", finding.GetProperty("documentationReference").GetString());
         });
-        Assert.Equal((39, 39, 39, 50), Range(findings[0]));
+        Assert.Equal((24, 39, 24, 50), Range(findings[0]));
         Assert.Equal("No index in the model snapshot leads with 'Order.Email', which this query filters on", findings[0].GetProperty("message").GetString());
-        Assert.Equal((43, 44, 43, 60), Range(findings[1]));
+        Assert.Equal((28, 44, 28, 60), Range(findings[1]));
         Assert.Equal("No index in the model snapshot leads with 'Order.CreatedUtc', which this query filters on", findings[1].GetProperty("message").GetString());
+    }
+
+    [Fact]
+    [Trait("Spec", "efd035-unsized-snapshot-column/Console and JSON reporting")]
+    public async Task Efd035FixtureProducesOnlyUnsuppressedFindings()
+    {
+        var project = Path.Combine(RepositoryRoot(), "tests", "Fixtures", "EFD035.Sample", "EFD035.Sample.csproj");
+
+        var console = await RunCliAsync("analyze", project, "--no-color", "--quiet");
+        var json = await RunCliAsync("analyze", project, "--format", "json", "--quiet");
+
+        Assert.Equal(1, console.ExitCode);
+        Assert.Empty(console.StandardError);
+        Assert.Contains("Found 2 findings.", console.StandardOutput);
+        Assert.Equal(2, CountOccurrences(console.StandardOutput, "  EFD035:"));
+        Assert.Contains("Unsized column in the model snapshot", console.StandardOutput);
+        Assert.Equal(1, CountOccurrences(console.StandardOutput, "Severity: Warning | Confidence: High"));
+        Assert.Equal(1, CountOccurrences(console.StandardOutput, "Severity: Info | Confidence: Advisory"));
+        Assert.DoesNotContain("EditorConfigSuppressed.cs", console.StandardOutput);
+        Assert.DoesNotContain('\u001b', console.StandardOutput);
+
+        Assert.Equal(1, json.ExitCode);
+        Assert.Empty(json.StandardError);
+        using var document = JsonDocument.Parse(json.StandardOutput);
+        Assert.Equal(1, document.RootElement.GetProperty("schemaVersion").GetInt32());
+        var findings = document.RootElement.GetProperty("findings").EnumerateArray().ToArray();
+        Assert.Equal(2, findings.Length);
+        Assert.All(findings, static finding =>
+        {
+            Assert.Equal("EFD035", finding.GetProperty("ruleId").GetString());
+            Assert.EndsWith("tests/Fixtures/EFD035.Sample/SnapshotCases.cs", finding.GetProperty("sourceFile").GetString(), StringComparison.Ordinal);
+            Assert.Contains("Model snapshot 'SampleContextModelSnapshot'", finding.GetProperty("evidence").GetString(), StringComparison.Ordinal);
+            Assert.Equal("EFD035", finding.GetProperty("documentationReference").GetString());
+        });
+        Assert.Equal((33, 13, 35, 48), Range(findings[0]));
+        Assert.Equal("warning", findings[0].GetProperty("severity").GetString());
+        Assert.Equal("high", findings[0].GetProperty("confidence").GetString());
+        Assert.Equal("'Invoice.Email' is nvarchar(max), which SQL Server cannot use in an index or key", findings[0].GetProperty("message").GetString());
+        Assert.Equal((52, 13, 53, 48), Range(findings[1]));
+        Assert.Equal("info", findings[1].GetProperty("severity").GetString());
+        Assert.Equal("advisory", findings[1].GetProperty("confidence").GetString());
+        Assert.Equal("'Invoice.TaxRate' has no configured precision, so SQL Server stores it as decimal(18,2)", findings[1].GetProperty("message").GetString());
     }
 
     [Fact]

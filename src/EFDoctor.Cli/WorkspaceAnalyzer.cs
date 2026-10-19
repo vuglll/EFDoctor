@@ -44,7 +44,8 @@ public static class WorkspaceAnalyzer
             new SingletonCapturesContextAnalyzer(),
             new EnsureCreatedWithMigrationsAnalyzer(),
             new ComposedStoredProcedureAnalyzer(),
-            new UnindexedPredicateColumnAnalyzer());
+            new UnindexedPredicateColumnAnalyzer(),
+            new UnsizedSnapshotColumnAnalyzer());
 
     private static readonly ImmutableHashSet<string> DiagnosticIds = Analyzers
         .SelectMany(static analyzer => analyzer.SupportedDiagnostics)
