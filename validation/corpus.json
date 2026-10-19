@@ -50,6 +50,30 @@
       "target": "src/OpenIddict.EntityFrameworkCore/OpenIddict.EntityFrameworkCore.csproj",
       "kind": "library",
       "note": "Targets the EF Core store library only: the solution also contains MAUI, WinForms, and WPF sandbox apps whose workloads are not available on every platform."
+    },
+    {
+      "name": "kavita",
+      "repository": "https://github.com/Kareadita/Kavita",
+      "commit": "2d225367f0310ac7354423b772a4c6a7caf63fd2",
+      "target": "Kavita.sln",
+      "kind": "application",
+      "note": "Added for round 2: bulk ExecuteUpdate/ExecuteDelete, AsNoTracking reads, and a model snapshot in the same solution as its repositories."
+    },
+    {
+      "name": "ersatztv",
+      "repository": "https://github.com/ErsatzTV/ErsatzTV",
+      "commit": "acd4311bdaed409d5fc5c2af956fcec8340ecc58",
+      "target": "ErsatzTV.sln",
+      "kind": "application",
+      "note": "Added for round 2: a large EF Core application with per-provider migration snapshots."
+    },
+    {
+      "name": "skoruba-admin",
+      "repository": "https://github.com/skoruba/Duende.IdentityServer.Admin",
+      "commit": "06386cc726f1218d45cef82baad3f1692489300c",
+      "target": "Skoruba.Duende.IdentityServer.Admin.sln",
+      "kind": "application",
+      "note": "Added for round 2: an EF Core admin application with several DbContexts, ExecuteDelete, and AsNoTracking reads."
     }
   ]
 }
