@@ -20,7 +20,7 @@ Nothing below is a promise. A candidate becomes a rule only when it passes the q
 | Correctness | EFD014 unordered pagination, EFD017 `Include` dropped by `Select`, EFD022 untranslatable `StringComparison`, EFD028 method of the application in a query filter or ordering, EFD029 `OrderBy` that discards an earlier ordering, EFD031 LINQ composed over a stored-procedure call, EFD032 change to an `AsNoTracking` entity that is never saved, EFD034 `EnsureCreated` on a context that uses migrations, EFD038 bulk operation that leaves tracked entities stale |
 | Async and lifetime | EFD010 sync database call in async code, EFD011 blocking on EF async, EFD018 unawaited EF task, EFD021 static `DbContext`, EFD027 concurrent operations on one `DbContext`, EFD030 query returned after its `DbContext` is disposed, EFD033 `DbContext` captured by a singleton |
 | Safety | EFD012 raw SQL built from interpolation or concatenation |
-| Indexing and sargability | EFD003 foreign key without an index (SQL Server, PostgreSQL), EFD009 `ToLower`/`ToUpper` on a column, EFD023 leading-wildcard search (advisory), EFD036 query filter on a column without an index (advisory) |
+| Indexing and sargability | EFD003 foreign key without an index (SQL Server, PostgreSQL), EFD009 `ToLower`/`ToUpper` on a column, EFD023 leading-wildcard search (advisory), EFD035 indexed `nvarchar(max)` and defaulted `decimal` in the model snapshot, EFD036 query filter on a column without an index (advisory) |
 
 Each rule's contract is in `openspec/specs/`, and its reference page is in [`docs/rules/`](rules/). Every rule ships in both the `efdoctor` tool and the `EFDoctor.Analyzers` package.
 
@@ -54,7 +54,6 @@ Value, static detectability, and false-positive risk are estimates. Rules marked
 | EFD015 | `Contains()` over a large or unbounded in-memory collection in a SQL-backed query | Medium | Medium | Medium | Later |
 | EFD024 | In-memory filtering of an `Include`d collection instead of a filtered `Include` | Medium | Medium | Medium | Later, advisory |
 | EFD026 | `Update(entity)` marking every column modified when only some changed | Medium | Medium | Medium | Later, advisory |
-| EFD035 | Model-snapshot hygiene: unbounded `nvarchar(max)` strings and `decimal` without precision | Low-Medium | High | Medium | Later, advisory |
 | EFD016 | Missing `CancellationToken` on an async EF call when one is in scope | Medium | High | Medium | Later, advisory |
 | EFD007 | Read-only query that appears to need `AsNoTracking` | Medium | Low-Medium | High | Held back |
 | EFD008 | Lazy loading or navigation access in a loop (N+1) | High | Low-Medium | High | Held back |

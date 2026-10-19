@@ -1,6 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Infrastructure;
 
 namespace EFD036.Sample;
 
@@ -16,20 +15,6 @@ public sealed class Order
 public sealed class SampleContext : DbContext
 {
     public DbSet<Order> Orders => Set<Order>();
-}
-
-[DbContext(typeof(SampleContext))]
-public sealed class SampleContextModelSnapshot : ModelSnapshot
-{
-    protected override void BuildModel(ModelBuilder modelBuilder)
-    {
-        modelBuilder.Entity("EFD036.Sample.Order", b =>
-        {
-            b.Property<int>("Id");
-            b.HasKey("Id");
-            b.HasIndex("CustomerId");
-        });
-    }
 }
 
 public static class FilterCases

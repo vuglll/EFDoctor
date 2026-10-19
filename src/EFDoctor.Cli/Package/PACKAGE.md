@@ -67,6 +67,7 @@ Loading a project runs its MSBuild logic, so analyze only repositories you trust
 | EFD032 | Change to an entity loaded with `AsNoTracking`, which `SaveChanges` silently doesn't save |
 | EFD033 | `DbContext` captured by a singleton or hosted service |
 | EFD034 | `EnsureCreated()` on a context that also uses migrations |
+| EFD035 | Indexed `nvarchar(max)` column, or `decimal` left at the default precision, in the model snapshot |
 | EFD036 | Query filter on columns that no index in the model snapshot leads (advisory) |
 | EFD037 | Entities materialized into a local when only a few of their columns are read (advisory) |
 | EFD038 | `ExecuteUpdate`/`ExecuteDelete` that leaves already-tracked entities of the same type stale |
