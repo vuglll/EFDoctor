@@ -1737,6 +1737,18 @@ public sealed class EndToEndTests
     }
 
     [Fact]
+    [Trait("Spec", "cli-ef-resolution-check/Entity-model project with only the EF Core abstractions")]
+    public async Task ProjectReferencingOnlyTheEfCoreAbstractionsIsNotFlagged()
+    {
+        var project = Path.Combine(RepositoryRoot(), "tests", "Fixtures", "Workspace.EfAbstractionsOnly", "Workspace.EfAbstractionsOnly.csproj");
+
+        var console = await RunCliAsync("analyze", project, "--no-color", "--quiet");
+
+        Assert.Equal(0, console.ExitCode);
+        Assert.Empty(console.StandardError);
+    }
+
+    [Fact]
     [Trait("Spec", "cli-ef-resolution-check/Skipped test project is not checked")]
     public async Task SkippedUnrestoredTestProjectIsNotChecked()
     {

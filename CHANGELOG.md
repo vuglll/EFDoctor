@@ -20,6 +20,7 @@ All notable changes to EFDoctor are documented here. Versions follow [Semantic V
 
 ### Fixed
 
+- The CLI no longer warns that EF Core types could not be resolved for an entity-model project that references only `Microsoft.EntityFrameworkCore.Abstractions`, for mapping attributes such as `[Index]`, and declares no `DbContext`.
 - Test-project detection keys on a test framework's core assembly (`xunit.core`, `xunit.v3.core`, `nunit.framework`, the Visual Studio test framework, or `Microsoft.NET.Test.Sdk`). A production project that references only an assertion library such as `xunit.assert`, directly or through another project, was classified as a test project and silently skipped.
 
 ## 0.5.0

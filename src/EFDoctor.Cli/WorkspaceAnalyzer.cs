@@ -113,7 +113,8 @@ public static class WorkspaceAnalyzer
             analyzedAnyCompilation = true;
             if (UsesEntityFrameworkCore(compilation, cancellationToken))
             {
-                if (compilation.GetTypeByMetadataName(DbContextMetadataName) is null)
+                if (compilation.GetTypeByMetadataName(DbContextMetadataName) is null
+                    && !ReferencesEfCoreAssembly(compilation))
                 {
                     // Every rule needs EF Core types; without them the project would silently
                     // look clean, so say so instead of analyzing it.
@@ -203,6 +204,13 @@ public static class WorkspaceAnalyzer
             .OfType<UsingDirectiveSyntax>()
             .Any(static directive => directive.Name?.ToString() is { } name
                 && (name == EfCoreNamespace || name.StartsWith(EfCoreNamespace + ".", StringComparison.Ordinal))));
+
+    // An entity-model project can reference only the EF Core abstractions, for mapping attributes
+    // such as [Index], and so has no DbContext. Its references resolved; an unrestored project has
+    // no EF Core assembly at all.
+    private static bool ReferencesEfCoreAssembly(Compilation compilation) =>
+        compilation.ReferencedAssemblyNames.Any(static assembly =>
+            assembly.Name.StartsWith(EfCoreNamespace, StringComparison.OrdinalIgnoreCase));
 
     private static string DescribeUnanalyzableProject(Project project, IEnumerable<string> loadFailures)
     {
