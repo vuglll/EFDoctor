@@ -398,10 +398,10 @@ The new projects found two CLI bugs, both now fixed:
 
 ### New false-positive classes, in priority order
 
-1. **EFD006 ignores a global `UseQuerySplittingBehavior(SplitQuery)`. This causes 65 of EFD006's 68 findings.** ErsatzTV (59) sets it on every context registration, in `Startup` and the scanner's `Program`. Kavita (6) sets it in `ApplicationServiceExtensions`, in the same project as its repositories. The rule documents this limitation, but at this volume the rule is unusable on such codebases.
+1. **EFD006 ignores a global `UseQuerySplittingBehavior(SplitQuery)` (fixed). This causes 65 of EFD006's 68 findings.** ErsatzTV (59) sets it on every context registration, in `Startup` and the scanner's `Program`. Kavita (6) sets it in `ApplicationServiceExtensions`, in the same project as its repositories. The rule documents this limitation, but at this volume the rule is unusable on such codebases.
    - **Proposed fix:** treat a `UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)` call in the same compilation as an opt-out, which covers Kavita.
    - ErsatzTV configures it in another project. The analyzer can't see that, so the CLI would have to pass a solution-wide fact.
-2. **EFD001 treats a `foreach` over a LanguageExt `Option<T>` as a loop (23 FP, all ErsatzTV).** `foreach (var x in maybeX)` runs zero or one time, and ErsatzTV writes every "if found" branch this way. One more FP is a three-attempt retry loop around `SaveChangesAsync`.
+2. **EFD001 treats a `foreach` over a LanguageExt `Option<T>` as a loop (23 FP, all ErsatzTV; fixed).** `foreach (var x in maybeX)` runs zero or one time, and ErsatzTV writes every "if found" branch this way. One more FP is a three-attempt retry loop around `SaveChangesAsync`.
    - **Proposed fix:** don't treat a loop over an option type as repetition. The candidates are LanguageExt's `Option<T>`, and other single-element enumerables recognized by name.
    - A `while` retry loop, bounded by an attempts counter and exited on success, is a second, smaller shape.
 3. **EFD036 judges each predicate alone (1 FP).** In `Where(s => s.SeriesId == id).AnyAsync(s => s.ValidUntilUtc >= now)`, the indexed `SeriesId` filter is in a different call from the reported predicate.
@@ -428,10 +428,16 @@ Treating `ProjectTo` as a shape-preserving projection would recover them.
   - Kavita's `ConsolidateProgress`.
 - **Performance:** analysis takes 4–63 s per project. ErsatzTV is the slowest, at 63 s. Nothing crashed.
 
+### Fixes after round 2
+
+The corpus was re-run after two fixes, and nothing else changed:
+
+- **`improve-efd006-global-split-query`.** EFD006 honors a split-query default configured in the same project. The CLI also honors one configured in any project it scans, and so does the new `efdoctor.split_query_by_default` global option. EFD006 falls from 68 findings to 3: Skoruba's 2 `acceptable` and Bitwarden's 1 `debatable`. It now has 0 FP.
+- **`improve-efd001-single-element-loop`.** EFD001 doesn't treat a `foreach` over `Option<T>`, `Maybe<T>`, or `Optional<T>` as a loop. ErsatzTV's EFD001 findings fall from 24 to 1, the retry loop. EFD001 is now 1 TP, 16 `acceptable`, and 1 FP.
+
 ### Next steps
 
-1. Fix EFD006's global split-query opt-out, at least within one compilation.
-2. Fix EFD001's option-type loop.
-3. Fix EFD036 so it combines a chain's filters.
-4. Fix EFD024's complementary filters.
-5. Follow AutoMapper `ProjectTo` in the chain proof.
+1. Fix EFD036 so it combines a chain's filters.
+2. Fix EFD024's complementary filters.
+3. Follow AutoMapper `ProjectTo` in the chain proof.
+4. Consider EFD001's bounded retry loop.
