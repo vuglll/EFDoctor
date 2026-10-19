@@ -1,5 +1,7 @@
 using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Operations;
 
@@ -129,7 +131,7 @@ public sealed class IncludeFilteredInMemoryAnalyzer : DiagnosticAnalyzer
             }
         }
 
-        var filteredUses = 0;
+        var filters = new List<IAnonymousFunctionOperation>();
         foreach (var operation in root.Descendants())
         {
             switch (operation)
@@ -142,14 +144,14 @@ public sealed class IncludeFilteredInMemoryAnalyzer : DiagnosticAnalyzer
 
                     break;
                 case ILocalReferenceOperation reference when entityLocals.Contains(reference.Local):
-                    if (!CheckEntityUse(reference, navigation, enumerable, ref filteredUses))
+                    if (!CheckEntityUse(reference, navigation, enumerable, filters))
                     {
                         return;
                     }
 
                     break;
                 case IParameterReferenceOperation reference when entityParameters.Contains(reference.Parameter):
-                    if (!CheckEntityUse(reference, navigation, enumerable, ref filteredUses))
+                    if (!CheckEntityUse(reference, navigation, enumerable, filters))
                     {
                         return;
                     }
@@ -158,10 +160,14 @@ public sealed class IncludeFilteredInMemoryAnalyzer : DiagnosticAnalyzer
             }
         }
 
-        if (filteredUses == 0)
+        // Complementary filters, such as `SeriesId == null` and `SeriesId != null`, together keep
+        // every row, which no filtered Include can narrow.
+        if (filters.Count == 0 || HasComplementaryFilters(filters))
         {
             return;
         }
+
+        var filteredUses = filters.Count;
 
         var evidence = $"'{include.Syntax}' loads every '{navigation.Name}' row for the entities in '{loaded.Name}', loaded by '{load.TargetMethod.Name}', and each of the {filteredUses} use(s) of '{navigation.Name}' in this method filters it in memory with a predicate.";
         var properties = ImmutableDictionary<string, string?>.Empty
@@ -176,7 +182,7 @@ public sealed class IncludeFilteredInMemoryAnalyzer : DiagnosticAnalyzer
 
     // An entity variable may only be read through its properties or null-checked. A read of the
     // navigation must be the source of an Enumerable predicate operator.
-    private static bool CheckEntityUse(IOperation reference, IPropertySymbol navigation, INamedTypeSymbol enumerable, ref int filteredUses)
+    private static bool CheckEntityUse(IOperation reference, IPropertySymbol navigation, INamedTypeSymbol enumerable, List<IAnonymousFunctionOperation> filters)
     {
         if (IsNullCheck(reference))
         {
@@ -202,9 +208,10 @@ public sealed class IncludeFilteredInMemoryAnalyzer : DiagnosticAnalyzer
         if (current.Parent is IArgumentOperation { Parameter.Ordinal: 0, Parent: IInvocationOperation filter }
             && SymbolEqualityComparer.Default.Equals(EfQueryOperationAnalysis.NormalizeMethod(filter.TargetMethod).ContainingType.OriginalDefinition, enumerable)
             && FilteringOperators.Contains(filter.TargetMethod.Name)
-            && filter.Arguments.Any(static argument => argument.Parameter?.Ordinal == 1 && EfQueryOperationAnalysis.TryGetLambda(argument.Value, out _)))
+            && filter.Arguments.FirstOrDefault(static argument => argument.Parameter?.Ordinal == 1) is { } predicate
+            && EfQueryOperationAnalysis.TryGetLambda(predicate.Value, out var lambda))
         {
-            filteredUses++;
+            filters.Add(lambda);
             return true;
         }
 
@@ -295,6 +302,70 @@ public sealed class IncludeFilteredInMemoryAnalyzer : DiagnosticAnalyzer
 
         load = invocation;
         return includes.Count > 0;
+    }
+
+    private static bool HasComplementaryFilters(List<IAnonymousFunctionOperation> filters)
+    {
+        var bodies = new HashSet<string>(StringComparer.Ordinal);
+        var negations = new List<string>();
+        foreach (var filter in filters)
+        {
+            if (filter.Syntax is not LambdaExpressionSyntax { ExpressionBody: { } body } || filter.Symbol.Parameters.Length != 1)
+            {
+                continue;
+            }
+
+            var parameter = filter.Symbol.Parameters[0].Name;
+            bodies.Add(Canonical(body, parameter));
+            if (Negation(body, parameter) is { } negation)
+            {
+                negations.Add(negation);
+            }
+        }
+
+        return negations.Any(bodies.Contains);
+    }
+
+    // The predicate's tokens, with its parameter renamed, so `p => p.X == null` and
+    // `r => r.X == null` compare equal.
+    private static string Canonical(ExpressionSyntax expression, string parameter) =>
+        string.Join(" ", StripParentheses(expression).DescendantTokens().Select(token =>
+            token.IsKind(SyntaxKind.IdentifierToken) && token.ValueText == parameter ? "$" : token.ValueText));
+
+    // The canonical form of the predicate's logical negation, for `!e`, `==`/`!=`, and the
+    // relational operators.
+    private static string? Negation(ExpressionSyntax expression, string parameter)
+    {
+        switch (StripParentheses(expression))
+        {
+            case PrefixUnaryExpressionSyntax prefix when prefix.IsKind(SyntaxKind.LogicalNotExpression):
+                return Canonical(prefix.Operand, parameter);
+            case BinaryExpressionSyntax binary when NegatedOperator(binary.Kind()) is { } negated:
+                return $"{Canonical(binary.Left, parameter)} {negated} {Canonical(binary.Right, parameter)}";
+            case var other:
+                return $"! {Canonical(other, parameter)}";
+        }
+    }
+
+    private static string? NegatedOperator(SyntaxKind kind) => kind switch
+    {
+        SyntaxKind.EqualsExpression => "!=",
+        SyntaxKind.NotEqualsExpression => "==",
+        SyntaxKind.LessThanExpression => ">=",
+        SyntaxKind.GreaterThanOrEqualExpression => "<",
+        SyntaxKind.GreaterThanExpression => "<=",
+        SyntaxKind.LessThanOrEqualExpression => ">",
+        _ => null,
+    };
+
+    private static ExpressionSyntax StripParentheses(ExpressionSyntax expression)
+    {
+        while (expression is ParenthesizedExpressionSyntax parenthesized)
+        {
+            expression = parenthesized.Expression;
+        }
+
+        return expression;
     }
 
     private static bool IsCollection(ITypeSymbol type) =>
