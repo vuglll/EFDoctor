@@ -101,6 +101,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EFD016.Sample", "tests\Fixt
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EFDoctor.CodeFixes", "src\EFDoctor.CodeFixes\EFDoctor.CodeFixes.csproj", "{5E3BA872-EAD4-4593-81B7-6819BC95D397}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Workspace.EfAbstractionsOnly", "tests\Fixtures\Workspace.EfAbstractionsOnly\Workspace.EfAbstractionsOnly.csproj", "{7142BF37-9FF0-4184-B120-DE8090B37AF4}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -663,6 +665,18 @@ Global
 		{5E3BA872-EAD4-4593-81B7-6819BC95D397}.Release|x64.Build.0 = Release|Any CPU
 		{5E3BA872-EAD4-4593-81B7-6819BC95D397}.Release|x86.ActiveCfg = Release|Any CPU
 		{5E3BA872-EAD4-4593-81B7-6819BC95D397}.Release|x86.Build.0 = Release|Any CPU
+		{7142BF37-9FF0-4184-B120-DE8090B37AF4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7142BF37-9FF0-4184-B120-DE8090B37AF4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7142BF37-9FF0-4184-B120-DE8090B37AF4}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{7142BF37-9FF0-4184-B120-DE8090B37AF4}.Debug|x64.Build.0 = Debug|Any CPU
+		{7142BF37-9FF0-4184-B120-DE8090B37AF4}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{7142BF37-9FF0-4184-B120-DE8090B37AF4}.Debug|x86.Build.0 = Debug|Any CPU
+		{7142BF37-9FF0-4184-B120-DE8090B37AF4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7142BF37-9FF0-4184-B120-DE8090B37AF4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7142BF37-9FF0-4184-B120-DE8090B37AF4}.Release|x64.ActiveCfg = Release|Any CPU
+		{7142BF37-9FF0-4184-B120-DE8090B37AF4}.Release|x64.Build.0 = Release|Any CPU
+		{7142BF37-9FF0-4184-B120-DE8090B37AF4}.Release|x86.ActiveCfg = Release|Any CPU
+		{7142BF37-9FF0-4184-B120-DE8090B37AF4}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -715,5 +729,6 @@ Global
 		{5F46E891-F2F7-4753-AB2D-A1B0C4D9A1FA} = {F12727AA-ABEF-07AF-E6F0-CD96E3D9A8AF}
 		{0CBCA7DB-669E-4B22-BE54-F3E8EF384954} = {F12727AA-ABEF-07AF-E6F0-CD96E3D9A8AF}
 		{5E3BA872-EAD4-4593-81B7-6819BC95D397} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
+		{7142BF37-9FF0-4184-B120-DE8090B37AF4} = {F12727AA-ABEF-07AF-E6F0-CD96E3D9A8AF}
 	EndGlobalSection
 EndGlobal
