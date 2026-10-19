@@ -46,6 +46,16 @@ public sealed class UnindexedPredicateColumnAnalyzerTests
         yield return Case("static object Run(ShopContext db, string email) { var query = db.Orders.AsNoTracking(); return query.Where(o => o.Email == email).ToList(); }", "o.Email", "Order", "Email");
         yield return Case("static object Run(ShopContext db, string email, bool open) { var query = db.Orders.AsQueryable(); if (open) { query = query.Where(o => o.Email == email); } return query.ToList(); }", "o.Email", "Order", "Email");
         yield return Case("static bool Run(ShopContext db, string name) => db.Customers.Any(c => c.Name == name);", "c.Name", "Customer", "Name");
+        yield return Case("static object Run(ShopContext db, string email, DateTime since) => db.Orders.Where(o => o.Email == email).Where(o => o.CreatedUtc > since).ToList();", "o.Email", "Order", "Email");
+        yield return Case("static Task<bool> Run(ShopContext db, string email, DateTime since) => db.Orders.Where(o => o.CreatedUtc > since).AnyAsync(o => o.Email == email);", "o.CreatedUtc", "Order", "CreatedUtc");
+    }
+
+    public static IEnumerable<object[]> ChainCases()
+    {
+        yield return Negative("static object Run(ShopContext db, int tenant, string email) => db.Orders.Where(o => o.TenantId == tenant).Where(o => o.Email == email).ToList();");
+        yield return Negative("static object Run(ShopContext db, int tenant, string email) => db.Orders.Where(o => o.Email == email).Where(o => o.TenantId == tenant).ToList();");
+        yield return Negative("static Task<bool> Run(ShopContext db, int id, DateTime since) => db.Orders.Where(o => o.Id == id).AnyAsync(o => o.CreatedUtc >= since);");
+        yield return Negative("static object? Run(ShopContext db, string number, string email) => db.Orders.Where(o => o.Email == email).FirstOrDefault(o => o.Number == number);");
     }
 
     public static IEnumerable<object[]> NegativeCases()
@@ -72,6 +82,7 @@ public sealed class UnindexedPredicateColumnAnalyzerTests
     [Trait("Spec", "efd036-unindexed-predicate-column/Range, prefix, and membership filters")]
     [Trait("Spec", "efd036-unindexed-predicate-column/Predicate terminal and stored query")]
     [Trait("Spec", "efd036-unindexed-predicate-column/Second column of a composite index")]
+    [Trait("Spec", "efd036-unindexed-predicate-column/Several unindexed predicates in one query")]
     [MemberData(nameof(PositiveCases))]
     public async Task ReportsFiltersOnUnindexedColumns(string source, string expectedText, string entity, string column)
     {
@@ -91,6 +102,24 @@ public sealed class UnindexedPredicateColumnAnalyzerTests
     {
         Assert.DoesNotContain(AnalyzerTestHarness.GetCompilationDiagnostics(source, includeRelational: true), static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error);
         Assert.Empty(await AnalyzeAsync(source));
+    }
+
+    [Theory]
+    [Trait("Spec", "efd036-unindexed-predicate-column/Indexed filter in another predicate of the query")]
+    [MemberData(nameof(ChainCases))]
+    public async Task CombinesTheFiltersOfOneQuery(string source)
+    {
+        Assert.DoesNotContain(AnalyzerTestHarness.GetCompilationDiagnostics(source, includeRelational: true), static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error);
+        Assert.Empty(await AnalyzeAsync(source));
+    }
+
+    [Fact]
+    [Trait("Spec", "efd036-unindexed-predicate-column/Separate queries stay separate")]
+    public async Task ReportsEachQuerySeparately()
+    {
+        var source = Source("static object Run(ShopContext db, int tenant, string email) => (db.Orders.Where(o => o.TenantId == tenant).ToList(), db.Orders.Where(o => o.Email == email).ToList());");
+
+        Assert.Equal("o.Email", Text(Assert.Single(await AnalyzeAsync(source))));
     }
 
     [Fact]

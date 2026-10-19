@@ -20,6 +20,7 @@ All notable changes to EFDoctor are documented here. Versions follow [Semantic V
 
 ### Fixed
 
+- EFD036 combines the filters of one query. `Where(s => s.SeriesId == id).AnyAsync(s => s.ValidUntilUtc >= now)` is no longer reported when `SeriesId` leads an index, and a query with two unindexed `Where` calls is reported once, not once per call.
 - EFD001 doesn't treat a `foreach` over an option type (`Option<T>`, `Maybe<T>`, or `Optional<T>`, as in LanguageExt) as a loop, since it runs at most once. A save inside one is reported only when a real loop encloses it. On the validation corpus this removes 23 false positives in ErsatzTV.
 - EFD006 doesn't report when the context splits queries by default with `UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)`, configured in the same project or, for the `efdoctor` CLI, in any project it scans. A `.globalconfig` can set `efdoctor.split_query_by_default = true` for builds of a data project configured elsewhere. On the validation corpus this removes 65 false positives in ErsatzTV and Kavita.
 - The CLI no longer warns that EF Core types could not be resolved for an entity-model project that references only `Microsoft.EntityFrameworkCore.Abstractions`, for mapping attributes such as `[Index]`, and declares no `DbContext`.

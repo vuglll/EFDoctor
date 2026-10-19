@@ -250,7 +250,7 @@ Unindexed unbounded strings, other providers' store types, decimals with other t
 
 ## EFD036 unindexed-filter boundary
 
-EFD036 reads the indexes and keys of every entity a model snapshot's `BuildModel` maps in the compilation, through the collector EFD003 uses. It also reads the filter columns of every predicate EFD009 and EFD023 analyze: the top-level `&&` terms that compare, range-filter, prefix-search, or test membership of a mapped, non-`bool` property read directly from the entity parameter. At compilation end, it reports a predicate none of whose filter columns leads an index, primary key, or alternate key of the entity or its base types. It reports with advisory confidence, `Info` severity, and the `Performance` category.
+EFD036 reads the indexes and keys of every entity a model snapshot's `BuildModel` maps in the compilation, through the collector EFD003 uses. It also reads the filter columns of every predicate EFD009 and EFD023 analyze: the top-level `&&` terms that compare, range-filter, prefix-search, or test membership of a mapped, non-`bool` property read directly from the entity parameter. The predicates of one query combine. At compilation end, it reports a query, once, when none of its filter columns leads an index, primary key, or alternate key of the entity or its base types. It reports with advisory confidence, `Info` severity, and the `Performance` category.
 
 Entities without a snapshot in the compilation, inconclusive snapshot coverage, terms inside `||`, column-to-column comparisons, navigation paths, transformed columns, orderings, and projections are not reported. See [`docs/rules/EFD036.md`](EFD036.md) for the complete contract.
 
