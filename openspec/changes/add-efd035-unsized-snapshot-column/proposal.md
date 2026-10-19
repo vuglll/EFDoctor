@@ -1,0 +1,43 @@
+# Proposal
+
+## Why
+
+The model snapshot records the store type EF Core chose for every column. Two SQL Server choices cause real failures, and both are visible only there:
+
+- **A `decimal` with no configured precision.** EF Core falls back to `decimal(18,2)`, and logs a warning that values "will be silently truncated" if they don't fit. A currency rate or tax percentage with more than two decimals loses them, and nothing fails.
+- **An index or key on an unbounded string.** An unconfigured `string` maps to `nvarchar(max)`. SQL Server can't use an `nvarchar(max)` or `varchar(max)` column as an index key, so the migration that creates the index fails when it is applied.
+
+The roadmap lists this as snapshot hygiene. It sits next to EFD003, which already reads the snapshot.
+
+## What Changes
+
+- Add **EFD035, unsized column in the model snapshot**: `Correctness`, `Warning` default severity, with findings at two confidence levels:
+  - **High:** a property whose snapshot store type is `nvarchar(max)` or `varchar(max)`, and that is a column of a `HasIndex`, `HasKey`, or `HasAlternateKey` of its entity in the same snapshot. The index can't be created on SQL Server.
+  - **Advisory (an `Info` suggestion in builds):** a `decimal` or `decimal?` property whose snapshot store type is exactly `decimal(18,2)`, with no `HasPrecision` in its snapshot chain. These are excluded when the entity's CLR property in the compilation carries `[Precision]`, or `[Column(TypeName = ...)]`.
+- EFD035 reports at the property's `Property(...)` chain in the snapshot's `BuildModel`.
+- **Not reported:**
+  - unbounded strings that are not indexed, which are often intentional (long text, encrypted payloads);
+  - other providers' types (`text`, `numeric`);
+  - decimals with any other store type or with `HasPrecision`.
+
+## Capabilities
+
+### New Capabilities
+
+- `efd035-unsized-snapshot-column`: detection, boundaries, finding contract, suppression, and tests for EFD035.
+
+### Modified Capabilities
+
+None. EFD003's entity-name helper becomes shared code. Its behavior doesn't change.
+
+## Impact
+
+- **Code:**
+  - a new `UnsizedSnapshotColumnAnalyzer`;
+  - EFD003's `TryGetContainingEntity`, made internal;
+  - registration in `WorkspaceAnalyzer` and the release file.
+- **Tests:**
+  - analyzer fixtures;
+  - `tests/Fixtures/EFD035.Sample` with a snapshot, and end-to-end tests.
+- **Docs:** `docs/rules/EFD035.md`, the rules README, the README, `PACKAGE.md`, usage, suppression, the roadmap, the development history, and the CHANGELOG.
+- **Validation:** a corpus re-run, with every finding triaged.
