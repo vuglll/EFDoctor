@@ -73,6 +73,8 @@ For EFD020, use diagnostic ID `EFD020` and record why re-executing the query is 
 
 For EFD021, use diagnostic ID `EFD021` and record why static state is acceptable—for example, a single-threaded console tool that disposes the context on exit. See [`docs/rules/EFD021.md`](rules/EFD021.md) for suppression examples.
 
+For EFD015, use diagnostic ID `EFD015` and record why the list stays small. To turn the advisory rule off entirely, set `dotnet_diagnostic.EFD015.severity = none` in `.editorconfig`. See [`docs/rules/EFD015.md`](rules/EFD015.md) for suppression examples.
+
 For EFD022, use diagnostic ID `EFD022` only when the query is deliberately materialized and the comparison runs on the client. See [`docs/rules/EFD022.md`](rules/EFD022.md) for suppression examples.
 
 For EFD023, use diagnostic ID `EFD023` and record why a scan is acceptable—for example, because the table is small or a trigram or full-text index already backs the search. To turn the advisory rule off entirely, set `dotnet_diagnostic.EFD023.severity = none` in `.editorconfig`. See [`docs/rules/EFD023.md`](rules/EFD023.md) for suppression examples.

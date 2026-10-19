@@ -335,3 +335,10 @@ The corpus was re-run after EFD035 was added. It reports an indexed `nvarchar(ma
 - **No indexed `nvarchar(max)` in the corpus.** Every indexed string has a maximum length.
 - **EFD036 still has 0 findings after the fix.** The analysis above still holds: eShop's co-located snapshots cover every filter.
 - No other finding changed.
+
+## New rule: EFD015 (2026-10-18)
+
+The corpus was re-run after EFD015 was added. It reports a key list materialized from one query only to filter another with `Contains`.
+
+- **0 findings.** The corpus's materialized ID lists are used for more than one filter. Smartstore's `CustomerController` loads `allCustomerRoleIds` and passes it to a validator, then iterates it. Lists like that have to be materialized, and the rule leaves them alone by design. The corpus's `Contains` filters over composed queries (eShop's catalog filters, Smartstore's ACL subqueries) are already subqueries.
+- No other finding changed.

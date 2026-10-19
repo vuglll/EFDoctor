@@ -117,6 +117,12 @@ EFD014 semantically identifies `Queryable.Skip`, optionally followed by `Take`, 
 
 A bare `Take` without `Skip` is deliberately not reported, because top-N reads with no order are often intentional. Any recognized ordering suppresses the finding without judging key uniqueness, and conditionally composed query locals, arbitrary `IQueryable<T>` parameters, in-memory sources, and look-alike methods are outside the rule. Add a stable ordering, ideally on a unique key or with a deterministic tie-breaker, before `Skip`. See [`docs/rules/EFD014.md`](EFD014.md) for the complete contract.
 
+## EFD015 materialized-contains boundary
+
+EFD015 semantically identifies a `Contains` call, instance or `Enumerable.Contains`, inside the lambda of a `Queryable` operator over a proven EF Core query, whose collection is a local and whose tested value reads the lambda's parameter. It reports when the local is initialized by `ToList`, `ToArray`, or `ToHashSet` (or the awaited async form) over a proven query on the same context with no strong or key-by-name row bound, and every reference to the local is a `Contains` collection. It reports with advisory confidence, `Info` severity, and the `Performance` category.
+
+Bounded inner queries, lists also used elsewhere, in-memory or passed-in lists, and lists from another context are not reported. See [`docs/rules/EFD015.md`](EFD015.md) for the complete contract.
+
 ## EFD017 projection boundary
 
 EFD017 semantically identifies resolved EF Core `Include` and `ThenInclude` calls in an inline chain traced to `DbSet<T>` or `DbContext.Set<TEntity>()` and followed by a resolved `Queryable.Select`. It reports once, at the `Select`, when every projected leaf is definitely non-entity: scalar, enum, nullable value, or `string` values, and anonymous objects, tuples, or object constructions built only from them. The evidence lists every include path.
