@@ -17,7 +17,7 @@
   <!-- One version and one set of release notes for both packages: the EFDoctor tool and
        EFDoctor.Analyzers. -->
   <PropertyGroup Label="Release">
-    <Version>0.5.0</Version>
-    <PackageReleaseNotes>0.5.0: two new rules, for 26 in all. EFD028 reports a method of the application inside a query filter or ordering, which EF Core cannot translate, and EFD030 reports a query returned after its DbContext is disposed. Rules that need only a query's origin now follow query locals composed in branches, every rule now understands DbSet.AsQueryable(), and EFD012 covers SqlQueryRaw. See CHANGELOG.md in the package.</PackageReleaseNotes>
+    <Version>0.6.0</Version>
+    <PackageReleaseNotes>0.6.0: ten new rules, for 36 in all, among them EFD031 (LINQ over a stored-procedure call), EFD032 (change to an AsNoTracking entity that is never saved), EFD033 (DbContext captured by a singleton), EFD034 (EnsureCreated with migrations), and EFD035 and EFD036, which read the model snapshot. The first code fixes ship in the analyzers package, for EFD002, EFD010, EFD019, and EFD029. EFD006 now honors a split-query default, and test-project detection no longer skips projects that only reference an assertion library. See CHANGELOG.md in the package.</PackageReleaseNotes>
   </PropertyGroup>
 </Project>

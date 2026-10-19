@@ -4,6 +4,8 @@ All notable changes to EFDoctor are documented here. Versions follow [Semantic V
 
 ## Unreleased
 
+## 0.6.0
+
 ### Added
 
 - Code fixes in the `EFDoctor.Analyzers` package. The IDE offers a quick action for a rule's mechanical remediation. The first is EFD029's: replace the discarding `OrderBy` with `ThenBy`, or `OrderByDescending` with `ThenByDescending`, offered when the receiver is already ordered so the result compiles. EFD002's fix replaces a count compared for existence with `Any`, or its negation. EFD019's fix drops the materialization and reduces in the query, in async form when it was awaited. EFD010's fix awaits the async counterpart, adds the EF Core using directive when needed, and passes a `CancellationToken` in scope. The fixes ship in `EFDoctor.CodeFixes.dll` beside the analyzers, and the command-line build ignores them.
