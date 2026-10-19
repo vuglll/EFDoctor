@@ -369,3 +369,69 @@ The corpus was re-run after EFD016 was added. It reports an EF Core async call t
   - **Acceptable:** the `InternationalDiallingCodes` migration's data method takes a token, and ignores it in `ToListAsync` and `SaveChangesAsync`. The shape is correct, but a one-time migration barely benefits from cancellation.
 - The corpus otherwise passes its tokens consistently, which is why the count is low.
 - No other finding changed.
+
+## Validation round 2 (2026-10-19)
+
+**EFDoctor:** `dev` at `502c52a`. **Corpus:** 10 projects. Three applications are new: Kavita, ErsatzTV, and Skoruba Duende IdentityServer Admin. Every finding in the corpus is triaged; none is left `TODO`.
+
+### EFD005 backlog
+
+The 115 deferred EFD005 findings in Bitwarden and Smartstore are triaged: 5 `TP`, 109 `acceptable`, and 1 `debatable`.
+
+- **TP:**
+  - Bitwarden: `GetManyByEnabledAsync`, `GetManyByPremiumAsync`, and `DeleteExpiredAsync` load whole filtered tables.
+  - Smartstore: `CatalogSearchQueryAliasMapper` and `ByRegionTaxProvider`.
+- **Acceptable:** mostly small lookup tables (settings, countries, stores, currencies), per-parent child loads, and admin lists.
+
+### New projects
+
+| Project | Findings | TP | FP | acceptable | debatable |
+|---|---:|---:|---:|---:|---:|
+| Kavita (`Kavita.sln`) | 211 | 29 | 8 | 158 | 16 |
+| ErsatzTV (`ErsatzTV.sln`) | 175 | 12 | 83 | 78 | 2 |
+| Skoruba Admin | 33 | 4 | 0 | 26 | 3 |
+
+The new projects found two CLI bugs, both now fixed:
+
+- **Test-project detection matched `xunit.assert`** (fixed by `fix-test-framework-detection`). `Kavita.Common` references `xunit.assert` for guard helpers. Every project that references it, including the EF Core data project, was classified as a test project and silently skipped, so Kavita first reported 0 findings. Detection now keys on a framework's core assembly.
+- **Entity-model projects got a false "could not be resolved" warning** (fixed by `fix-ef-abstractions-only-project`). `Kavita.Models` references only `Microsoft.EntityFrameworkCore.Abstractions`, for `[Index]`, and has no `DbContext`. The CLI told the user to restore and build it, and the corpus marked the run incomplete.
+
+### New false-positive classes, in priority order
+
+1. **EFD006 ignores a global `UseQuerySplittingBehavior(SplitQuery)`. This causes 65 of EFD006's 68 findings.** ErsatzTV (59) sets it on every context registration, in `Startup` and the scanner's `Program`. Kavita (6) sets it in `ApplicationServiceExtensions`, in the same project as its repositories. The rule documents this limitation, but at this volume the rule is unusable on such codebases.
+   - **Proposed fix:** treat a `UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)` call in the same compilation as an opt-out, which covers Kavita.
+   - ErsatzTV configures it in another project. The analyzer can't see that, so the CLI would have to pass a solution-wide fact.
+2. **EFD001 treats a `foreach` over a LanguageExt `Option<T>` as a loop (23 FP, all ErsatzTV).** `foreach (var x in maybeX)` runs zero or one time, and ErsatzTV writes every "if found" branch this way. One more FP is a three-attempt retry loop around `SaveChangesAsync`.
+   - **Proposed fix:** don't treat a loop over an option type as repetition. The candidates are LanguageExt's `Option<T>`, and other single-element enumerables recognized by name.
+   - A `while` retry loop, bounded by an attempts counter and exited on success, is a second, smaller shape.
+3. **EFD036 judges each predicate alone (1 FP).** In `Where(s => s.SeriesId == id).AnyAsync(s => s.ValidUntilUtc >= now)`, the indexed `SeriesId` filter is in a different call from the reported predicate.
+   - **Proposed fix:** combine the top-level `&&` terms of every filter in the chain.
+   - The same issue also reports two `Where` calls on one query as two findings.
+4. **EFD024 doesn't recognize complementary filters (1 FP).** Kavita filters `ExternalRecommendations` in memory twice, with `SeriesId == null` and with `SeriesId != null`, so every row is needed.
+   - **Proposed fix:** report only when every use applies the same predicate, or when there is a single use.
+
+### Recall gap: AutoMapper `ProjectTo`
+
+Kavita ends 116 of its 254 `ToListAsync` chains in AutoMapper's `ProjectTo<T>(…)`. The chain proof stops at it, so:
+
+- EFD005 and the other chain rules don't see those queries;
+- EFD006 misses an `AsSplitQuery()` written after `ProjectTo` (Kavita's `LibraryRepository.GetLibraryDtoByIdAsync`).
+
+Treating `ProjectTo` as a shape-preserving projection would recover them.
+
+### What held up well
+
+- **EFD027** found a real concurrency bug. Kavita's `ReadingSessionRepository` starts three `ToDictionaryAsync` calls on one context and awaits them with `Task.WhenAll`, and EF Core throws on the second.
+- **EFD017** (9 of 9), **EFD025** (7 of 7), and **EFD026** (2 of 2) had no false positives. **EFD037** went to 12 TP out of 19.
+- **EFD005** stays at 100% detection precision over 376 findings, with 0 FP. Strict precision is low (15 TP, 4%) because most loads are small lookup tables, which is why the rule is advisory. Its clearest TPs load every row to filter or group in memory, for example:
+  - Skoruba's persisted grants joined to every user;
+  - Kavita's `ConsolidateProgress`.
+- **Performance:** analysis takes 4–63 s per project. ErsatzTV is the slowest, at 63 s. Nothing crashed.
+
+### Next steps
+
+1. Fix EFD006's global split-query opt-out, at least within one compilation.
+2. Fix EFD001's option-type loop.
+3. Fix EFD036 so it combines a chain's filters.
+4. Fix EFD024's complementary filters.
+5. Follow AutoMapper `ProjectTo` in the chain proof.
