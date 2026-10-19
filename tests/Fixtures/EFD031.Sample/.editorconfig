@@ -1,0 +1,3 @@
+[EditorConfigSuppressed.cs]
+# Reviewed: legacy report runs against a provider that composes procedure output.
+dotnet_diagnostic.EFD031.severity = none

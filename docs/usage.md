@@ -136,10 +136,10 @@ A diagnostic's default severity follows the confidence of its finding:
 
 | Confidence | Default severity | Rules |
 |---|---|---|
-| High | `warning` | EFD001, EFD003, EFD004, EFD011, EFD012, EFD014, EFD017 through EFD019, EFD021, EFD022, EFD027 through EFD030, and the high-confidence findings of EFD002, EFD005, and EFD038 |
+| High | `warning` | EFD001, EFD003, EFD004, EFD011, EFD012, EFD014, EFD017 through EFD019, EFD021, EFD022, EFD027 through EFD034, and the high-confidence findings of EFD002, EFD005, EFD035, and EFD038 |
 | High, cleanup | `suggestion` | EFD025 |
 | Medium | `suggestion` | EFD006, EFD009, EFD010, EFD013, EFD020, and the medium-confidence findings of EFD002 (a null-checked `FirstOrDefault`), EFD005, and EFD038 |
-| Advisory | `suggestion` | EFD023, EFD037, and the advisory findings of EFD005 |
+| Advisory | `suggestion` | EFD015, EFD016, EFD023, EFD024, EFD026, EFD036, EFD037, and the advisory findings of EFD005 and EFD035 |
 
 So only a high-confidence finding can fail a build that treats warnings as errors. Suggestions appear in the IDE, but not in command-line build output. The CLI reports every finding, and its report severities are not affected: there, a medium-confidence finding is a `Warning`.
 
@@ -156,7 +156,7 @@ dotnet_diagnostic.EFD023.severity = none      # turn a rule off
 
 ### Test projects
 
-The analyzers skip test projects, as the CLI does by default. A test project is one with the MSBuild property `IsTestProject` set to `true`, or one that references xunit, NUnit, the Visual Studio test platform, or `Microsoft.NET.Test.Sdk`. To analyze a test project anyway, set this in its project file:
+The analyzers skip test projects, as the CLI does by default. A test project is one with the MSBuild property `IsTestProject` set to `true`, or one that references a test framework's core assembly: xunit, NUnit, the Visual Studio test framework, or `Microsoft.NET.Test.Sdk`. An assertion library alone, such as `xunit.assert`, doesn't make a project a test project. To analyze a test project anyway, set this in its project file:
 
 ```xml
 <PropertyGroup>
@@ -165,6 +165,15 @@ The analyzers skip test projects, as the CLI does by default. A test project is 
 ```
 
 Its findings then have the same severities as anywhere else.
+
+EFD006 doesn't report when the project configures split queries by default with `UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)`. The analyzers see one project at a time. When the context is configured in another project, such as the web host, tell them in a `.globalconfig` file in the data project:
+
+```ini
+is_global = true
+efdoctor.split_query_by_default = true
+```
+
+The `efdoctor` CLI sees every project it scans, so it doesn't need this.
 
 ### Build and reference from source
 

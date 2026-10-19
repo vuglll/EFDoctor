@@ -71,9 +71,8 @@ public sealed class SaveChangesInLoopAnalyzer : DiagnosticAnalyzer
             return;
         }
 
-        var loop = FindEnclosingLoop(invocation.Syntax);
-        if (loop is null
-            || invocation.SemanticModel is not { } model
+        if (invocation.SemanticModel is not { } model
+            || FindEnclosingLoop(invocation.Syntax, model, context.CancellationToken) is not { } loop
             || SavesOncePerBatch(loop, invocation.Syntax, model, context.CancellationToken))
         {
             return;
@@ -109,11 +108,11 @@ public sealed class SaveChangesInLoopAnalyzer : DiagnosticAnalyzer
         return false;
     }
 
-    private static SyntaxNode? FindEnclosingLoop(SyntaxNode invocation)
+    private static SyntaxNode? FindEnclosingLoop(SyntaxNode invocation, SemanticModel model, CancellationToken cancellationToken)
     {
         for (var current = invocation.Parent; current is not null; current = current.Parent)
         {
-            if (IsSupportedLoop(current))
+            if (IsSupportedLoop(current) && !IteratesOptionalValue(current, model, cancellationToken))
             {
                 return current;
             }
@@ -126,6 +125,16 @@ public sealed class SaveChangesInLoopAnalyzer : DiagnosticAnalyzer
 
         return null;
     }
+
+    // `foreach (var order in maybeOrder)` over an option type, such as LanguageExt's `Option<T>`,
+    // runs at most once: it's how such code writes "if found". It isn't repetition, so the search
+    // goes on to an enclosing loop.
+    private static bool IteratesOptionalValue(SyntaxNode loop, SemanticModel model, CancellationToken cancellationToken) =>
+        loop is CommonForEachStatementSyntax forEach
+        && model.GetTypeInfo(forEach.Expression, cancellationToken).Type is INamedTypeSymbol { Arity: 1 } type
+        && OptionTypeNames.Contains(type.Name);
+
+    private static readonly ImmutableHashSet<string> OptionTypeNames = ImmutableHashSet.Create("Option", "Maybe", "Optional");
 
     // The innermost loop saves once per batch when one iteration handles a chunk or page,
     // or when the save only runs once a threshold of processed items is reached.

@@ -6,11 +6,11 @@ Defines the `EFDoctor.Analyzers` NuGet package, which runs EFDoctor's rules insi
 ## Requirements
 
 ### Requirement: Distribute the rules as an analyzer package
-The repository SHALL produce a NuGet package with ID `EFDoctor.Analyzers` that carries the analyzer assembly under `analyzers/dotnet/cs/` and no `lib` assets. The package SHALL be marked as a development dependency and SHALL declare no package dependencies. It SHALL carry the same version as the `EFDoctor` tool package, the Apache-2.0 license expression, a package readme, the icon, `NOTICE`, and the changelog, and SHALL embed repository and project URLs only when the `EFDoctorRepositoryUrl` build property is set. Referencing the package SHALL run every shipped rule during compilation, including when the reference and its version come from central package management.
+The repository SHALL produce a NuGet package with ID `EFDoctor.Analyzers` that carries the analyzer assembly and the `EFDoctor.CodeFixes` code-fix assembly under `analyzers/dotnet/cs/` and no `lib` assets. The package SHALL be marked as a development dependency and SHALL declare no package dependencies. It SHALL carry the same version as the `EFDoctor` tool package, the Apache-2.0 license expression, a package readme, the icon, `NOTICE`, and the changelog, and SHALL embed repository and project URLs only when the `EFDoctorRepositoryUrl` build property is set. Referencing the package SHALL run every shipped rule during compilation, including when the reference and its version come from central package management.
 
 #### Scenario: Package contents
 - **WHEN** the analyzer package is inspected
-- **THEN** it contains `analyzers/dotnet/cs/EFDoctor.Analyzers.dll`, `build/EFDoctor.Analyzers.props`, the readme, the icon, `NOTICE`, and the changelog, has no `lib` folder and no dependencies, is a development dependency, and has the tool's version
+- **THEN** it contains `analyzers/dotnet/cs/EFDoctor.Analyzers.dll`, `analyzers/dotnet/cs/EFDoctor.CodeFixes.dll`, `build/EFDoctor.Analyzers.props`, the readme, the icon, `NOTICE`, and the changelog, has no `lib` folder and no dependencies, is a development dependency, and has the tool's version
 
 #### Scenario: Referenced through central package management
 - **WHEN** a project gets `EFDoctor.Analyzers` from a `PackageReference` in `Directory.Build.props` with its version in `Directory.Packages.props`, and its code calls `SaveChanges` inside a loop
@@ -51,15 +51,19 @@ A diagnostic's default severity in a build SHALL follow the confidence of its fi
 - **THEN** the build reports no EFDoctor warning, and its diagnostic log holds the finding as a note
 
 ### Requirement: Skip test projects in builds
-The analyzers SHALL report nothing for a test project. A project is a test project when its `IsTestProject` MSBuild property is `true`, or when its compilation references a recognized test framework: an assembly whose name starts with `xunit` or `Microsoft.VisualStudio.TestPlatform`, or that is named `nunit.framework` or `Microsoft.NET.Test.Sdk`. The package SHALL make `IsTestProject` visible to the compiler. Setting the MSBuild property `EFDoctorAnalyzeTestProjects` to `true` SHALL opt a test project back in, with the same severities as any other project.
+The analyzers SHALL report nothing for a test project. A project is a test project when its `IsTestProject` MSBuild property is `true`, or when its compilation references a recognized test framework: a framework's core assembly: `xunit`, `xunit.core`, an assembly whose name starts with `xunit.v3.core` or `Microsoft.VisualStudio.TestPlatform`, `nunit.framework`, or `Microsoft.NET.Test.Sdk`. A library that only ships alongside a framework, such as `xunit.assert` or `xunit.abstractions`, SHALL NOT make a project a test project. The package SHALL make `IsTestProject` visible to the compiler. Setting the MSBuild property `EFDoctorAnalyzeTestProjects` to `true` SHALL opt a test project back in, with the same severities as any other project.
 
 #### Scenario: Project marked as a test project
 - **WHEN** a compilation with a finding has `build_property.IsTestProject` set to `true`
 - **THEN** no EFDoctor diagnostic is reported
 
 #### Scenario: Test-framework reference
-- **WHEN** a compilation with a finding references an xunit assembly, and `IsTestProject` is not set
+- **WHEN** a compilation with a finding references the `xunit.core` assembly, and `IsTestProject` is not set
 - **THEN** no EFDoctor diagnostic is reported
+
+#### Scenario: Assertion library without a test framework
+- **WHEN** a compilation with a finding references `xunit.assert` or `xunit.abstractions` but no test framework's core assembly, and `IsTestProject` is not set
+- **THEN** its findings are reported
 
 #### Scenario: Opt back in
 - **WHEN** a test project sets `build_property.EFDoctorAnalyzeTestProjects` to `true`

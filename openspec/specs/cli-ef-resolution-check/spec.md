@@ -11,7 +11,7 @@ For each C# project it analyzes, the CLI SHALL determine whether the project use
 
 A project uses EF Core when any of its source files has a `using` directive, including a `global using`, for `Microsoft.EntityFrameworkCore` or one of its sub-namespaces.
 
-A project that uses EF Core, but whose compilation cannot resolve `Microsoft.EntityFrameworkCore.DbContext`, is unanalyzable. For each unanalyzable project, the CLI SHALL write a warning to standard error, prefixed `EFDoctor warning:`. The warning SHALL:
+A project that uses EF Core, but whose compilation cannot resolve `Microsoft.EntityFrameworkCore.DbContext` and references no assembly whose name starts with `Microsoft.EntityFrameworkCore`, is unanalyzable. A project that references an EF Core assembly without `DbContext`, such as an entity-model project that references only `Microsoft.EntityFrameworkCore.Abstractions` for mapping attributes, resolved its references, and is analyzed as usual. For each unanalyzable project, the CLI SHALL write a warning to standard error, prefixed `EFDoctor warning:`. The warning SHALL:
 - name the project;
 - state that EF Core types could not be resolved, so the project was not analyzed;
 - recommend restoring and building the project;
@@ -34,6 +34,10 @@ Warnings SHALL be written in console and JSON modes alike, and regardless of `--
 #### Scenario: Resolved EF project produces no warning
 - **WHEN** a restored project that uses EF Core is analyzed
 - **THEN** the CLI writes nothing to standard error
+
+#### Scenario: Entity-model project with only the EF Core abstractions
+- **WHEN** a restored project uses `Microsoft.EntityFrameworkCore` only for mapping attributes, and references `Microsoft.EntityFrameworkCore.Abstractions` but not EF Core itself
+- **THEN** the CLI writes no EF resolution warning for it, and doesn't count it as unanalyzable
 
 #### Scenario: Skipped test project is not checked
 - **WHEN** a test project is skipped because `--include-test-projects` was not given

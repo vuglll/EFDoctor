@@ -1,0 +1,3 @@
+[EditorConfigSuppressed.cs]
+# Reviewed: legacy archive snapshot, kept for history only.
+dotnet_diagnostic.EFD035.severity = none

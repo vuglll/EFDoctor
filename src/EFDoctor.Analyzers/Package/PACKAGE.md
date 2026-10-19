@@ -60,6 +60,17 @@ Test projects are skipped: a project with `IsTestProject` set to `true`, or one 
 
 The rules are listed with their confidence in the [project README](https://github.com/vuglll/EFDoctor#rules). Every diagnostic links to its [rule page](https://github.com/vuglll/EFDoctor/tree/main/docs/rules), which describes what triggers the rule, what deliberately doesn't, and the fix. Suppress an intentional finding with standard Roslyn mechanisms (`#pragma warning disable EFD001`, `.editorconfig`, or `[SuppressMessage]`), and record why.
 
+## Code fixes
+
+For the mechanical remediations, the IDE offers a quick action that applies the fix. Four are available so far:
+
+- EFD002: replace a count compared for existence with `Any`, or its negation.
+- EFD010: await the async counterpart of the synchronous call, passing a `CancellationToken` in scope.
+- EFD019: drop the materialization and reduce in the query, in async form when it was awaited.
+- EFD029: replace the discarding `OrderBy` with `ThenBy`.
+
+The fixes ship in this package, in `EFDoctor.CodeFixes.dll`, which only IDEs load. The command-line build ignores it.
+
 ## License
 
 Apache-2.0. See the `NOTICE` file included in the package.

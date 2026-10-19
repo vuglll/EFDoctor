@@ -8,6 +8,7 @@ public sealed class TestEntity
     public bool Active { get; set; }
     public string Name { get; set; } = "";
     public TestEntity? Parent { get; set; }
+    public List<TestEntity> Children { get; set; } = new();
 }
 
 public sealed class WideEntity
@@ -100,4 +101,49 @@ public static class TestProjectCases
         using var context = new TestContext();
         return context.Entities;
     }
+
+    public static void UntrackedChange(TestContext context, int id)
+    {
+        var entity = context.Entities.AsNoTracking().First(candidate => candidate.Id == id);
+        entity.Name = "renamed";
+        context.SaveChanges();
+    }
+
+    public static void SingletonContext(Microsoft.Extensions.DependencyInjection.IServiceCollection services) =>
+        Microsoft.Extensions.DependencyInjection.ServiceCollectionServiceExtensions.AddSingleton<ContextHolder>(services);
+
+    public static TestEntity? ProcedureFirst(TestContext context) =>
+        context.Entities.FromSqlRaw("EXEC dbo.GetEntities").FirstOrDefault();
+
+    public static List<TestEntity> MaterializedContains(TestContext context)
+    {
+        var ids = context.Entities.Where(entity => entity.Active).Select(entity => entity.Id).ToList();
+        return context.Entities.Where(entity => ids.Contains(entity.Id)).Take(10).ToList();
+    }
+
+    public static List<TestEntity> IncludeFilteredInMemory(TestContext context, int id)
+    {
+        var entity = context.Entities.Include(candidate => candidate.Children).First(candidate => candidate.Id == id);
+        return entity.Children.Where(child => child.Active).ToList();
+    }
+
+    public static void UpdateTracked(TestContext context, int id)
+    {
+        var entity = context.Entities.First(candidate => candidate.Id == id);
+        context.Update(entity);
+    }
+
+    public static Task<int> TokenNotPassed(TestContext context, CancellationToken cancellationToken) =>
+        context.Entities.CountAsync();
+
+    public static void CreateAndMigrate(TestContext context)
+    {
+        context.Database.EnsureCreated();
+        context.Database.Migrate();
+    }
+}
+
+public sealed class ContextHolder(TestContext context)
+{
+    public TestContext Context { get; } = context;
 }

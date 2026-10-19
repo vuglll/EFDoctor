@@ -37,8 +37,14 @@
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" VersionOverride="4.8.0" PrivateAssets="all" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Built first so its assembly can be packed beside the analyzers; not referenced by them. -->
+    <ProjectReference Include="../EFDoctor.CodeFixes/EFDoctor.CodeFixes.csproj" ReferenceOutputAssembly="false" PrivateAssets="all" />
+  </ItemGroup>
+
   <ItemGroup Label="Package assets">
     <None Include="$(OutputPath)$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+    <None Include="../EFDoctor.CodeFixes/$(OutputPath)EFDoctor.CodeFixes.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
     <None Include="Package/EFDoctor.Analyzers.props" Pack="true" PackagePath="build/" />
     <None Include="Package/PACKAGE.md" Pack="true" PackagePath="/" />
     <None Include="../EFDoctor.Cli/Package/icon.png" Pack="true" PackagePath="/" Visible="false" />

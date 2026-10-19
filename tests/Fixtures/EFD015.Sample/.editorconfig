@@ -1,0 +1,7 @@
+[*.cs]
+# The key-list loads are unbounded by design; EFD005 has its own fixtures.
+dotnet_diagnostic.EFD005.severity = none
+
+[EditorConfigSuppressed.cs]
+# Reviewed: the region list is a small configuration table.
+dotnet_diagnostic.EFD015.severity = none

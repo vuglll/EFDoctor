@@ -1,5 +1,6 @@
 using EFDoctor.Analyzers;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Operations;
 
@@ -124,6 +125,25 @@ public sealed class AnalyzerPackageTests
     public async Task ProjectReferencingATestFrameworkIsSkipped()
     {
         Assert.Empty(await AnalyzeAsync(new SaveChangesInLoopAnalyzer(), includeTestFramework: true));
+    }
+
+    [Theory]
+    [Trait("Spec", "analyzer-package/Assertion library without a test framework")]
+    [InlineData("xunit.assert", false)]
+    [InlineData("xunit.abstractions", false)]
+    [InlineData("xunit.core", true)]
+    public void OnlyATestFrameworkCoreMarksATestProject(string assemblyName, bool isTestProject)
+    {
+        var paths = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(Path.PathSeparator);
+        var compilation = CSharpCompilation.Create(
+            "Production",
+            references:
+            [
+                MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
+                MetadataReference.CreateFromFile(paths.Single(path => Path.GetFileNameWithoutExtension(path) == assemblyName)),
+            ]);
+
+        Assert.Equal(isTestProject, EfTestProjectDetection.ReferencesTestFramework(compilation));
     }
 
     [Fact]

@@ -79,7 +79,7 @@ Confidence reflects the recognized bound and best-effort call-site context: clea
 
 EFD006 semantically identifies inline EF Core query chains with at least two distinct root-level collection `Include` properties. It reports once at the second collection include, recognizes filtered selectors and static syntax, and suppresses the finding when the same inline chain explicitly uses `AsSplitQuery` or `AsSingleQuery`, the two choices EF Core itself treats as acknowledging the trade-off.
 
-The first version does not count reference navigations, duplicate paths, or collection paths found only beneath one `ThenInclude` branch, and it follows stored query values only through [query locals](#query-locals). It does not inspect global query-splitting configuration. Review generated SQL and expected cardinalities before choosing `AsSplitQuery`, projection, or separate queries because additional queries introduce round-trip and consistency trade-offs. See [`docs/rules/EFD006.md`](EFD006.md) for the complete contract.
+The first version does not count reference navigations, duplicate paths, or collection paths found only beneath one `ThenInclude` branch, and it follows stored query values only through [query locals](#query-locals). It honors a split-query default set with `UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)` in the project, in any project the CLI scans, or through the `efdoctor.split_query_by_default` global option. Review generated SQL and expected cardinalities before choosing `AsSplitQuery`, projection, or separate queries because additional queries introduce round-trip and consistency trade-offs. See [`docs/rules/EFD006.md`](EFD006.md) for the complete contract.
 
 ## EFD009 case-transform boundary
 
@@ -116,6 +116,18 @@ Loops that read the current entity, branch, call other code, touch navigations, 
 EFD014 semantically identifies `Queryable.Skip`, optionally followed by `Take`, on an inline query traced to `DbSet<T>` or `DbContext.Set<TEntity>()` with no `OrderBy`, `OrderByDescending`, `ThenBy`, or `ThenByDescending` earlier in the chain. It reports once per paging expression, anchored on the outer `Take` when present, with high confidence and `Correctness` category. An ordering applied after the paging operator does not count.
 
 A bare `Take` without `Skip` is deliberately not reported, because top-N reads with no order are often intentional. Any recognized ordering suppresses the finding without judging key uniqueness, and conditionally composed query locals, arbitrary `IQueryable<T>` parameters, in-memory sources, and look-alike methods are outside the rule. Add a stable ordering, ideally on a unique key or with a deterministic tie-breaker, before `Skip`. See [`docs/rules/EFD014.md`](EFD014.md) for the complete contract.
+
+## EFD015 materialized-contains boundary
+
+EFD015 semantically identifies a `Contains` call, instance or `Enumerable.Contains`, inside the lambda of a `Queryable` operator over a proven EF Core query, whose collection is a local and whose tested value reads the lambda's parameter. It reports when the local is initialized by `ToList`, `ToArray`, or `ToHashSet` (or the awaited async form) over a proven query on the same context with no strong or key-by-name row bound, and every reference to the local is a `Contains` collection. It reports with advisory confidence, `Info` severity, and the `Performance` category.
+
+Bounded inner queries, lists also used elsewhere, in-memory or passed-in lists, and lists from another context are not reported. See [`docs/rules/EFD015.md`](EFD015.md) for the complete contract.
+
+## EFD016 cancellation-token boundary
+
+EFD016 semantically identifies EF Core async operations: the `Async` methods on `EntityFrameworkQueryableExtensions` and `RelationalQueryableExtensions`, `SaveChangesAsync` including overrides, and `DbSet<T>.FindAsync`. It reports one whose `CancellationToken` parameter takes its default value implicitly, or a `FindAsync` bound to the overload without a token, while a `CancellationToken` parameter of the containing method or of an enclosing lambda or local function is in scope. It reports with advisory confidence, `Info` severity, and the `Reliability` category.
+
+Calls that pass a token, including an explicit `CancellationToken.None` or `default`, methods without a token parameter in scope, and tokens held in fields or locals are not reported. See [`docs/rules/EFD016.md`](EFD016.md) for the complete contract.
 
 ## EFD017 projection boundary
 
@@ -159,11 +171,23 @@ EFD023 semantically identifies `string.Contains(string)` or `string.EndsWith(str
 
 Prefix searches, `Like` patterns of unknown shape, `StringComparison` overloads (EFD022) and `char` overloads, collection `Contains(column)`, column-to-column searches, computed properties, nested lambdas, projections, and unproven sources are not reported. A case transformation compared with `==`, `Equals`, or `StartsWith` belongs to EFD009, so each shape gets exactly one finding. The remediation leads with SQL Server full-text search or a PostgreSQL `pg_trgm` trigram index, and suggests `StartsWith` or a reversed column where the semantics allow. See [`docs/rules/EFD023.md`](EFD023.md) for the complete contract.
 
+## EFD024 include-filtered boundary
+
+EFD024 semantically identifies a plain `Include(x => x.Nav)` of a collection navigation in a proven EF Core query that is materialized into a local by a single-entity terminal or by `ToList`/`ToArray` (or the awaited async forms). It reports when every read of the navigation, on the local or on a `foreach` variable or `Enumerable` lambda parameter over the list, is the source of an `Enumerable` predicate operator, with at least one such read, and the entities don't otherwise escape the method. It reports with advisory confidence, `Info` severity, and the `Performance` category.
+
+Navigations also used in full or filtered with complementary predicates, entities that are returned, passed, or stored, filtered includes, and reference navigations are not reported. See [`docs/rules/EFD024.md`](EFD024.md) for the complete contract.
+
 ## EFD025 redundant-include boundary
 
 EFD025 semantically identifies resolved EF Core `Include`/`ThenInclude` chains in one inline query traced to `DbSet<T>` or `DbContext.Set<TEntity>()`. It reports a chain whose full navigation path duplicates an earlier chain, or is a strict prefix of a longer chain anywhere in the same query. Paths are compared by resolved property symbol. Constant string paths are compared only with other string paths. Findings use `Info` severity and high confidence, and the earliest occurrence of every longest path is never reported, so deleting every reported chain keeps the loaded navigations unchanged.
 
 A repeated leading `Include` that branches into a different `ThenInclude` is required syntax and is not reported. Filtered includes, casts, non-constant strings, string-versus-expression pairs, includes split across helpers or conditionally reassigned locals, element-type-changing operators, and model `AutoInclude()` configuration are outside the rule. See [`docs/rules/EFD025.md`](EFD025.md) for the complete contract.
+
+## EFD026 update-on-tracked boundary
+
+EFD026 semantically identifies `DbContext.Update`, `Update<TEntity>`, and `DbSet<TEntity>.Update` with a local argument. It reports when the local is declared in an earlier statement of an enclosing block, in the same function, by a tracked load on the same context (symbol key): `Find`/`FindAsync`, or a single-entity terminal over a proven query with no projection and no `AsNoTracking`. Nothing between the load and the update may clear the tracker, assign an entry state, or reassign the local. It reports with advisory confidence, `Info` severity, and the `Performance` category.
+
+Detached entities from parameters or DTOs, untracked or projected loads, other contexts, `UpdateRange`, and calls in lambdas are not reported. See [`docs/rules/EFD026.md`](EFD026.md) for the complete contract.
 
 ## EFD027 concurrent-context boundary
 
@@ -188,6 +212,47 @@ A call that reads no lambda parameter is evaluated on the client as a query para
 EFD030 semantically identifies a `return` whose value is a deferred EF Core query: a value of a type that implements `IQueryable`, or `AsEnumerable()`/`AsAsyncEnumerable()` over one, proven to originate at `DbSet<T>` or `DbContext.Set<TEntity>()`. It reports when the query's context is a local declared by a `using` declaration or `using` statement, synchronous or `await using`, whose scope contains the `return` in the same function. It also reports when the context is resolved with `GetRequiredService`/`GetService` from the `ServiceProvider` of a service scope declared that way. It reports with high confidence, `Warning` severity, and the `Reliability` category.
 
 Materialized results, contexts that outlive the method (fields, parameters, locals without `using`), returns after the `using` block or in a nested lambda or local function, and iterator methods are not reported. Neither are contexts disposed explicitly or created by a helper. See [`docs/rules/EFD030.md`](EFD030.md) for the complete contract.
+
+## EFD031 composed-procedure boundary
+
+EFD031 semantically identifies `RelationalQueryableExtensions.FromSqlRaw`, `FromSql`, and `FromSqlInterpolated` whose SQL text, a constant or the leading literal of an interpolated string, starts with `EXEC`, `EXECUTE`, or `CALL`. It reports the first operator EF Core would compose over it:
+- any `Queryable` operator except `AsQueryable`;
+- `Include`/`ThenInclude`;
+- an EF Core async terminal other than `ToListAsync`, `ToArrayAsync`, `ToDictionaryAsync`, `ToHashSetAsync`, `ForEachAsync`, `LoadAsync`, or `AsAsyncEnumerable`.
+
+The search looks through tracking, query-filter, and tag operators, and through statically determined query locals. It reports with high confidence, `Warning` severity, and the `Correctness` category.
+
+Direct materialization, composition after `AsEnumerable`/`ToList`, composable SQL, procedure names without `EXEC`, and SQL text that isn't a constant are not reported. See [`docs/rules/EFD031.md`](EFD031.md) for the complete contract.
+
+## EFD032 untracked-change boundary
+
+EFD032 semantically identifies `SaveChanges` or `SaveChangesAsync` on a `DbContext` with a symbol key, and an earlier statement, in a block that encloses it in the same function, that declares a local from a single-entity terminal or from `ToList`/`ToArray` (or the awaited async forms). The terminal must run over a query proven to originate on the same context whose chain contains `AsNoTracking` or `AsNoTrackingWithIdentityResolution`, and no later `AsTracking`. EFD032 reports the first property assignment to the entity, or to a `foreach` variable over the list, between the load and the save, with high confidence, `Warning` severity, and the `Correctness` category.
+
+Between the load and the save, the entity may only be accessed through its properties or compared with `null`, and the list may only be a `foreach` collection or have its properties read. Any other use, such as passing the entity to a method, returning it, capturing it, or reassigning the local, means the entity may be attached, so nothing is reported. Changes in helpers, changes to navigation properties, context-wide no-tracking defaults, and conditionally composed query locals are outside the rule. See [`docs/rules/EFD032.md`](EFD032.md) for the complete contract.
+
+## EFD033 singleton-context boundary
+
+EFD033 matches `AddSingleton`, `TryAddSingleton`, and `AddHostedService` by name on an `IServiceCollection` receiver, in generic or `typeof` form. It reports when every public constructor of the implementation, a type declared in the analyzed source, takes a `DbContext`-derived parameter. It also reports when the registration's factory lambda resolves a `DbContext`-derived type from its own provider parameter. It reports with high confidence, `Warning` severity, and the `Reliability` category.
+
+Constructors that take `IDbContextFactory<T>`, `IServiceScopeFactory`, or `IServiceProvider`, factories that resolve through a scope they create, scoped and transient registrations, and types with a constructor that takes no context are not reported. Neither are contexts the same project registers as singletons, types from referenced assemblies, and transitive captures. See [`docs/rules/EFD033.md`](EFD033.md) for the complete contract.
+
+## EFD034 ensure-created boundary
+
+EFD034 semantically identifies `DatabaseFacade.EnsureCreated` and `EnsureCreatedAsync` on `<context>.Database`. It reports when the context type is, or derives from, a type the compilation migrates: a `Migration` or `ModelSnapshot` class attributed `[DbContext(typeof(T))]`, or a `Migrate`/`MigrateAsync` call on a context of that type. It reports at compilation end, with high confidence, `Warning` severity, and the `Correctness` category.
+
+Provider switches, where the other arm of the same `if`/`else` or conditional expression calls `Migrate` on the same context type, are not reported. Neither are contexts without migrations in the compilation, projects whose migrations live in another assembly with no `Migrate` call here, other `DatabaseFacade` methods, or look-alike methods. See [`docs/rules/EFD034.md`](EFD034.md) for the complete contract.
+
+## EFD035 snapshot-column boundary
+
+EFD035 reads each `Property(…)` chain in a model snapshot's `BuildModel`. It reports, with high confidence, a property whose `HasColumnType` is `nvarchar(max)` or `varchar(max)` and that is a column of a `HasIndex`, `HasKey`, or `HasAlternateKey` of the same entity. It reports, with advisory confidence, a `decimal` property whose `HasColumnType` is `decimal(18,2)` with no `HasPrecision`, unless the CLR property in the compilation has `[Precision]` or `[Column(TypeName = …)]`. The category is `Correctness`.
+
+Unindexed unbounded strings, other providers' store types, decimals with other types or configured precision, and snapshots in other assemblies are not reported. See [`docs/rules/EFD035.md`](EFD035.md) for the complete contract.
+
+## EFD036 unindexed-filter boundary
+
+EFD036 reads the indexes and keys of every entity a model snapshot's `BuildModel` maps in the compilation, through the collector EFD003 uses. It also reads the filter columns of every predicate EFD009 and EFD023 analyze: the top-level `&&` terms that compare, range-filter, prefix-search, or test membership of a mapped, non-`bool` property read directly from the entity parameter. The predicates of one query combine. At compilation end, it reports a query, once, when none of its filter columns leads an index, primary key, or alternate key of the entity or its base types. It reports with advisory confidence, `Info` severity, and the `Performance` category.
+
+Entities without a snapshot in the compilation, inconclusive snapshot coverage, terms inside `||`, column-to-column comparisons, navigation paths, transformed columns, orderings, and projections are not reported. See [`docs/rules/EFD036.md`](EFD036.md) for the complete contract.
 
 ## EFD037 entity-over-fetch boundary
 

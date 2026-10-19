@@ -13,7 +13,7 @@ EFDoctor reads your code with Roslyn and reports EF Core anti-patterns: `SaveCha
 
 <sub>Real output of `efdoctor` 0.2.0 on [Microsoft's eShop](https://github.com/dotnet/eShop) at commit `b4a4087`, trimmed to two of its 15 findings. Paths are shown relative to the checkout.</sub>
 
-> **Project status:** 0.x. EFD001 through EFD006, EFD009 through EFD014, EFD017 through EFD023, EFD025, EFD027 through EFD030, EFD037, and EFD038 ship in the `efdoctor` tool and the `EFDoctor.Analyzers` package. Rules, options, and output may still change before 1.0; see the [roadmap](docs/roadmap.md).
+> **Project status:** 0.x. EFD001 through EFD006, and EFD009 through EFD038 ship in the `efdoctor` tool and the `EFDoctor.Analyzers` package. Rules, options, and output may still change before 1.0; see the [roadmap](docs/roadmap.md).
 
 ## Quick start
 
@@ -33,7 +33,7 @@ The same rules ship in two packages. Use either, or both.
 | | `EFDoctor` (.NET tool) | `EFDoctor.Analyzers` (analyzer package) |
 |---|---|---|
 | Runs | When you run `efdoctor analyze`, locally or in CI | In every build and in the IDE, as you type |
-| Shows | A report: evidence, likely impact, and remediation for each finding; console or JSON | Compiler diagnostics, each linked to its rule page |
+| Shows | A report: evidence, likely impact, and remediation for each finding; console or JSON | Compiler diagnostics, each linked to its rule page, with quick-action code fixes for the mechanical remediations |
 | Setup | Nothing in the repository | One package reference, for example through central package management |
 | Good for | Auditing a codebase, CI gates, and reviewing every finding with its context | Catching a problem while the code is being written |
 
@@ -87,6 +87,8 @@ Precision matters more than rule count, so every finding on the corpus gets a ve
 | **EFD012** | SQL built by interpolation or concatenation passed to `FromSqlRaw`, `ExecuteSqlRaw`, or `SqlQueryRaw` | High |
 | **EFD013** | Load, loop, and save pattern that could be `ExecuteUpdate` or `ExecuteDelete` | Medium |
 | **EFD014** | `Skip` pagination with no preceding `OrderBy`, so pages are non-deterministic | High |
+| **EFD015** | Key list loaded from one query only to filter another with `Contains`, where a subquery saves a round trip | Advisory |
+| **EFD016** | EF Core async call that leaves out the `CancellationToken` in scope, so cancellation doesn't stop the command | Advisory |
 | **EFD017** | `Include` ignored by a later `Select` that projects only non-entity values | High |
 | **EFD018** | EF Core async operation whose task is discarded instead of awaited | High |
 | **EFD019** | Query materialized and immediately reduced, such as `ToList().First()`, or stored in a local that is used only for its count | High |
@@ -94,11 +96,19 @@ Precision matters more than rule count, so every finding on the corpus gets a ve
 | **EFD021** | `DbContext` held in a `static` field, which isn't thread-safe | High |
 | **EFD022** | `StringComparison` overload in a query predicate, which EF Core can't translate and throws at runtime | High |
 | **EFD023** | `Contains`, `EndsWith`, or a leading-wildcard `Like` on a column, which can't seek an index | Advisory |
+| **EFD024** | Collection loaded in full by `Include` but only used filtered in memory, where a filtered `Include` filters in SQL | Advisory |
 | **EFD025** | `Include` path that duplicates, or is covered by, another `Include` in the same query | High |
+| **EFD026** | `Update(entity)` on an entity the method loaded with tracking, which writes every column | Advisory |
 | **EFD027** | Two EF Core operations running at once on the same `DbContext`, which throws at run time | High |
 | **EFD028** | Method of the application inside a query filter or ordering, which EF Core can't translate and throws at runtime | High |
 | **EFD029** | Second `OrderBy` that discards an earlier ordering where `ThenBy` was meant | High |
 | **EFD030** | Query returned after its `DbContext` is disposed, so the caller's enumeration throws | High |
+| **EFD031** | LINQ composed over a stored-procedure call in `FromSqlRaw`, which EF Core can't compose and throws at runtime | High |
+| **EFD032** | Change to an entity loaded with `AsNoTracking`, then `SaveChanges`, which silently saves nothing | High |
+| **EFD033** | `DbContext` taken by a singleton or hosted service, which shares one context across requests | High |
+| **EFD034** | `Database.EnsureCreated()` on a context that has migrations, which bypasses the migration history | High |
+| **EFD035** | Model snapshot column that SQL Server can't index (`nvarchar(max)`), or a `decimal` left at `decimal(18,2)` | High / Advisory |
+| **EFD036** | Query filter whose columns lead no index in the model snapshot, which may scan the table | Advisory |
 | **EFD037** | Entities materialized into a local when the method reads only a few of their columns | Advisory |
 | **EFD038** | `ExecuteUpdate` or `ExecuteDelete` after entities of the same type were loaded with tracking, which leaves them stale | High / Medium |
 

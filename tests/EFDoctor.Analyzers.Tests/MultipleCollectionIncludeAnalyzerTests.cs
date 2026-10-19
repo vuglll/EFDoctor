@@ -158,6 +158,49 @@ public sealed class MultipleCollectionIncludeAnalyzerTests
         Assert.Contains("Parent.Children, Parent.Tags, Parent.Notes", diagnostic.Properties[DiagnosticPropertyNames.Evidence], StringComparison.Ordinal);
     }
 
+    [Theory]
+    [Trait("Spec", "efd006-multiple-collection-include/Split query configured in the compilation")]
+    [InlineData("options.UseSqlServer(\"Server=.\", sql => sql.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery));", 0)]
+    [InlineData("options.UseSqlServer(\"Server=.\", sql => sql.UseQuerySplittingBehavior(QuerySplittingBehavior.SingleQuery));", 1)]
+    [InlineData("options.UseSqlServer(\"Server=.\");", 1)]
+    public async Task FollowsTheContextsDefaultSplittingBehavior(string configuration, int expected)
+    {
+        var source = QuerySource(
+            "static object Run(TestContext context) => context.Parents.Include(parent => parent.Children).Include(parent => parent.Tags);",
+            $$"""
+            static class Configuration
+            {
+                public static void Configure(DbContextOptionsBuilder options) => {{configuration}}
+            }
+            """);
+
+        var diagnostics = await AnalyzerTestHarness.AnalyzeAsync(
+            source,
+            includeSqlServer: true,
+            analyzer: new MultipleCollectionIncludeAnalyzer(),
+            diagnosticId: MultipleCollectionIncludeAnalyzer.DiagnosticId);
+
+        Assert.Equal(expected, diagnostics.Length);
+    }
+
+    [Theory]
+    [Trait("Spec", "efd006-multiple-collection-include/Split query configured elsewhere")]
+    [InlineData("true", 0)]
+    [InlineData("false", 1)]
+    public async Task FollowsTheSplitQueryOption(string value, int expected)
+    {
+        var source = QuerySource("static object Run(TestContext context) => context.Parents.Include(parent => parent.Children).Include(parent => parent.Tags);");
+
+        var diagnostics = await AnalyzerTestHarness.AnalyzeAsync(
+            source,
+            includeRelational: true,
+            analyzer: new MultipleCollectionIncludeAnalyzer(),
+            diagnosticId: MultipleCollectionIncludeAnalyzer.DiagnosticId,
+            globalOptions: new Dictionary<string, string> { [EfSplitQueryConfiguration.SplitQueryByDefaultOption] = value });
+
+        Assert.Equal(expected, diagnostics.Length);
+    }
+
     [Fact]
     [Trait("Spec", "efd006-multiple-collection-include/Standard suppression")]
     public async Task HonorsPragmaSuppression()

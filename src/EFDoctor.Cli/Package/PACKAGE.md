@@ -51,6 +51,8 @@ Loading a project runs its MSBuild logic, so analyze only repositories you trust
 | EFD012 | Dynamically built SQL passed to `FromSqlRaw`/`ExecuteSqlRaw`/`SqlQueryRaw` |
 | EFD013 | Load/loop/save pattern that may suit `ExecuteUpdate`/`ExecuteDelete` |
 | EFD014 | `Skip` pagination with no preceding `OrderBy`, producing non-deterministic pages |
+| EFD015 | Key list materialized from one query only to filter another with `Contains` (advisory) |
+| EFD016 | EF Core async call that doesn't pass the `CancellationToken` in scope (advisory) |
 | EFD017 | `Include` ignored by a later non-entity `Select` |
 | EFD018 | EF Core async call whose task is discarded |
 | EFD019 | Query materialized and then immediately reduced, such as `ToList().First()`, or stored in a local used only for its count |
@@ -58,11 +60,19 @@ Loading a project runs its MSBuild logic, so analyze only repositories you trust
 | EFD021 | EF Core `DbContext` held in a `static` field |
 | EFD022 | `StringComparison` overload in a query predicate that EF Core cannot translate |
 | EFD023 | `Contains`, `EndsWith`, or leading-wildcard `Like` on a column (advisory) |
+| EFD024 | `Include`d collection only used filtered in memory, where a filtered `Include` would do (advisory) |
 | EFD025 | Duplicate or already-covered `Include` path in the same query (Info) |
+| EFD026 | `Update` on an entity the context already tracks, which marks every column modified (advisory) |
 | EFD027 | Concurrent EF Core operations on the same `DbContext`, such as `Task.WhenAll` over two queries |
 | EFD028 | Method of the application inside a query filter or ordering that EF Core cannot translate |
 | EFD029 | Second `OrderBy` that discards an earlier ordering instead of `ThenBy` |
 | EFD030 | Query returned after its `DbContext` is disposed, which throws when the caller enumerates it |
+| EFD031 | LINQ composed over a stored-procedure call in `FromSqlRaw`/`FromSql` |
+| EFD032 | Change to an entity loaded with `AsNoTracking`, which `SaveChanges` silently doesn't save |
+| EFD033 | `DbContext` captured by a singleton or hosted service |
+| EFD034 | `EnsureCreated()` on a context that also uses migrations |
+| EFD035 | Indexed `nvarchar(max)` column, or `decimal` left at the default precision, in the model snapshot |
+| EFD036 | Query filter on columns that no index in the model snapshot leads (advisory) |
 | EFD037 | Entities materialized into a local when only a few of their columns are read (advisory) |
 | EFD038 | `ExecuteUpdate`/`ExecuteDelete` that leaves already-tracked entities of the same type stale |
 

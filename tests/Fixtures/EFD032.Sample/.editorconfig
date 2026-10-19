@@ -1,0 +1,3 @@
+[EditorConfigSuppressed.cs]
+# Reviewed: a SaveChanges interceptor attaches untracked entities in this project.
+dotnet_diagnostic.EFD032.severity = none

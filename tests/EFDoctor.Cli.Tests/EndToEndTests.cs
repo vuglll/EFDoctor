@@ -234,7 +234,7 @@ public sealed class EndToEndTests
 
         Assert.Equal(1, console.ExitCode);
         Assert.Empty(console.StandardError);
-        Assert.Contains("Found 16 findings.", console.StandardOutput);
+        Assert.Contains("Found 25 findings.", console.StandardOutput);
         Assert.Contains("EFD001", console.StandardOutput, StringComparison.Ordinal);
         Assert.Contains("EFD005", console.StandardOutput, StringComparison.Ordinal);
         Assert.Contains("EFD012", console.StandardOutput, StringComparison.Ordinal);
@@ -251,16 +251,24 @@ public sealed class EndToEndTests
         Assert.Contains("EFD038", console.StandardOutput, StringComparison.Ordinal);
         Assert.Contains("EFD028", console.StandardOutput, StringComparison.Ordinal);
         Assert.Contains("EFD030", console.StandardOutput, StringComparison.Ordinal);
-        Assert.Equal(16, CountOccurrences(console.StandardOutput, "Severity: Info"));
-        Assert.Equal(16, CountOccurrences(console.StandardOutput, "Confidence: Advisory"));
+        Assert.Contains("EFD032", console.StandardOutput, StringComparison.Ordinal);
+        Assert.Contains("EFD033", console.StandardOutput, StringComparison.Ordinal);
+        Assert.Contains("EFD034", console.StandardOutput, StringComparison.Ordinal);
+        Assert.Contains("EFD031", console.StandardOutput, StringComparison.Ordinal);
+        Assert.Contains("EFD015", console.StandardOutput, StringComparison.Ordinal);
+        Assert.Contains("EFD024", console.StandardOutput, StringComparison.Ordinal);
+        Assert.Contains("EFD026", console.StandardOutput, StringComparison.Ordinal);
+        Assert.Contains("EFD016", console.StandardOutput, StringComparison.Ordinal);
+        Assert.Equal(25, CountOccurrences(console.StandardOutput, "Severity: Info"));
+        Assert.Equal(25, CountOccurrences(console.StandardOutput, "Confidence: Advisory"));
 
         Assert.Equal(1, json.ExitCode);
         Assert.Empty(json.StandardError);
         using var document = JsonDocument.Parse(json.StandardOutput);
         Assert.Equal(1, document.RootElement.GetProperty("schemaVersion").GetInt32());
         var findings = document.RootElement.GetProperty("findings").EnumerateArray().ToArray();
-        Assert.Equal(16, findings.Length);
-        Assert.Equal(new[] { "EFD005", "EFD001", "EFD012", "EFD013", "EFD017", "EFD018", "EFD019", "EFD025", "EFD009", "EFD023", "EFD029", "EFD027", "EFD037", "EFD038", "EFD028", "EFD030" }, findings.Select(static finding => finding.GetProperty("ruleId").GetString()));
+        Assert.Equal(25, findings.Length);
+        Assert.Equal(new[] { "EFD005", "EFD001", "EFD012", "EFD013", "EFD017", "EFD018", "EFD019", "EFD025", "EFD009", "EFD023", "EFD029", "EFD027", "EFD037", "EFD038", "EFD028", "EFD030", "EFD032", "EFD033", "EFD031", "EFD005", "EFD015", "EFD024", "EFD026", "EFD016", "EFD034" }, findings.Select(static finding => finding.GetProperty("ruleId").GetString()));
         Assert.All(findings, static finding =>
         {
             Assert.Equal("info", finding.GetProperty("severity").GetString());
@@ -894,6 +902,393 @@ public sealed class EndToEndTests
     }
 
     [Fact]
+    [Trait("Spec", "efd032-untracked-change-lost/Console and JSON reporting")]
+    public async Task Efd032FixtureProducesOnlyUnsuppressedFindings()
+    {
+        var project = Path.Combine(RepositoryRoot(), "tests", "Fixtures", "EFD032.Sample", "EFD032.Sample.csproj");
+
+        var console = await RunCliAsync("analyze", project, "--no-color", "--quiet");
+        var json = await RunCliAsync("analyze", project, "--format", "json", "--quiet");
+
+        Assert.Equal(1, console.ExitCode);
+        Assert.Empty(console.StandardError);
+        Assert.Contains("Found 2 findings.", console.StandardOutput);
+        Assert.Equal(2, CountOccurrences(console.StandardOutput, "  EFD032:"));
+        Assert.Contains("Change to an untracked entity is never saved", console.StandardOutput);
+        Assert.Equal(2, CountOccurrences(console.StandardOutput, "Severity: Warning | Confidence: High"));
+        Assert.DoesNotContain("EditorConfigSuppressed.cs", console.StandardOutput);
+        Assert.DoesNotContain('\u001b', console.StandardOutput);
+
+        Assert.Equal(1, json.ExitCode);
+        Assert.Empty(json.StandardError);
+        using var document = JsonDocument.Parse(json.StandardOutput);
+        Assert.Equal(1, document.RootElement.GetProperty("schemaVersion").GetInt32());
+        var findings = document.RootElement.GetProperty("findings").EnumerateArray().ToArray();
+        Assert.Equal(2, findings.Length);
+        Assert.All(findings, static finding =>
+        {
+            Assert.Equal("EFD032", finding.GetProperty("ruleId").GetString());
+            Assert.Equal("warning", finding.GetProperty("severity").GetString());
+            Assert.Equal("high", finding.GetProperty("confidence").GetString());
+            Assert.EndsWith("tests/Fixtures/EFD032.Sample/UntrackedChangeCases.cs", finding.GetProperty("sourceFile").GetString(), StringComparison.Ordinal);
+            Assert.Contains("with AsNoTracking on context 'context'", finding.GetProperty("evidence").GetString(), StringComparison.Ordinal);
+            Assert.Equal("EFD032", finding.GetProperty("documentationReference").GetString());
+        });
+        Assert.Equal((24, 9, 24, 25), Range(findings[0]));
+        Assert.Equal("'order' was loaded with AsNoTracking, so SaveChanges does not save this change", findings[0].GetProperty("message").GetString());
+        Assert.Equal((36, 17, 36, 35), Range(findings[1]));
+        Assert.Equal("'order' was loaded with AsNoTracking, so SaveChanges does not save this change", findings[1].GetProperty("message").GetString());
+    }
+
+    [Fact]
+    [Trait("Spec", "efd033-singleton-captures-context/Console and JSON reporting")]
+    public async Task Efd033FixtureProducesOnlyUnsuppressedFindings()
+    {
+        var project = Path.Combine(RepositoryRoot(), "tests", "Fixtures", "EFD033.Sample", "EFD033.Sample.csproj");
+
+        var console = await RunCliAsync("analyze", project, "--no-color", "--quiet");
+        var json = await RunCliAsync("analyze", project, "--format", "json", "--quiet");
+
+        Assert.Equal(1, console.ExitCode);
+        Assert.Empty(console.StandardError);
+        Assert.Contains("Found 2 findings.", console.StandardOutput);
+        Assert.Equal(2, CountOccurrences(console.StandardOutput, "  EFD033:"));
+        Assert.Contains("DbContext captured by a singleton", console.StandardOutput);
+        Assert.Equal(2, CountOccurrences(console.StandardOutput, "Severity: Warning | Confidence: High"));
+        Assert.DoesNotContain("EditorConfigSuppressed.cs", console.StandardOutput);
+        Assert.DoesNotContain('\u001b', console.StandardOutput);
+
+        Assert.Equal(1, json.ExitCode);
+        Assert.Empty(json.StandardError);
+        using var document = JsonDocument.Parse(json.StandardOutput);
+        Assert.Equal(1, document.RootElement.GetProperty("schemaVersion").GetInt32());
+        var findings = document.RootElement.GetProperty("findings").EnumerateArray().ToArray();
+        Assert.Equal(2, findings.Length);
+        Assert.All(findings, static finding =>
+        {
+            Assert.Equal("EFD033", finding.GetProperty("ruleId").GetString());
+            Assert.Equal("warning", finding.GetProperty("severity").GetString());
+            Assert.Equal("high", finding.GetProperty("confidence").GetString());
+            Assert.EndsWith("tests/Fixtures/EFD033.Sample/RegistrationCases.cs", finding.GetProperty("sourceFile").GetString(), StringComparison.Ordinal);
+            Assert.Contains("with a singleton lifetime", finding.GetProperty("evidence").GetString(), StringComparison.Ordinal);
+            Assert.Equal("EFD033", finding.GetProperty("documentationReference").GetString());
+        });
+        Assert.Equal((32, 9, 32, 57), Range(findings[0]));
+        Assert.Equal("Singleton 'PriceCache' captures DbContext 'SampleContext' for the application's lifetime", findings[0].GetProperty("message").GetString());
+        Assert.Equal((35, 9, 35, 117), Range(findings[1]));
+        Assert.Equal("Singleton 'IPriceCache' captures DbContext 'SampleContext' for the application's lifetime", findings[1].GetProperty("message").GetString());
+    }
+
+    [Fact]
+    [Trait("Spec", "efd034-ensurecreated-with-migrations/Console and JSON reporting")]
+    public async Task Efd034FixtureProducesOnlyUnsuppressedFindings()
+    {
+        var project = Path.Combine(RepositoryRoot(), "tests", "Fixtures", "EFD034.Sample", "EFD034.Sample.csproj");
+
+        var console = await RunCliAsync("analyze", project, "--no-color", "--quiet");
+        var json = await RunCliAsync("analyze", project, "--format", "json", "--quiet");
+
+        Assert.Equal(1, console.ExitCode);
+        Assert.Empty(console.StandardError);
+        Assert.Contains("Found 2 findings.", console.StandardOutput);
+        Assert.Equal(2, CountOccurrences(console.StandardOutput, "  EFD034:"));
+        Assert.Contains("EnsureCreated on a context that uses migrations", console.StandardOutput);
+        Assert.Equal(2, CountOccurrences(console.StandardOutput, "Severity: Warning | Confidence: High"));
+        Assert.DoesNotContain("EditorConfigSuppressed.cs", console.StandardOutput);
+        Assert.DoesNotContain('\u001b', console.StandardOutput);
+
+        Assert.Equal(1, json.ExitCode);
+        Assert.Empty(json.StandardError);
+        using var document = JsonDocument.Parse(json.StandardOutput);
+        Assert.Equal(1, document.RootElement.GetProperty("schemaVersion").GetInt32());
+        var findings = document.RootElement.GetProperty("findings").EnumerateArray().ToArray();
+        Assert.Equal(2, findings.Length);
+        Assert.All(findings, static finding =>
+        {
+            Assert.Equal("EFD034", finding.GetProperty("ruleId").GetString());
+            Assert.Equal("warning", finding.GetProperty("severity").GetString());
+            Assert.Equal("high", finding.GetProperty("confidence").GetString());
+            Assert.EndsWith("tests/Fixtures/EFD034.Sample/DatabaseSetupCases.cs", finding.GetProperty("sourceFile").GetString(), StringComparison.Ordinal);
+            Assert.Contains("the migration class 'Initial'", finding.GetProperty("evidence").GetString(), StringComparison.Ordinal);
+            Assert.Equal("EFD034", finding.GetProperty("documentationReference").GetString());
+        });
+        Assert.Equal((28, 64, 28, 96), Range(findings[0]));
+        Assert.Equal("EnsureCreated bypasses the migrations of 'ShopContext'", findings[0].GetProperty("message").GetString());
+        Assert.Equal((31, 81, 31, 118), Range(findings[1]));
+        Assert.Equal("EnsureCreated bypasses the migrations of 'ShopContext'", findings[1].GetProperty("message").GetString());
+    }
+
+    [Fact]
+    [Trait("Spec", "efd031-composed-stored-procedure/Console and JSON reporting")]
+    public async Task Efd031FixtureProducesOnlyUnsuppressedFindings()
+    {
+        var project = Path.Combine(RepositoryRoot(), "tests", "Fixtures", "EFD031.Sample", "EFD031.Sample.csproj");
+
+        var console = await RunCliAsync("analyze", project, "--no-color", "--quiet");
+        var json = await RunCliAsync("analyze", project, "--format", "json", "--quiet");
+
+        Assert.Equal(1, console.ExitCode);
+        Assert.Empty(console.StandardError);
+        Assert.Contains("Found 2 findings.", console.StandardOutput);
+        Assert.Equal(2, CountOccurrences(console.StandardOutput, "  EFD031:"));
+        Assert.Contains("LINQ composed over a stored-procedure call", console.StandardOutput);
+        Assert.Equal(2, CountOccurrences(console.StandardOutput, "Severity: Warning | Confidence: High"));
+        Assert.DoesNotContain("EditorConfigSuppressed.cs", console.StandardOutput);
+        Assert.DoesNotContain('\u001b', console.StandardOutput);
+
+        Assert.Equal(1, json.ExitCode);
+        Assert.Empty(json.StandardError);
+        using var document = JsonDocument.Parse(json.StandardOutput);
+        Assert.Equal(1, document.RootElement.GetProperty("schemaVersion").GetInt32());
+        var findings = document.RootElement.GetProperty("findings").EnumerateArray().ToArray();
+        Assert.Equal(2, findings.Length);
+        Assert.All(findings, static finding =>
+        {
+            Assert.Equal("EFD031", finding.GetProperty("ruleId").GetString());
+            Assert.Equal("warning", finding.GetProperty("severity").GetString());
+            Assert.Equal("high", finding.GetProperty("confidence").GetString());
+            Assert.EndsWith("tests/Fixtures/EFD031.Sample/StoredProcedureCases.cs", finding.GetProperty("sourceFile").GetString(), StringComparison.Ordinal);
+            Assert.Contains("whose SQL begins with 'EXEC'", finding.GetProperty("evidence").GetString(), StringComparison.Ordinal);
+            Assert.Equal("EFD031", finding.GetProperty("documentationReference").GetString());
+        });
+        Assert.Equal((21, 9, 21, 99), Range(findings[0]));
+        Assert.Equal("EF Core cannot compose Where over the stored-procedure call in FromSqlRaw", findings[0].GetProperty("message").GetString());
+        Assert.Equal((25, 9, 25, 80), Range(findings[1]));
+        Assert.Equal("EF Core cannot compose FirstOrDefaultAsync over the stored-procedure call in FromSql", findings[1].GetProperty("message").GetString());
+    }
+
+    [Fact]
+    [Trait("Spec", "efd036-unindexed-predicate-column/Console and JSON reporting")]
+    public async Task Efd036FixtureProducesOnlyUnsuppressedFindings()
+    {
+        var project = Path.Combine(RepositoryRoot(), "tests", "Fixtures", "EFD036.Sample", "EFD036.Sample.csproj");
+
+        var console = await RunCliAsync("analyze", project, "--no-color", "--quiet");
+        var json = await RunCliAsync("analyze", project, "--format", "json", "--quiet");
+
+        Assert.Equal(1, console.ExitCode);
+        Assert.Empty(console.StandardError);
+        Assert.Contains("Found 2 findings.", console.StandardOutput);
+        Assert.Equal(2, CountOccurrences(console.StandardOutput, "  EFD036:"));
+        Assert.Contains("Query filter on a column without an index", console.StandardOutput);
+        Assert.Equal(2, CountOccurrences(console.StandardOutput, "Severity: Info | Confidence: Advisory"));
+        Assert.DoesNotContain("EditorConfigSuppressed.cs", console.StandardOutput);
+        Assert.DoesNotContain('\u001b', console.StandardOutput);
+
+        Assert.Equal(1, json.ExitCode);
+        Assert.Empty(json.StandardError);
+        using var document = JsonDocument.Parse(json.StandardOutput);
+        Assert.Equal(1, document.RootElement.GetProperty("schemaVersion").GetInt32());
+        var findings = document.RootElement.GetProperty("findings").EnumerateArray().ToArray();
+        Assert.Equal(2, findings.Length);
+        Assert.All(findings, static finding =>
+        {
+            Assert.Equal("EFD036", finding.GetProperty("ruleId").GetString());
+            Assert.Equal("info", finding.GetProperty("severity").GetString());
+            Assert.Equal("advisory", finding.GetProperty("confidence").GetString());
+            Assert.EndsWith("tests/Fixtures/EFD036.Sample/FilterCases.cs", finding.GetProperty("sourceFile").GetString(), StringComparison.Ordinal);
+            Assert.Contains("Model snapshot 'SampleContextModelSnapshot'", finding.GetProperty("evidence").GetString(), StringComparison.Ordinal);
+            Assert.Equal("EFD036", finding.GetProperty("documentationReference").GetString());
+        });
+        Assert.Equal((24, 39, 24, 50), Range(findings[0]));
+        Assert.Equal("No index in the model snapshot leads with 'Order.Email', which this query filters on", findings[0].GetProperty("message").GetString());
+        Assert.Equal((28, 44, 28, 60), Range(findings[1]));
+        Assert.Equal("No index in the model snapshot leads with 'Order.CreatedUtc', which this query filters on", findings[1].GetProperty("message").GetString());
+    }
+
+    [Fact]
+    [Trait("Spec", "efd035-unsized-snapshot-column/Console and JSON reporting")]
+    public async Task Efd035FixtureProducesOnlyUnsuppressedFindings()
+    {
+        var project = Path.Combine(RepositoryRoot(), "tests", "Fixtures", "EFD035.Sample", "EFD035.Sample.csproj");
+
+        var console = await RunCliAsync("analyze", project, "--no-color", "--quiet");
+        var json = await RunCliAsync("analyze", project, "--format", "json", "--quiet");
+
+        Assert.Equal(1, console.ExitCode);
+        Assert.Empty(console.StandardError);
+        Assert.Contains("Found 2 findings.", console.StandardOutput);
+        Assert.Equal(2, CountOccurrences(console.StandardOutput, "  EFD035:"));
+        Assert.Contains("Unsized column in the model snapshot", console.StandardOutput);
+        Assert.Equal(1, CountOccurrences(console.StandardOutput, "Severity: Warning | Confidence: High"));
+        Assert.Equal(1, CountOccurrences(console.StandardOutput, "Severity: Info | Confidence: Advisory"));
+        Assert.DoesNotContain("EditorConfigSuppressed.cs", console.StandardOutput);
+        Assert.DoesNotContain('\u001b', console.StandardOutput);
+
+        Assert.Equal(1, json.ExitCode);
+        Assert.Empty(json.StandardError);
+        using var document = JsonDocument.Parse(json.StandardOutput);
+        Assert.Equal(1, document.RootElement.GetProperty("schemaVersion").GetInt32());
+        var findings = document.RootElement.GetProperty("findings").EnumerateArray().ToArray();
+        Assert.Equal(2, findings.Length);
+        Assert.All(findings, static finding =>
+        {
+            Assert.Equal("EFD035", finding.GetProperty("ruleId").GetString());
+            Assert.EndsWith("tests/Fixtures/EFD035.Sample/SnapshotCases.cs", finding.GetProperty("sourceFile").GetString(), StringComparison.Ordinal);
+            Assert.Contains("Model snapshot 'SampleContextModelSnapshot'", finding.GetProperty("evidence").GetString(), StringComparison.Ordinal);
+            Assert.Equal("EFD035", finding.GetProperty("documentationReference").GetString());
+        });
+        Assert.Equal((33, 13, 35, 48), Range(findings[0]));
+        Assert.Equal("warning", findings[0].GetProperty("severity").GetString());
+        Assert.Equal("high", findings[0].GetProperty("confidence").GetString());
+        Assert.Equal("'Invoice.Email' is nvarchar(max), which SQL Server cannot use in an index or key", findings[0].GetProperty("message").GetString());
+        Assert.Equal((52, 13, 53, 48), Range(findings[1]));
+        Assert.Equal("info", findings[1].GetProperty("severity").GetString());
+        Assert.Equal("advisory", findings[1].GetProperty("confidence").GetString());
+        Assert.Equal("'Invoice.TaxRate' has no configured precision, so SQL Server stores it as decimal(18,2)", findings[1].GetProperty("message").GetString());
+    }
+
+    [Fact]
+    [Trait("Spec", "efd015-materialized-contains-list/Console and JSON reporting")]
+    public async Task Efd015FixtureProducesOnlyUnsuppressedFindings()
+    {
+        var project = Path.Combine(RepositoryRoot(), "tests", "Fixtures", "EFD015.Sample", "EFD015.Sample.csproj");
+
+        var console = await RunCliAsync("analyze", project, "--no-color", "--quiet");
+        var json = await RunCliAsync("analyze", project, "--format", "json", "--quiet");
+
+        Assert.Equal(1, console.ExitCode);
+        Assert.Empty(console.StandardError);
+        Assert.Contains("Found 1 finding.", console.StandardOutput);
+        Assert.Equal(1, CountOccurrences(console.StandardOutput, "  EFD015:"));
+        Assert.Contains("Materialized key list used in another query's Contains", console.StandardOutput);
+        Assert.Equal(1, CountOccurrences(console.StandardOutput, "Severity: Info | Confidence: Advisory"));
+        Assert.DoesNotContain("EditorConfigSuppressed.cs", console.StandardOutput);
+        Assert.DoesNotContain('\u001b', console.StandardOutput);
+
+        Assert.Equal(1, json.ExitCode);
+        Assert.Empty(json.StandardError);
+        using var document = JsonDocument.Parse(json.StandardOutput);
+        Assert.Equal(1, document.RootElement.GetProperty("schemaVersion").GetInt32());
+        var findings = document.RootElement.GetProperty("findings").EnumerateArray().ToArray();
+        Assert.Single(findings);
+        Assert.All(findings, static finding =>
+        {
+            Assert.Equal("EFD015", finding.GetProperty("ruleId").GetString());
+            Assert.Equal("info", finding.GetProperty("severity").GetString());
+            Assert.Equal("advisory", finding.GetProperty("confidence").GetString());
+            Assert.EndsWith("tests/Fixtures/EFD015.Sample/ContainsListCases.cs", finding.GetProperty("sourceFile").GetString(), StringComparison.Ordinal);
+            Assert.Contains("is used only as the collection of Contains", finding.GetProperty("evidence").GetString(), StringComparison.Ordinal);
+            Assert.Equal("EFD015", finding.GetProperty("documentationReference").GetString());
+        });
+        Assert.Equal((30, 52, 30, 90), Range(findings[0]));
+        Assert.Equal("'customerIds' is loaded from another query only to filter this one; compose it as a subquery", findings[0].GetProperty("message").GetString());
+    }
+
+    [Fact]
+    [Trait("Spec", "efd024-include-filtered-in-memory/Console and JSON reporting")]
+    public async Task Efd024FixtureProducesOnlyUnsuppressedFindings()
+    {
+        var project = Path.Combine(RepositoryRoot(), "tests", "Fixtures", "EFD024.Sample", "EFD024.Sample.csproj");
+
+        var console = await RunCliAsync("analyze", project, "--no-color", "--quiet");
+        var json = await RunCliAsync("analyze", project, "--format", "json", "--quiet");
+
+        Assert.Equal(1, console.ExitCode);
+        Assert.Empty(console.StandardError);
+        Assert.Contains("Found 1 finding.", console.StandardOutput);
+        Assert.Equal(1, CountOccurrences(console.StandardOutput, "  EFD024:"));
+        Assert.Contains("Included collection filtered in memory", console.StandardOutput);
+        Assert.Equal(1, CountOccurrences(console.StandardOutput, "Severity: Info | Confidence: Advisory"));
+        Assert.DoesNotContain("EditorConfigSuppressed.cs", console.StandardOutput);
+        Assert.DoesNotContain('\u001b', console.StandardOutput);
+
+        Assert.Equal(1, json.ExitCode);
+        Assert.Empty(json.StandardError);
+        using var document = JsonDocument.Parse(json.StandardOutput);
+        Assert.Equal(1, document.RootElement.GetProperty("schemaVersion").GetInt32());
+        var findings = document.RootElement.GetProperty("findings").EnumerateArray().ToArray();
+        Assert.Single(findings);
+        Assert.All(findings, static finding =>
+        {
+            Assert.Equal("EFD024", finding.GetProperty("ruleId").GetString());
+            Assert.Equal("info", finding.GetProperty("severity").GetString());
+            Assert.Equal("advisory", finding.GetProperty("confidence").GetString());
+            Assert.EndsWith("tests/Fixtures/EFD024.Sample/IncludeCases.cs", finding.GetProperty("sourceFile").GetString(), StringComparison.Ordinal);
+            Assert.Contains("use(s) of 'Posts' in this method filters it in memory", finding.GetProperty("evidence").GetString(), StringComparison.Ordinal);
+            Assert.Equal("EFD024", finding.GetProperty("documentationReference").GetString());
+        });
+        Assert.Equal((30, 26, 30, 77), Range(findings[0]));
+        Assert.Equal("'Posts' is loaded in full by Include, but this method only uses it filtered; use a filtered Include", findings[0].GetProperty("message").GetString());
+    }
+
+    [Fact]
+    [Trait("Spec", "efd026-update-on-tracked-entity/Console and JSON reporting")]
+    public async Task Efd026FixtureProducesOnlyUnsuppressedFindings()
+    {
+        var project = Path.Combine(RepositoryRoot(), "tests", "Fixtures", "EFD026.Sample", "EFD026.Sample.csproj");
+
+        var console = await RunCliAsync("analyze", project, "--no-color", "--quiet");
+        var json = await RunCliAsync("analyze", project, "--format", "json", "--quiet");
+
+        Assert.Equal(1, console.ExitCode);
+        Assert.Empty(console.StandardError);
+        Assert.Contains("Found 1 finding.", console.StandardOutput);
+        Assert.Equal(1, CountOccurrences(console.StandardOutput, "  EFD026:"));
+        Assert.Contains("Update on an entity the context already tracks", console.StandardOutput);
+        Assert.Equal(1, CountOccurrences(console.StandardOutput, "Severity: Info | Confidence: Advisory"));
+        Assert.DoesNotContain("EditorConfigSuppressed.cs", console.StandardOutput);
+        Assert.DoesNotContain('\u001b', console.StandardOutput);
+
+        Assert.Equal(1, json.ExitCode);
+        Assert.Empty(json.StandardError);
+        using var document = JsonDocument.Parse(json.StandardOutput);
+        Assert.Equal(1, document.RootElement.GetProperty("schemaVersion").GetInt32());
+        var findings = document.RootElement.GetProperty("findings").EnumerateArray().ToArray();
+        Assert.Single(findings);
+        Assert.All(findings, static finding =>
+        {
+            Assert.Equal("EFD026", finding.GetProperty("ruleId").GetString());
+            Assert.Equal("info", finding.GetProperty("severity").GetString());
+            Assert.Equal("advisory", finding.GetProperty("confidence").GetString());
+            Assert.EndsWith("tests/Fixtures/EFD026.Sample/UpdateCases.cs", finding.GetProperty("sourceFile").GetString(), StringComparison.Ordinal);
+            Assert.Contains("is loaded with tracking by", finding.GetProperty("evidence").GetString(), StringComparison.Ordinal);
+            Assert.Equal("EFD026", finding.GetProperty("documentationReference").GetString());
+        });
+        Assert.Equal((24, 9, 24, 37), Range(findings[0]));
+        Assert.Equal("'order' is already tracked, so Update is unnecessary and marks every column modified", findings[0].GetProperty("message").GetString());
+    }
+
+    [Fact]
+    [Trait("Spec", "efd016-cancellation-token-not-passed/Console and JSON reporting")]
+    public async Task Efd016FixtureProducesOnlyUnsuppressedFindings()
+    {
+        var project = Path.Combine(RepositoryRoot(), "tests", "Fixtures", "EFD016.Sample", "EFD016.Sample.csproj");
+
+        var console = await RunCliAsync("analyze", project, "--no-color", "--quiet");
+        var json = await RunCliAsync("analyze", project, "--format", "json", "--quiet");
+
+        Assert.Equal(1, console.ExitCode);
+        Assert.Empty(console.StandardError);
+        Assert.Contains("Found 2 findings.", console.StandardOutput);
+        Assert.Equal(2, CountOccurrences(console.StandardOutput, "  EFD016:"));
+        Assert.Contains("CancellationToken not passed to an EF Core async call", console.StandardOutput);
+        Assert.Equal(2, CountOccurrences(console.StandardOutput, "Severity: Info | Confidence: Advisory"));
+        Assert.DoesNotContain("EditorConfigSuppressed.cs", console.StandardOutput);
+        Assert.DoesNotContain('\u001b', console.StandardOutput);
+
+        Assert.Equal(1, json.ExitCode);
+        Assert.Empty(json.StandardError);
+        using var document = JsonDocument.Parse(json.StandardOutput);
+        Assert.Equal(1, document.RootElement.GetProperty("schemaVersion").GetInt32());
+        var findings = document.RootElement.GetProperty("findings").EnumerateArray().ToArray();
+        Assert.Equal(2, findings.Length);
+        Assert.All(findings, static finding =>
+        {
+            Assert.Equal("EFD016", finding.GetProperty("ruleId").GetString());
+            Assert.Equal("info", finding.GetProperty("severity").GetString());
+            Assert.Equal("advisory", finding.GetProperty("confidence").GetString());
+            Assert.EndsWith("tests/Fixtures/EFD016.Sample/TokenCases.cs", finding.GetProperty("sourceFile").GetString(), StringComparison.Ordinal);
+            Assert.Contains("parameter 'cancellationToken' of type CancellationToken is in scope", finding.GetProperty("evidence").GetString(), StringComparison.Ordinal);
+            Assert.Equal("EFD016", finding.GetProperty("documentationReference").GetString());
+        });
+        Assert.Equal((21, 9, 21, 73), Range(findings[0]));
+        Assert.Equal("'ToListAsync' doesn't pass the CancellationToken 'cancellationToken' that is in scope", findings[0].GetProperty("message").GetString());
+        Assert.Equal((25, 9, 25, 35), Range(findings[1]));
+        Assert.Equal("'SaveChangesAsync' doesn't pass the CancellationToken 'cancellationToken' that is in scope", findings[1].GetProperty("message").GetString());
+    }
+
+    [Fact]
     [Trait("Spec", "efd037-entity-over-fetch/Complete structured finding")]
     [Trait("Spec", "efd037-entity-over-fetch/Diagnostic location")]
     [Trait("Spec", "efd037-entity-over-fetch/Standard suppression")]
@@ -1339,6 +1734,34 @@ public sealed class EndToEndTests
         {
             Directory.Delete(temporaryDirectory, recursive: true);
         }
+    }
+
+    [Fact]
+    [Trait("Spec", "cli-ef-resolution-check/Entity-model project with only the EF Core abstractions")]
+    public async Task ProjectReferencingOnlyTheEfCoreAbstractionsIsNotFlagged()
+    {
+        var project = Path.Combine(RepositoryRoot(), "tests", "Fixtures", "Workspace.EfAbstractionsOnly", "Workspace.EfAbstractionsOnly.csproj");
+
+        var console = await RunCliAsync("analyze", project, "--no-color", "--quiet");
+
+        Assert.Equal(0, console.ExitCode);
+        Assert.Empty(console.StandardError);
+    }
+
+    [Fact]
+    [Trait("Spec", "efd006-multiple-collection-include/Split query configured in another project")]
+    public async Task SplitQueryConfiguredInAnotherProjectPreventsEfd006()
+    {
+        var fixtures = Path.Combine(RepositoryRoot(), "tests", "Fixtures");
+        var dataOnly = Path.Combine(fixtures, "Workspace.SplitQueryData", "Workspace.SplitQueryData.csproj");
+        var withHost = Path.Combine(fixtures, "Workspace.SplitQueryHost", "Workspace.SplitQueryHost.csproj");
+
+        var alone = await RunCliAsync("analyze", dataOnly, "--format", "json", "--quiet");
+        var together = await RunCliAsync("analyze", withHost, "--format", "json", "--quiet");
+
+        Assert.Contains("\"EFD006\"", alone.StandardOutput, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"EFD006\"", together.StandardOutput, StringComparison.Ordinal);
+        Assert.Empty(together.StandardError);
     }
 
     [Fact]

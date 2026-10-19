@@ -1,0 +1,3 @@
+[EditorConfigSuppressed.cs]
+# Reviewed: Notes is a small lookup table.
+dotnet_diagnostic.EFD036.severity = none

@@ -39,7 +39,17 @@ public static class WorkspaceAnalyzer
             new EntityOverFetchAnalyzer(),
             new StaleTrackedEntitiesAnalyzer(),
             new ClientMethodInQueryAnalyzer(),
-            new QueryOutlivesContextAnalyzer());
+            new QueryOutlivesContextAnalyzer(),
+            new UntrackedChangeLostAnalyzer(),
+            new SingletonCapturesContextAnalyzer(),
+            new EnsureCreatedWithMigrationsAnalyzer(),
+            new ComposedStoredProcedureAnalyzer(),
+            new UnindexedPredicateColumnAnalyzer(),
+            new UnsizedSnapshotColumnAnalyzer(),
+            new MaterializedContainsListAnalyzer(),
+            new IncludeFilteredInMemoryAnalyzer(),
+            new UpdateOnTrackedEntityAnalyzer(),
+            new CancellationTokenNotPassedAnalyzer());
 
     private static readonly ImmutableHashSet<string> DiagnosticIds = Analyzers
         .SelectMany(static analyzer => analyzer.SupportedDiagnostics)
@@ -75,12 +85,15 @@ public static class WorkspaceAnalyzer
         // generator load problems) while still producing a usable compilation. Load
         // diagnostics therefore do not fail the scan on their own; the run fails only
         // when no analyzable C# compilation is available.
+        var csharpProjects = solution.Projects.Where(static project => project.Language == LanguageNames.CSharp).ToList();
+        var splitQueryByDefault = await ConfiguresSplitQueryAsync(csharpProjects, cancellationToken).ConfigureAwait(false);
+
         var findings = new List<Finding>();
         var unanalyzableEfProjects = new List<string>();
         var analyzableEfProjects = 0;
         var analyzedAnyCompilation = false;
         var skippedTestProject = false;
-        foreach (var project in solution.Projects.Where(static project => project.Language == LanguageNames.CSharp))
+        foreach (var project in csharpProjects)
         {
             var compilation = await project.GetCompilationAsync(cancellationToken).ConfigureAwait(false);
             if (compilation is null || !compilation.SyntaxTrees.Any())
@@ -103,7 +116,8 @@ public static class WorkspaceAnalyzer
             analyzedAnyCompilation = true;
             if (UsesEntityFrameworkCore(compilation, cancellationToken))
             {
-                if (compilation.GetTypeByMetadataName(DbContextMetadataName) is null)
+                if (compilation.GetTypeByMetadataName(DbContextMetadataName) is null
+                    && !ReferencesEfCoreAssembly(compilation))
                 {
                     // Every rule needs EF Core types; without them the project would silently
                     // look clean, so say so instead of analyzing it.
@@ -116,7 +130,7 @@ public static class WorkspaceAnalyzer
 
             // The analyzers skip test projects on their own; an included one needs their opt-in.
             var analyzerOptions = new CompilationWithAnalyzersOptions(
-                isTestProject ? TestProjectAnalyzerOptions.OptIn(project.AnalyzerOptions) : project.AnalyzerOptions,
+                CliAnalyzerOptions.For(project.AnalyzerOptions, optInTestProject: isTestProject, splitQueryByDefault),
                 onAnalyzerException: null,
                 concurrentAnalysis: true,
                 logAnalyzerExecutionTime: false,
@@ -165,6 +179,23 @@ public static class WorkspaceAnalyzer
         return AnalysisResult.Success(distinct, unanalyzableEfProjects);
     }
 
+    // A context is often configured in the host project and queried in another, which the
+    // analyzers, seeing one compilation at a time, can't connect. Any project in the scan that
+    // configures split queries by default counts for all of them.
+    private static async Task<bool> ConfiguresSplitQueryAsync(IEnumerable<Project> projects, CancellationToken cancellationToken)
+    {
+        foreach (var document in projects.SelectMany(static project => project.Documents))
+        {
+            var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
+            if (root is not null && EfSplitQueryConfiguration.ConfiguresSplitQuery(root))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private const string WorkspaceTargetsFile = "build/EFDoctor.Workspace.targets";
 
     // Roslyn's build host splits TargetFrameworks on ';' without trimming, so a list written across
@@ -193,6 +224,13 @@ public static class WorkspaceAnalyzer
             .OfType<UsingDirectiveSyntax>()
             .Any(static directive => directive.Name?.ToString() is { } name
                 && (name == EfCoreNamespace || name.StartsWith(EfCoreNamespace + ".", StringComparison.Ordinal))));
+
+    // An entity-model project can reference only the EF Core abstractions, for mapping attributes
+    // such as [Index], and so has no DbContext. Its references resolved; an unrestored project has
+    // no EF Core assembly at all.
+    private static bool ReferencesEfCoreAssembly(Compilation compilation) =>
+        compilation.ReferencedAssemblyNames.Any(static assembly =>
+            assembly.Name.StartsWith(EfCoreNamespace, StringComparison.OrdinalIgnoreCase));
 
     private static string DescribeUnanalyzableProject(Project project, IEnumerable<string> loadFailures)
     {
