@@ -114,6 +114,12 @@ public static class TestProjectCases
     public static TestEntity? ProcedureFirst(TestContext context) =>
         context.Entities.FromSqlRaw("EXEC dbo.GetEntities").FirstOrDefault();
 
+    public static List<TestEntity> MaterializedContains(TestContext context)
+    {
+        var ids = context.Entities.Where(entity => entity.Active).Select(entity => entity.Id).ToList();
+        return context.Entities.Where(entity => ids.Contains(entity.Id)).Take(10).ToList();
+    }
+
     public static void CreateAndMigrate(TestContext context)
     {
         context.Database.EnsureCreated();

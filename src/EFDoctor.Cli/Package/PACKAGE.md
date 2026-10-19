@@ -51,6 +51,7 @@ Loading a project runs its MSBuild logic, so analyze only repositories you trust
 | EFD012 | Dynamically built SQL passed to `FromSqlRaw`/`ExecuteSqlRaw`/`SqlQueryRaw` |
 | EFD013 | Load/loop/save pattern that may suit `ExecuteUpdate`/`ExecuteDelete` |
 | EFD014 | `Skip` pagination with no preceding `OrderBy`, producing non-deterministic pages |
+| EFD015 | Key list materialized from one query only to filter another with `Contains` (advisory) |
 | EFD017 | `Include` ignored by a later non-entity `Select` |
 | EFD018 | EF Core async call whose task is discarded |
 | EFD019 | Query materialized and then immediately reduced, such as `ToList().First()`, or stored in a local used only for its count |

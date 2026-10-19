@@ -234,7 +234,7 @@ public sealed class EndToEndTests
 
         Assert.Equal(1, console.ExitCode);
         Assert.Empty(console.StandardError);
-        Assert.Contains("Found 20 findings.", console.StandardOutput);
+        Assert.Contains("Found 22 findings.", console.StandardOutput);
         Assert.Contains("EFD001", console.StandardOutput, StringComparison.Ordinal);
         Assert.Contains("EFD005", console.StandardOutput, StringComparison.Ordinal);
         Assert.Contains("EFD012", console.StandardOutput, StringComparison.Ordinal);
@@ -255,16 +255,17 @@ public sealed class EndToEndTests
         Assert.Contains("EFD033", console.StandardOutput, StringComparison.Ordinal);
         Assert.Contains("EFD034", console.StandardOutput, StringComparison.Ordinal);
         Assert.Contains("EFD031", console.StandardOutput, StringComparison.Ordinal);
-        Assert.Equal(20, CountOccurrences(console.StandardOutput, "Severity: Info"));
-        Assert.Equal(20, CountOccurrences(console.StandardOutput, "Confidence: Advisory"));
+        Assert.Contains("EFD015", console.StandardOutput, StringComparison.Ordinal);
+        Assert.Equal(22, CountOccurrences(console.StandardOutput, "Severity: Info"));
+        Assert.Equal(22, CountOccurrences(console.StandardOutput, "Confidence: Advisory"));
 
         Assert.Equal(1, json.ExitCode);
         Assert.Empty(json.StandardError);
         using var document = JsonDocument.Parse(json.StandardOutput);
         Assert.Equal(1, document.RootElement.GetProperty("schemaVersion").GetInt32());
         var findings = document.RootElement.GetProperty("findings").EnumerateArray().ToArray();
-        Assert.Equal(20, findings.Length);
-        Assert.Equal(new[] { "EFD005", "EFD001", "EFD012", "EFD013", "EFD017", "EFD018", "EFD019", "EFD025", "EFD009", "EFD023", "EFD029", "EFD027", "EFD037", "EFD038", "EFD028", "EFD030", "EFD032", "EFD033", "EFD031", "EFD034" }, findings.Select(static finding => finding.GetProperty("ruleId").GetString()));
+        Assert.Equal(22, findings.Length);
+        Assert.Equal(new[] { "EFD005", "EFD001", "EFD012", "EFD013", "EFD017", "EFD018", "EFD019", "EFD025", "EFD009", "EFD023", "EFD029", "EFD027", "EFD037", "EFD038", "EFD028", "EFD030", "EFD032", "EFD033", "EFD031", "EFD005", "EFD015", "EFD034" }, findings.Select(static finding => finding.GetProperty("ruleId").GetString()));
         Assert.All(findings, static finding =>
         {
             Assert.Equal("info", finding.GetProperty("severity").GetString());
@@ -1132,6 +1133,43 @@ public sealed class EndToEndTests
         Assert.Equal("info", findings[1].GetProperty("severity").GetString());
         Assert.Equal("advisory", findings[1].GetProperty("confidence").GetString());
         Assert.Equal("'Invoice.TaxRate' has no configured precision, so SQL Server stores it as decimal(18,2)", findings[1].GetProperty("message").GetString());
+    }
+
+    [Fact]
+    [Trait("Spec", "efd015-materialized-contains-list/Console and JSON reporting")]
+    public async Task Efd015FixtureProducesOnlyUnsuppressedFindings()
+    {
+        var project = Path.Combine(RepositoryRoot(), "tests", "Fixtures", "EFD015.Sample", "EFD015.Sample.csproj");
+
+        var console = await RunCliAsync("analyze", project, "--no-color", "--quiet");
+        var json = await RunCliAsync("analyze", project, "--format", "json", "--quiet");
+
+        Assert.Equal(1, console.ExitCode);
+        Assert.Empty(console.StandardError);
+        Assert.Contains("Found 1 finding.", console.StandardOutput);
+        Assert.Equal(1, CountOccurrences(console.StandardOutput, "  EFD015:"));
+        Assert.Contains("Materialized key list used in another query's Contains", console.StandardOutput);
+        Assert.Equal(1, CountOccurrences(console.StandardOutput, "Severity: Info | Confidence: Advisory"));
+        Assert.DoesNotContain("EditorConfigSuppressed.cs", console.StandardOutput);
+        Assert.DoesNotContain('\u001b', console.StandardOutput);
+
+        Assert.Equal(1, json.ExitCode);
+        Assert.Empty(json.StandardError);
+        using var document = JsonDocument.Parse(json.StandardOutput);
+        Assert.Equal(1, document.RootElement.GetProperty("schemaVersion").GetInt32());
+        var findings = document.RootElement.GetProperty("findings").EnumerateArray().ToArray();
+        Assert.Single(findings);
+        Assert.All(findings, static finding =>
+        {
+            Assert.Equal("EFD015", finding.GetProperty("ruleId").GetString());
+            Assert.Equal("info", finding.GetProperty("severity").GetString());
+            Assert.Equal("advisory", finding.GetProperty("confidence").GetString());
+            Assert.EndsWith("tests/Fixtures/EFD015.Sample/ContainsListCases.cs", finding.GetProperty("sourceFile").GetString(), StringComparison.Ordinal);
+            Assert.Contains("is used only as the collection of Contains", finding.GetProperty("evidence").GetString(), StringComparison.Ordinal);
+            Assert.Equal("EFD015", finding.GetProperty("documentationReference").GetString());
+        });
+        Assert.Equal((30, 52, 30, 90), Range(findings[0]));
+        Assert.Equal("'customerIds' is loaded from another query only to filter this one; compose it as a subquery", findings[0].GetProperty("message").GetString());
     }
 
     [Fact]

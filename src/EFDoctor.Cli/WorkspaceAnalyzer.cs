@@ -45,7 +45,8 @@ public static class WorkspaceAnalyzer
             new EnsureCreatedWithMigrationsAnalyzer(),
             new ComposedStoredProcedureAnalyzer(),
             new UnindexedPredicateColumnAnalyzer(),
-            new UnsizedSnapshotColumnAnalyzer());
+            new UnsizedSnapshotColumnAnalyzer(),
+            new MaterializedContainsListAnalyzer());
 
     private static readonly ImmutableHashSet<string> DiagnosticIds = Analyzers
         .SelectMany(static analyzer => analyzer.SupportedDiagnostics)
