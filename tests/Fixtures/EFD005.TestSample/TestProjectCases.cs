@@ -8,6 +8,7 @@ public sealed class TestEntity
     public bool Active { get; set; }
     public string Name { get; set; } = "";
     public TestEntity? Parent { get; set; }
+    public List<TestEntity> Children { get; set; } = new();
 }
 
 public sealed class WideEntity
@@ -118,6 +119,12 @@ public static class TestProjectCases
     {
         var ids = context.Entities.Where(entity => entity.Active).Select(entity => entity.Id).ToList();
         return context.Entities.Where(entity => ids.Contains(entity.Id)).Take(10).ToList();
+    }
+
+    public static List<TestEntity> IncludeFilteredInMemory(TestContext context, int id)
+    {
+        var entity = context.Entities.Include(candidate => candidate.Children).First(candidate => candidate.Id == id);
+        return entity.Children.Where(child => child.Active).ToList();
     }
 
     public static void CreateAndMigrate(TestContext context)

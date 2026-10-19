@@ -59,6 +59,7 @@ Loading a project runs its MSBuild logic, so analyze only repositories you trust
 | EFD021 | EF Core `DbContext` held in a `static` field |
 | EFD022 | `StringComparison` overload in a query predicate that EF Core cannot translate |
 | EFD023 | `Contains`, `EndsWith`, or leading-wildcard `Like` on a column (advisory) |
+| EFD024 | `Include`d collection only used filtered in memory, where a filtered `Include` would do (advisory) |
 | EFD025 | Duplicate or already-covered `Include` path in the same query (Info) |
 | EFD027 | Concurrent EF Core operations on the same `DbContext`, such as `Task.WhenAll` over two queries |
 | EFD028 | Method of the application inside a query filter or ordering that EF Core cannot translate |
