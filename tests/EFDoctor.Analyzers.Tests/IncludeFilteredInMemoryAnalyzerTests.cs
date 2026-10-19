@@ -59,6 +59,32 @@ public sealed class IncludeFilteredInMemoryAnalyzerTests
         Assert.Empty(await AnalyzeAsync(source));
     }
 
+    [Theory]
+    [Trait("Spec", "efd024-include-filtered-in-memory/Complementary filters")]
+    [InlineData("var a = blog.Posts.Where(p => p.Published).ToList(); var b = blog.Posts.Where(p => !p.Published).ToList();")]
+    [InlineData("var a = blog.Posts.Where(p => p.SeriesId == null).ToList(); var b = blog.Posts.Where(r => r.SeriesId != null).ToList();")]
+    [InlineData("var a = blog.Posts.Count(p => p.Score < 5); var b = blog.Posts.Count(p => (p.Score >= 5));")]
+    [InlineData("var a = blog.Posts.Any(p => !(p.Published && p.Pinned)); var b = blog.Posts.Any(p => p.Published && p.Pinned);")]
+    public async Task DoesNotReportComplementaryFilters(string uses)
+    {
+        var source = Source($"static object Run(BlogContext db, int id) {{ var blog = db.Blogs.Include(b => b.Posts).First(b => b.Id == id); {uses} return (a, b); }}");
+
+        Assert.DoesNotContain(AnalyzerTestHarness.GetCompilationDiagnostics(source, includeRelational: true), static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error);
+        Assert.Empty(await AnalyzeAsync(source));
+    }
+
+    [Theory]
+    [Trait("Spec", "efd024-include-filtered-in-memory/Different filters that aren't complementary")]
+    [InlineData("var a = blog.Posts.Where(p => p.Published).ToList(); var b = blog.Posts.Where(p => !p.Pinned).ToList();")]
+    [InlineData("var a = blog.Posts.Count(p => p.Score < 5); var b = blog.Posts.Count(p => p.Score > 5);")]
+    [InlineData("var a = blog.Posts.Where(p => p.SeriesId == null).ToList(); var b = blog.Posts.Where(p => p.SeriesId == null).Count();")]
+    public async Task ReportsFiltersThatDoNotCoverEveryRow(string uses)
+    {
+        var source = Source($"static object Run(BlogContext db, int id) {{ var blog = db.Blogs.Include(b => b.Posts).First(b => b.Id == id); {uses} return (a, b); }}");
+
+        Assert.Single(await AnalyzeAsync(source));
+    }
+
     [Fact]
     [Trait("Spec", "efd024-include-filtered-in-memory/Complete structured finding")]
     public async Task FindingCarriesTheCompleteContract()
@@ -136,6 +162,8 @@ public sealed class IncludeFilteredInMemoryAnalyzerTests
             public string Title { get; set; } = "";
             public bool Published { get; set; }
             public bool Pinned { get; set; }
+            public int? SeriesId { get; set; }
+            public int Score { get; set; }
         }
 
         sealed class Person

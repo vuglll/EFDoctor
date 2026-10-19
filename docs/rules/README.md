@@ -175,7 +175,7 @@ Prefix searches, `Like` patterns of unknown shape, `StringComparison` overloads 
 
 EFD024 semantically identifies a plain `Include(x => x.Nav)` of a collection navigation in a proven EF Core query that is materialized into a local by a single-entity terminal or by `ToList`/`ToArray` (or the awaited async forms). It reports when every read of the navigation, on the local or on a `foreach` variable or `Enumerable` lambda parameter over the list, is the source of an `Enumerable` predicate operator, with at least one such read, and the entities don't otherwise escape the method. It reports with advisory confidence, `Info` severity, and the `Performance` category.
 
-Navigations also used in full, entities that are returned, passed, or stored, filtered includes, and reference navigations are not reported. See [`docs/rules/EFD024.md`](EFD024.md) for the complete contract.
+Navigations also used in full or filtered with complementary predicates, entities that are returned, passed, or stored, filtered includes, and reference navigations are not reported. See [`docs/rules/EFD024.md`](EFD024.md) for the complete contract.
 
 ## EFD025 redundant-include boundary
 
