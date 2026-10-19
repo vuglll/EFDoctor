@@ -110,5 +110,6 @@ Each rule was delivered as its own OpenSpec change, archived under `openspec/cha
 37. `add-code-fixes-efd029` added the `EFDoctor.CodeFixes` assembly, packed beside the analyzers, the `CodeFixTestHarness`, and the first fix: EFD029's `OrderBy` to `ThenBy`.
 38. `add-code-fix-efd002` added EFD002's fix, which replaces an inline count comparison with `Any` or `!Any`.
 39. `add-code-fix-efd019` added EFD019's fix, which drops the materialization and moves the reducer into the query.
+40. `add-code-fix-efd010` added EFD010's fix, which awaits the async counterpart and passes a token in scope. With it, the code fixes planned for 0.6.0 are complete.
 
 The current behavior contract for every rule and for the CLI lives in `openspec/specs/`. The remaining candidate rules and their priorities are in the [roadmap](roadmap.md).
