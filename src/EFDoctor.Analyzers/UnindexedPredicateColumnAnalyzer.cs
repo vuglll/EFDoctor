@@ -85,7 +85,7 @@ public sealed class UnindexedPredicateColumnAnalyzer : DiagnosticAnalyzer
                     CollectFilterColumns(body, predicate.Parameter, columns);
                     if (columns.Count > 0)
                     {
-                        candidates.Add(new Candidate(predicate.Parameter.Type, columns));
+                        candidates.Add(new Candidate(predicate.Origin.Syntax, predicate.Parameter.Type, columns));
                     }
                 }
             },
@@ -93,7 +93,17 @@ public sealed class UnindexedPredicateColumnAnalyzer : DiagnosticAnalyzer
 
         context.RegisterCompilationEndAction(endContext =>
         {
-            foreach (var candidate in candidates)
+            // The filters of one query combine: `Where(o => o.CustomerId == id).Where(o => o.Open)`
+            // can seek the CustomerId index. Predicates traced to the same origin are one query,
+            // judged on all their columns, and reported once, at the first predicate's column.
+            var queries = candidates
+                .GroupBy(static candidate => (candidate.Origin, candidate.Entity), QueryKeyComparer.Instance)
+                .Select(static group =>
+                {
+                    var ordered = group.OrderBy(static candidate => candidate.Columns[0].Syntax.SpanStart).ToList();
+                    return new Candidate(ordered[0].Origin, ordered[0].Entity, ordered.SelectMany(static candidate => candidate.Columns).ToList());
+                });
+            foreach (var candidate in queries)
             {
                 var entityName = candidate.Entity.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat);
                 foreach (var (snapshotName, entities) in snapshots)
@@ -226,14 +236,28 @@ public sealed class UnindexedPredicateColumnAnalyzer : DiagnosticAnalyzer
 
     private sealed class Candidate
     {
-        public Candidate(ITypeSymbol entity, List<IPropertyReferenceOperation> columns)
+        public Candidate(SyntaxNode origin, ITypeSymbol entity, List<IPropertyReferenceOperation> columns)
         {
+            Origin = origin;
             Entity = entity;
             Columns = columns;
         }
 
+        public SyntaxNode Origin { get; }
+
         public ITypeSymbol Entity { get; }
 
         public List<IPropertyReferenceOperation> Columns { get; }
+    }
+
+    private sealed class QueryKeyComparer : IEqualityComparer<(SyntaxNode Origin, ITypeSymbol Entity)>
+    {
+        public static readonly QueryKeyComparer Instance = new();
+
+        public bool Equals((SyntaxNode Origin, ITypeSymbol Entity) x, (SyntaxNode Origin, ITypeSymbol Entity) y) =>
+            x.Origin == y.Origin && SymbolEqualityComparer.Default.Equals(x.Entity, y.Entity);
+
+        public int GetHashCode((SyntaxNode Origin, ITypeSymbol Entity) key) =>
+            key.Origin.GetHashCode() * 31 + SymbolEqualityComparer.Default.GetHashCode(key.Entity);
     }
 }
