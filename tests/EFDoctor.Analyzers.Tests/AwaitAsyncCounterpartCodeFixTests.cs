@@ -56,7 +56,9 @@ public sealed class AwaitAsyncCounterpartCodeFixTests
 
         var fixedSource = await CodeFixTestHarness.ApplyAsync(Before, new SyncDatabaseCallInAsyncAnalyzer(), new AwaitAsyncCounterpartCodeFixProvider());
 
-        Assert.Contains("using System.Threading.Tasks;\nusing Microsoft.EntityFrameworkCore;\n", fixedSource, StringComparison.Ordinal);
+        // The directive follows the document's own line endings, which are CRLF in a Windows checkout.
+        var newline = Before.Contains("\r\n", StringComparison.Ordinal) ? "\r\n" : "\n";
+        Assert.Contains($"using System.Threading.Tasks;{newline}using Microsoft.EntityFrameworkCore;{newline}", fixedSource, StringComparison.Ordinal);
         Assert.Contains("return await db.Orders.ToListAsync();", fixedSource, StringComparison.Ordinal);
         CodeFixTestHarness.AssertCompiles(fixedSource!);
     }
