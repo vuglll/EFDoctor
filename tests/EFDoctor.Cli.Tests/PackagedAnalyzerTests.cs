@@ -122,6 +122,9 @@ public sealed class PackagedAnalyzerTests
             // doesn't show.
             var production = await BuildAsync(project);
             Assert.Contains("warning EFD001", production.Output);
+            // The code-fix assembly sits beside the analyzers; the compiler must load the folder cleanly.
+            Assert.DoesNotContain("CS8032", production.Output);
+            Assert.DoesNotContain("AD0001", production.Output);
             Assert.DoesNotContain("EFD009", production.Output);
             Assert.Equal([("EFD001", "warning"), ("EFD009", "note")], production.Findings);
             Assert.Equal("https://github.com/vuglll/EFDoctor/blob/main/docs/rules/EFD001.md", production.HelpLinks["EFD001"]);
@@ -146,6 +149,7 @@ public sealed class PackagedAnalyzerTests
         foreach (var required in new[]
         {
             "analyzers/dotnet/cs/EFDoctor.Analyzers.dll",
+            "analyzers/dotnet/cs/EFDoctor.CodeFixes.dll",
             "build/EFDoctor.Analyzers.props",
             "PACKAGE.md",
             "icon.png",
