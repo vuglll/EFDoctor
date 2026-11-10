@@ -191,4 +191,14 @@ public sealed class UntrackedChangeLostAnalyzerTests
             {{member}}
         }
         """;
+
+    [Fact]
+    [Trait("Spec", "query-chain-local-tracking/ProjectTo result is not a tracked entity")]
+    public async Task ChangeToAProjectToResultIsNotReported()
+    {
+        var source = QuerySource("static void Run(ShopContext db, AutoMapper.IConfigurationProvider configuration) { var order = AutoMapper.QueryableExtensions.Extensions.ProjectTo<Order>(db.Orders.AsNoTracking(), configuration).First(); order.Status = 2; db.SaveChanges(); }")
+            + AnalyzerTestHarness.AutoMapperStub;
+
+        Assert.Empty(await AnalyzeAsync(source));
+    }
 }

@@ -442,5 +442,22 @@ The corpus was re-run after each of four fixes, and nothing else changed:
 
 ### Next steps
 
-1. Follow AutoMapper `ProjectTo` in the chain proof.
+1. ~~Follow AutoMapper `ProjectTo` in the chain proof.~~ Done; see below.
 2. Consider EFD001's bounded retry loop.
+
+## AutoMapper `ProjectTo` (`improve-query-chain-projectto`)
+
+The chain proof now follows AutoMapper's `ProjectTo<T>(…)` as a projection. The corpus was run on `dev` and on the change, and the two reports were compared finding by finding. Only Kavita changed: 13 new findings, none removed.
+
+| Rule | New | TP | FP | acceptable |
+|---|---:|---:|---:|---:|
+| EFD005 | 12 | 1 | 0 | 11 |
+| EFD010 | 1 | 1 | 0 | 0 |
+
+- **TP:**
+  - EFD005: `EmailHistoryRepository.GetEmailDtos` takes `UserParams` but never pages, so it loads the whole email history.
+  - EFD010: `UserRepository.GetSideNavStreams` is async, but it loads external sources with a synchronous `ToList()` after `ProjectTo`.
+- **Acceptable:** small tables (fonts, site themes, libraries, remap rules, reading-list tags), admin lists (media errors, scrobble errors), a per-parent child load (a chapter's external ratings, advisory), and `StatisticService`'s export of every file with one extension, which loads everything by design.
+- **Why only 13:** about 90 of Kavita's `ProjectTo` chains end in a list materializer. Most have a recognized bound, a key filter such as `Where(x => x.AppUserId == userId)` or a `Take`. Others pass through Kavita's own extension methods, such as `WhereIf`, `Search`, and `RestrictAgainstAgeRestriction`, which end the proof as any helper method does.
+- **EFD006:** `LibraryRepository.GetLibraryDtoByIdAsync`, the `AsSplitQuery()` after `ProjectTo`, no longer has a finding to lose. `improve-efd006-global-split-query` had already silenced it, because Kavita splits queries by default. The fixtures cover the shape.
+- **Bookkeeping:** this run's triage files weren't kept, so `SUMMARY.md`'s EFD005, EFD010, and Kavita rows were updated by hand from the table above.

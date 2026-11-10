@@ -158,4 +158,14 @@ public sealed class UpdateOnTrackedEntityAnalyzerTests
             {{member}}
         }
         """;
+
+    [Fact]
+    [Trait("Spec", "query-chain-local-tracking/ProjectTo result is not a tracked entity")]
+    public async Task UpdateOfAProjectToResultIsNotReported()
+    {
+        var source = Source("static void Run(ShopContext db, AutoMapper.IConfigurationProvider configuration, int id) { var order = AutoMapper.QueryableExtensions.Extensions.ProjectTo<Order>(db.Orders, configuration).First(o => o.Id == id); db.Update(order); db.SaveChanges(); }")
+            + AnalyzerTestHarness.AutoMapperStub;
+
+        Assert.Empty(await AnalyzeAsync(source));
+    }
 }

@@ -195,7 +195,8 @@ public sealed class CountUsedForExistenceAnalyzer : DiagnosticAnalyzer
     // projected to the entity's own type, like `Select(e => e.Parent)`, keeps the element type
     // but can still be null while a row exists.
     private static bool IsProjection(string operation) =>
-        operation.StartsWith("Queryable.", StringComparison.Ordinal)
+        operation == EfQueryOperationAnalysis.ProjectToOperation
+        || operation.StartsWith("Queryable.", StringComparison.Ordinal)
         && !EfQueryOperationAnalysis.ElementPreservingQueryableMethods.Contains(operation.Substring("Queryable.".Length));
 
     // Every reference to the local in the method must be a use the classifier accepts, outside

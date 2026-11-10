@@ -257,6 +257,7 @@ public sealed class StaleTrackedEntitiesAnalyzer : DiagnosticAnalyzer
             elementType = null;
             tracked = false;
             if (!EfQueryOperationAnalysis.TryAnalyzeSource(source, _symbols.Queryable, _symbols.DbSet, _symbols.DbContext, _symbols.EfExtensions, out var analysis)
+                || analysis.Operations.Contains(EfQueryOperationAnalysis.ProjectToOperation)
                 || !EntityOverFetchAnalyzer.TryGetEntityType(analysis.Origin, _symbols.DbSet, out entity)
                 || !_identity.TryGetKey(_identity.ContextOfDbSet(analysis.Origin), out contextKey, out contextDisplay))
             {

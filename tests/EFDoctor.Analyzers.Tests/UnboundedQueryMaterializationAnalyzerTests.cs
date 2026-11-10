@@ -567,7 +567,11 @@ public sealed class UnboundedQueryMaterializationAnalyzerTests
         using System.Linq;
         using System.Threading;
         using System.Threading.Tasks;
+        using AutoMapper;
+        using AutoMapper.QueryableExtensions;
         using Microsoft.EntityFrameworkCore;
+
+        sealed class EntityDto { public int Id { get; set; } }
 
         [Index(nameof(AlternateKey), IsUnique = true)]
         [Index(nameof(GuidKey), IsUnique = true)]
@@ -612,7 +616,7 @@ public sealed class UnboundedQueryMaterializationAnalyzerTests
             private static readonly int[] FieldIds = [1, 2];
             {{member}}
         }
-        """;
+        """ + AnalyzerTestHarness.AutoMapperStub;
 
     [Theory]
     [Trait("Spec", "query-chain-local-tracking/Rules that report an absence do not use the origin proof")]
@@ -634,5 +638,19 @@ public sealed class UnboundedQueryMaterializationAnalyzerTests
             """);
 
         Assert.Empty(await AnalyzeAsync(source));
+    }
+
+    [Theory]
+    [Trait("Spec", "query-chain-local-tracking/ProjectTo is not a row bound")]
+    [InlineData("context.Entities.Where(entity => entity.Active).ProjectTo<EntityDto>(configuration).ToListAsync()", 1)]
+    [InlineData("mapper.ProjectTo<EntityDto>(context.Entities.Where(entity => entity.Active)).ToListAsync()", 1)]
+    [InlineData("context.Entities.Take(50).ProjectTo<EntityDto>(configuration).ToListAsync()", 0)]
+    [InlineData("context.Entities.ProjectTo<EntityDto>(configuration).Take(50).ToListAsync()", 0)]
+    [InlineData("context.Entities.Where(entity => entity.MetadataKey == id).ProjectTo<EntityDto>(configuration).ToListAsync()", 0)]
+    public async Task ProjectToIsFollowedWithoutBoundingTheQuery(string query, int expected)
+    {
+        var source = QuerySource($"static Task<List<EntityDto>> Run(TestContext context, IConfigurationProvider configuration, IMapper mapper, int id) => {query};");
+
+        Assert.Equal(expected, (await AnalyzeAsync(source)).Length);
     }
 }

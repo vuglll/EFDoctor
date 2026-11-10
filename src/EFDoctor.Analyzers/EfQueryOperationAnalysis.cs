@@ -106,8 +106,46 @@ internal static class EfQueryOperationAnalysis
             "TagWith",
             "TagWithCallSite");
 
+    // The proven-operation name of AutoMapper's ProjectTo, a projection whose results the context
+    // doesn't track.
+    public const string ProjectToOperation = "AutoMapper.ProjectTo";
+
     public static IMethodSymbol NormalizeMethod(IMethodSymbol method) =>
         (method.ReducedFrom ?? method).OriginalDefinition;
+
+    // AutoMapper's `ProjectTo<TDestination>`, as the `AutoMapper.QueryableExtensions` extension or
+    // an `IMapper` instance method. It is recognized by shape, so EFDoctor needs no AutoMapper
+    // reference: one type argument, an IQueryable first parameter, and an IQueryable<T> result.
+    public static bool IsProjectTo(IMethodSymbol method)
+    {
+        method = NormalizeMethod(method);
+        return method.Name == "ProjectTo"
+            && method.TypeParameters.Length == 1
+            && !method.Parameters.IsEmpty
+            && method.ContainingType?.ContainingNamespace?.ToDisplayString() is "AutoMapper" or "AutoMapper.QueryableExtensions"
+            && IsQueryableInterface(method.Parameters[0].Type, generic: null)
+            && IsQueryableInterface(method.ReturnType, generic: true);
+    }
+
+    // The source query of a ProjectTo call: the argument bound to its first parameter, for both the
+    // extension and the mapper form.
+    public static bool TryGetProjectToSource(IInvocationOperation invocation, out IOperation source)
+    {
+        source = null!;
+        if (!IsProjectTo(invocation.TargetMethod)
+            || invocation.Arguments.FirstOrDefault(static argument => argument.Parameter?.Ordinal == 0)?.Value is not { } value)
+        {
+            return false;
+        }
+
+        source = value;
+        return true;
+    }
+
+    private static bool IsQueryableInterface(ITypeSymbol type, bool? generic) =>
+        type is INamedTypeSymbol { Name: "IQueryable", TypeKind: TypeKind.Interface } named
+        && named.ContainingNamespace?.ToDisplayString() == "System.Linq"
+        && (generic is null || named.IsGenericType == generic);
 
     public static IOperation? GetInvocationSource(IInvocationOperation invocation) =>
         invocation.Instance
@@ -434,6 +472,31 @@ internal static class EfQueryOperationAnalysis
             origin = Unwrap(set);
             rowBound = RowBound.None;
             operations.Add("DbSet.AsQueryable");
+            return true;
+        }
+
+        // AutoMapper's ProjectTo is a projection, like Select: it neither bounds nor ends the query.
+        if (TryGetProjectToSource(invocation, out var projected))
+        {
+            if (!TryAnalyzeSourceCore(
+                projected,
+                queryable,
+                dbSet,
+                dbContext,
+                efExtensions,
+                modelKeys,
+                followComposedLocals,
+                operations,
+                localHops,
+                out origin,
+                out rowBound))
+            {
+                origin = operation;
+                rowBound = RowBound.None;
+                return false;
+            }
+
+            operations.Add(ProjectToOperation);
             return true;
         }
 

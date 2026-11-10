@@ -47,6 +47,46 @@ internal static class AnalyzerTestHarness
     // Separates the sources of several syntax trees in one fixture string.
     internal const string TreeSeparator = "\n//---- next tree ----\n";
 
+    // AutoMapper's two ProjectTo forms, declared in source so tests need no AutoMapper package.
+    // Append it to a fixture as its own tree: `source + AnalyzerTestHarness.AutoMapperStub`.
+    internal const string AutoMapperStub = TreeSeparator + """
+        namespace AutoMapper
+        {
+            public interface IConfigurationProvider { }
+
+            public interface IMapper
+            {
+                IConfigurationProvider ConfigurationProvider { get; }
+
+                System.Linq.IQueryable<TDestination> ProjectTo<TDestination>(
+                    System.Linq.IQueryable source,
+                    object parameters = null,
+                    params System.Linq.Expressions.Expression<System.Func<TDestination, object>>[] membersToExpand);
+            }
+        }
+
+        namespace AutoMapper.QueryableExtensions
+        {
+            public static class Extensions
+            {
+                public static System.Linq.IQueryable<TDestination> ProjectTo<TDestination>(
+                    this System.Linq.IQueryable source,
+                    AutoMapper.IConfigurationProvider configuration,
+                    params System.Linq.Expressions.Expression<System.Func<TDestination, object>>[] membersToExpand) =>
+                    throw new System.NotSupportedException();
+            }
+        }
+
+        namespace Unrelated
+        {
+            public static class Projections
+            {
+                public static System.Linq.IQueryable<TDestination> ProjectTo<TDestination>(this System.Linq.IQueryable source) =>
+                    throw new System.NotSupportedException();
+            }
+        }
+        """;
+
     // Analyzes several source files as one compilation, for rules that join information across files.
     public static Task<ImmutableArray<Diagnostic>> AnalyzeTreesAsync(
         IEnumerable<string> sources,

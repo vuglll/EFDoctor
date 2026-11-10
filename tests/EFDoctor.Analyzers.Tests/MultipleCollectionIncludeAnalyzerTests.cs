@@ -146,6 +146,31 @@ public sealed class MultipleCollectionIncludeAnalyzerTests
         Assert.Equal("context.Parents.Include(parent => parent.Children).Include(parent => parent.Tags)", Text(diagnostic));
     }
 
+    [Theory]
+    [InlineData("context.Parents.Include(parent => parent.Children).Include(parent => parent.Tags).ProjectTo<ParentDto>(configuration).AsSplitQuery().ToList()")]
+    [InlineData("context.Parents.Include(parent => parent.Children).Include(parent => parent.Tags).ProjectTo<ParentDto>(configuration).AsSingleQuery().ToListAsync()")]
+    [InlineData("mapper.ProjectTo<ParentDto>(context.Parents.Include(parent => parent.Children).Include(parent => parent.Tags)).AsSplitQuery().ToList()")]
+    [Trait("Spec", "efd006-multiple-collection-include/Split query after ProjectTo")]
+    public async Task SplitModeAfterProjectToIsHonored(string query)
+    {
+        var source = QuerySource($"static object Run(TestContext context, IConfigurationProvider configuration, IMapper mapper) => {query};");
+
+        Assert.Empty(await AnalyzeAsync(source));
+    }
+
+    [Theory]
+    [InlineData("context.Parents.Include(parent => parent.Children).Include(parent => parent.Tags).ProjectTo<ParentDto>(configuration).ToList()")]
+    [InlineData("mapper.ProjectTo<ParentDto>(context.Parents.Include(parent => parent.Children).Include(parent => parent.Tags)).Where(dto => dto.Id > 0).ToListAsync()")]
+    [Trait("Spec", "efd006-multiple-collection-include/Sibling includes before ProjectTo")]
+    public async Task SiblingIncludesBeforeProjectToAreReportedOnce(string query)
+    {
+        var source = QuerySource($"static object Run(TestContext context, IConfigurationProvider configuration, IMapper mapper) => {query};");
+
+        var diagnostic = Assert.Single(await AnalyzeAsync(source));
+
+        Assert.EndsWith(".Include(parent => parent.Tags)", Text(diagnostic), StringComparison.Ordinal);
+    }
+
     [Fact]
     [Trait("Spec", "efd006-multiple-collection-include/Exact diagnostic location")]
     public async Task ReportsAtSecondDistinctCollectionIncludeAndListsAllPaths()
@@ -277,7 +302,11 @@ public sealed class MultipleCollectionIncludeAnalyzerTests
         using System.Diagnostics.CodeAnalysis;
         using System.Linq;
         using System.Threading.Tasks;
+        using AutoMapper;
+        using AutoMapper.QueryableExtensions;
         using Microsoft.EntityFrameworkCore;
+
+        sealed class ParentDto { public int Id { get; set; } }
 
         sealed class Child
         {
@@ -313,5 +342,5 @@ public sealed class MultipleCollectionIncludeAnalyzerTests
         {
             {{member}}
         }
-        """;
+        """ + AnalyzerTestHarness.AutoMapperStub;
 }

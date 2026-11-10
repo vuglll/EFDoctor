@@ -239,7 +239,7 @@ public sealed class UpdateOnTrackedEntityAnalyzer : DiagnosticAnalyzer
         }
 
         // A projection builds new instances, even of the entity type, which the context doesn't track.
-        if (analysis.Operations.Any(static operation => operation is "Queryable.Select" or "Queryable.SelectMany" or "Queryable.GroupBy" or "Queryable.Join" or "Queryable.GroupJoin"))
+        if (analysis.Operations.Any(static operation => operation is "Queryable.Select" or "Queryable.SelectMany" or "Queryable.GroupBy" or "Queryable.Join" or "Queryable.GroupJoin" or EfQueryOperationAnalysis.ProjectToOperation))
         {
             return false;
         }
