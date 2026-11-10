@@ -223,6 +223,24 @@ public sealed class MultipleCollectionIncludeAnalyzer : DiagnosticAnalyzer
             return true;
         }
 
+        // AutoMapper's ProjectTo carries the includes and splitting mode of its source query.
+        if (EfQueryOperationAnalysis.TryGetProjectToSource(invocation, out var projected))
+        {
+            return TryAnalyzeChain(
+                projected,
+                queryable,
+                enumerable,
+                genericEnumerable,
+                dbSet,
+                dbContext,
+                efExtensions,
+                relationalExtensions,
+                includes,
+                out origin,
+                out hasExplicitSplittingMode,
+                localHops);
+        }
+
         if (!IsSupportedComposition(method, queryable, efExtensions, relationalExtensions))
         {
             origin = operation;
@@ -279,6 +297,7 @@ public sealed class MultipleCollectionIncludeAnalyzer : DiagnosticAnalyzer
         method = EfQueryOperationAnalysis.NormalizeMethod(method);
         var containingType = method.ContainingType.OriginalDefinition;
         return SymbolEqualityComparer.Default.Equals(containingType, queryable)
+            || EfQueryOperationAnalysis.IsProjectTo(method)
             || (SymbolEqualityComparer.Default.Equals(containingType, efExtensions)
                 && method.Name != "AsAsyncEnumerable")
             || SymbolEqualityComparer.Default.Equals(containingType, relationalExtensions);
@@ -304,7 +323,9 @@ public sealed class MultipleCollectionIncludeAnalyzer : DiagnosticAnalyzer
             return false;
         }
 
-        var source = EfQueryOperationAnalysis.GetInvocationSource(parent);
+        var source = EfQueryOperationAnalysis.TryGetProjectToSource(parent, out var projected)
+            ? projected
+            : EfQueryOperationAnalysis.GetInvocationSource(parent);
         return source is not null
             && ReferenceEquals(EfQueryOperationAnalysis.Unwrap(source), invocation);
     }

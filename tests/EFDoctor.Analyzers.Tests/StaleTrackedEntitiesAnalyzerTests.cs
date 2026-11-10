@@ -442,4 +442,14 @@ public sealed class StaleTrackedEntitiesAnalyzerTests
             {{member}}
         }
         """;
+
+    [Fact]
+    [Trait("Spec", "query-chain-local-tracking/ProjectTo result is not a tracked entity")]
+    public async Task BulkOperationAfterAProjectToLoadIsNotReported()
+    {
+        var source = QuerySource("static void Run(ShopContext db, AutoMapper.IConfigurationProvider configuration) { var loaded = AutoMapper.QueryableExtensions.Extensions.ProjectTo<Product>(db.Products.Where(p => p.Price > 0), configuration).ToList(); db.Products.ExecuteDelete(); }")
+            + AnalyzerTestHarness.AutoMapperStub;
+
+        Assert.Empty(await AnalyzeAsync(source));
+    }
 }

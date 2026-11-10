@@ -49,7 +49,7 @@ EFD006 SHALL report a query chain when semantic analysis identifies at least two
 - **THEN** EFD006 still recognizes their root navigation properties as collection paths
 
 ### Requirement: Respect split-query and client boundaries
-EFD006 SHALL NOT report a query chain that contains a resolved EF Core `AsSplitQuery` or `AsSingleQuery`. EFD006 SHALL NOT report when EF Core splits queries by default: when the compilation contains a `UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)` call, recognized by its syntax, or when the global analyzer option `efdoctor.split_query_by_default` is `true`. The CLI SHALL set that option for every project it analyzes when any C# project in the scan contains such a call. With `AsSplitQuery`, the sibling collections are loaded using separate SQL queries. With `AsSingleQuery`, the developer has explicitly chosen single-query loading, and EF Core itself does not warn about multiple collection includes in that case. EFD006 SHALL NOT cross `AsEnumerable`, `AsAsyncEnumerable`, or another explicit client-evaluation boundary, and it SHALL NOT follow query values through fields, properties, parameters, return values, helper methods, general data flow, or locals whose value is not statically determined. It SHALL follow a query local whose value is statically determined, as defined by `query-chain-local-tracking`, and report each finding once.
+EFD006 SHALL NOT report a query chain that contains a resolved EF Core `AsSplitQuery` or `AsSingleQuery`. EFD006 SHALL NOT report when EF Core splits queries by default: when the compilation contains a `UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)` call, recognized by its syntax, or when the global analyzer option `efdoctor.split_query_by_default` is `true`. The CLI SHALL set that option for every project it analyzes when any C# project in the scan contains such a call. With `AsSplitQuery`, the sibling collections are loaded using separate SQL queries. With `AsSingleQuery`, the developer has explicitly chosen single-query loading, and EF Core itself does not warn about multiple collection includes in that case. EFD006 SHALL NOT cross `AsEnumerable`, `AsAsyncEnumerable`, or another explicit client-evaluation boundary, and it SHALL NOT follow query values through fields, properties, parameters, return values, helper methods, general data flow, or locals whose value is not statically determined. It SHALL follow a query local whose value is statically determined, as defined by `query-chain-local-tracking`, and report each finding once. It SHALL continue through AutoMapper's `ProjectTo`, as defined by `query-chain-local-tracking`, so a split mode before or after it applies to the whole chain.
 
 #### Scenario: Explicit split query
 - **WHEN** an otherwise eligible query chain applies resolved EF Core `AsSplitQuery` before or after its sibling collection includes
@@ -82,6 +82,14 @@ EFD006 SHALL NOT report a query chain that contains a resolved EF Core `AsSplitQ
 #### Scenario: Explicit client boundary
 - **WHEN** query composition crosses `AsEnumerable` or `AsAsyncEnumerable`
 - **THEN** EFD006 does not infer a database include chain across that boundary
+
+#### Scenario: Split query after ProjectTo
+- **WHEN** sibling collection includes are followed by AutoMapper's `ProjectTo` and then `AsSplitQuery()` or `AsSingleQuery()`, as in `context.Blogs.Include(b => b.Posts).Include(b => b.Tags).ProjectTo<BlogDto>(configuration).AsSplitQuery().ToList()`
+- **THEN** EFD006 does not report
+
+#### Scenario: Sibling includes before ProjectTo
+- **WHEN** sibling collection includes are followed by AutoMapper's `ProjectTo`, with no split mode anywhere in the chain
+- **THEN** EFD006 reports exactly once, at the second distinct collection include
 
 ### Requirement: Emit a qualified actionable EFD006 finding
 Each matching query chain SHALL produce exactly one EFD006 diagnostic with title `Multiple sibling collection includes may create a cartesian explosion`, severity `Warning`, and confidence `Medium`. Evidence SHALL identify the resolved EF Core calls, proven EF origin, and distinct sibling collection paths. The finding SHALL explain possible row multiplication and duplicated data without claiming measured impact.

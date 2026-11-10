@@ -370,4 +370,14 @@ public sealed class CountUsedForExistenceAnalyzerTests
             {{member}}
         }
         """;
+
+    [Fact]
+    [Trait("Spec", "query-chain-local-tracking/ProjectTo result is not a tracked entity")]
+    public async Task FirstOrDefaultOverProjectToIsNotReported()
+    {
+        var source = QuerySource("static bool Run(TestContext context, AutoMapper.IConfigurationProvider configuration) => AutoMapper.QueryableExtensions.Extensions.ProjectTo<Entity>(context.Entities, configuration).FirstOrDefault() != null;")
+            + AnalyzerTestHarness.AutoMapperStub;
+
+        Assert.Empty(await AnalyzeAsync(source));
+    }
 }

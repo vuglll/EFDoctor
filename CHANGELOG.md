@@ -4,6 +4,14 @@ All notable changes to EFDoctor are documented here. Versions follow [Semantic V
 
 ## Unreleased
 
+### Changed
+
+- The query-chain proof follows AutoMapper's `ProjectTo<T>(…)`, as an extension method or through `IMapper`, as a projection like `Select`. Queries projected to DTOs with AutoMapper were invisible to every rule built on the proof. EFD005, for example, now reports an unbounded `ProjectTo(…).ToListAsync()`. EFDoctor recognizes `ProjectTo` by its shape and takes no AutoMapper dependency. EFD002, EFD026, EFD032, and EFD038 treat a `ProjectTo` result as a projection the context doesn't track, as they do for `Select`.
+
+### Fixed
+
+- EFD006 honors an `AsSplitQuery()` or `AsSingleQuery()` written after AutoMapper's `ProjectTo`. It used to analyze the chain only up to `ProjectTo`, and reported the sibling includes before it.
+
 ## 0.6.0
 
 ### Added

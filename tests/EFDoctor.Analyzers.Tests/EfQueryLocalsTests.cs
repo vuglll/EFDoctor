@@ -285,18 +285,91 @@ public sealed class EfQueryLocalsTests
         Assert.Equal("DbSet.AsQueryable -> local 'query'", Chain(stored));
     }
 
+    [Fact]
+    [Trait("Spec", "query-chain-local-tracking/Extension ProjectTo")]
+    public void ExtensionProjectToIsFollowedAsAProjection()
+    {
+        var analysis = Prove("""
+            Probe(context.Items.Where(item => item.Active).ProjectTo<ItemDto>(configuration).ToList());
+            return null!;
+            """);
+
+        Assert.NotNull(analysis);
+        Assert.Equal("context.Items", analysis.Origin.Syntax.ToString());
+        Assert.Equal("Queryable.Where -> AutoMapper.ProjectTo", Chain(analysis));
+        Assert.Equal(RowBoundKind.None, analysis.RowBound.Kind);
+    }
+
+    [Fact]
+    [Trait("Spec", "query-chain-local-tracking/Mapper ProjectTo")]
+    public void MapperProjectToIsFollowedThroughItsFirstArgument()
+    {
+        var analysis = Prove("""
+            Probe(mapper.ProjectTo<ItemDto>(context.Items.Where(item => item.Active)).ToList());
+            return null!;
+            """);
+
+        Assert.NotNull(analysis);
+        Assert.Equal("context.Items", analysis.Origin.Syntax.ToString());
+        Assert.Equal("Queryable.Where -> AutoMapper.ProjectTo", Chain(analysis));
+    }
+
+    [Fact]
+    [Trait("Spec", "query-chain-local-tracking/ProjectTo in a stored query")]
+    public void StoredProjectToIsFollowed()
+    {
+        var analysis = Prove("""
+            var query = context.Items.Take(10).ProjectTo<ItemDto>(configuration);
+            Probe(query.ToList());
+            return null!;
+            """);
+
+        Assert.NotNull(analysis);
+        Assert.Equal("Queryable.Take -> AutoMapper.ProjectTo -> local 'query'", Chain(analysis));
+        Assert.Equal(RowBoundKind.Take, analysis.RowBound.Kind);
+    }
+
+    [Fact]
+    [Trait("Spec", "query-chain-local-tracking/Unrelated ProjectTo")]
+    public void UnrelatedProjectToEndsTheProof()
+    {
+        Assert.Null(Prove("""
+            Probe(Unrelated.Projections.ProjectTo<ItemDto>(context.Items).ToList());
+            return null!;
+            """));
+    }
+
+    [Fact]
+    [Trait("Spec", "query-chain-local-tracking/ProjectTo is not a self-composition")]
+    public void ConditionalProjectToWriteIsNotFollowedByTheOriginProof()
+    {
+        Assert.Null(Prove("""
+            IQueryable<object> query = context.Items;
+            if (flag) query = query.ProjectTo<ItemDto>(configuration);
+            Probe(query.ToList());
+            return null!;
+            """, followComposedLocals: true));
+    }
+
     private static EfQueryChainAnalysis? Prove(string body, bool followComposedLocals = false)
     {
         var source = $$"""
             using System;
             using System.Collections.Generic;
             using System.Linq;
+            using AutoMapper;
+            using AutoMapper.QueryableExtensions;
             using Microsoft.EntityFrameworkCore;
 
             sealed class Item
             {
                 public int Id { get; set; }
                 public bool Active { get; set; }
+            }
+
+            sealed class ItemDto
+            {
+                public int Id { get; set; }
             }
 
             sealed class TestContext : DbContext
@@ -306,7 +379,7 @@ public sealed class EfQueryLocalsTests
 
             static class Subject
             {
-                static List<Item> Run(TestContext context, bool flag, int[] ids)
+                static List<Item> Run(TestContext context, bool flag, int[] ids, IConfigurationProvider configuration, IMapper mapper)
                 {
                     {{body}}
                 }
@@ -315,11 +388,11 @@ public sealed class EfQueryLocalsTests
                 static void Touch(ref IQueryable<Item> query) { }
                 static void Replace(out IQueryable<Item> query) => query = Enumerable.Empty<Item>().AsQueryable();
             }
-            """;
+            """ + AnalyzerTestHarness.AutoMapperStub;
         var compilation = AnalyzerTestHarness.CreateCompilation(source, true, false, false, false, false, null, SaveChangesInLoopAnalyzer.DiagnosticId);
         Assert.Empty(compilation.GetDiagnostics().Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error));
 
-        var tree = compilation.SyntaxTrees.Single();
+        var tree = compilation.SyntaxTrees.First();
         var probe = tree.GetRoot().DescendantNodes().OfType<InvocationExpressionSyntax>()
             .Single(static invocation => invocation.Expression.ToString() == "Probe");
         var terminal = (IInvocationOperation)compilation.GetSemanticModel(tree).GetOperation(probe.ArgumentList.Arguments[0].Expression)!;

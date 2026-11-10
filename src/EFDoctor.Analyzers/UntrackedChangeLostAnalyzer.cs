@@ -179,7 +179,8 @@ public sealed class UntrackedChangeLostAnalyzer : DiagnosticAnalyzer
             if (EfQueryOperationAnalysis.GetInvocationSource(candidate) is not { } source
                 || !EfQueryOperationAnalysis.TryAnalyzeSource(source, _symbols.Queryable, _symbols.DbSet, _symbols.DbContext, _symbols.EfExtensions, out var analysis)
                 || !_identity.TryGetKey(_identity.ContextOfDbSet(analysis.Origin), out var loadKey, out _)
-                || !SymbolEqualityComparer.Default.Equals(loadKey, contextKey))
+                || !SymbolEqualityComparer.Default.Equals(loadKey, contextKey)
+                || analysis.Operations.Contains(EfQueryOperationAnalysis.ProjectToOperation))
             {
                 return false;
             }
